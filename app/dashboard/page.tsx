@@ -12,6 +12,8 @@ export default function UserDashboard() {
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
   const [predictions, setPredictions] = useState<Record<number, number>>({})
   const [isEditing, setIsEditing] = useState(false)
+  // NUEVO: Estado para saber si lo que vemos viene de la DB o es nuevo
+  const [hasSavedInDB, setHasSavedInDB] = useState(false)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('muertazos_user')
@@ -20,8 +22,6 @@ export default function UserDashboard() {
     } else {
       setUser(JSON.parse(storedUser))
     }
-
-    // CORRECCIÓN 1: MODO OSCURO TOTAL
     document.body.style.backgroundColor = '#0a0a0a'
     return () => { document.body.style.backgroundColor = '' }
   }, [router])
@@ -30,6 +30,7 @@ export default function UserDashboard() {
     if (user) {
         loadData()
         setCurrentDayIndex(0) 
+        setIsEditing(false)
     }
   }, [user, league])
 
@@ -56,15 +57,20 @@ export default function UserDashboard() {
       const predMap: Record<number, number> = {}
       preds?.forEach((p: any) => predMap[p.match_id] = p.predicted_team_id)
       setPredictions(predMap)
+
+      // CORRECCIÓN: Verificar si la jornada actual ya tiene algo guardado en la DB
+      const currentMatchesIds = sortedDays[currentDayIndex]?.matches.map((m:any) => m.id) || []
+      const alreadyHasPreds = preds?.some((p:any) => currentMatchesIds.includes(p.match_id))
+      setHasSavedInDB(!!alreadyHasPreds)
     }
   }
 
   const handlePredict = (matchId: number, teamId: number) => {
-    if (!isEditing && hasSaved) return 
+    // Solo bloqueamos si ya se guardó en DB Y no estamos en modo edición
+    if (hasSavedInDB && !isEditing) return 
     if (matchdays[currentDayIndex].is_locked) return 
     
     setPredictions(prev => {
-        // CORRECCIÓN 2: Desmarcar si se toca el mismo equipo
         if (prev[matchId] === teamId) {
             const next = { ...prev };
             delete next[matchId];
@@ -77,19 +83,15 @@ export default function UserDashboard() {
   const savePredictions = async () => {
     const currentMatches = matchdays[currentDayIndex].matches
     
-    // CORRECCIÓN 3: Persistencia de deselección (Si está vacío, lo borramos de Supabase)
     for (const match of currentMatches) {
         const selectedTeamId = predictions[match.id]
-        
         if (selectedTeamId) {
-            // Upsert para guardar/actualizar
             await supabase.from('predictions').upsert({
                 user_id: user.id,
                 match_id: match.id,
                 predicted_team_id: selectedTeamId
             }, { onConflict: 'user_id, match_id' })
         } else {
-            // Si el usuario lo dejó vacío, borrar de la DB para que no vuelva a aparecer
             await supabase.from('predictions')
                 .delete()
                 .eq('user_id', user.id)
@@ -98,43 +100,35 @@ export default function UserDashboard() {
     }
     
     setIsEditing(false)
-    loadData() // Recargar para confirmar cambios
+    setHasSavedInDB(true) // Ahora ya está guardado
+    loadData() 
   }
 
   const currentMatches = matchdays[currentDayIndex]?.matches || []
-  const hasSaved = currentMatches.length > 0 && currentMatches.some((m:any) => predictions[m.id])
 
   if (!user) return null
 
-  // COLORES DINÁMICOS
   const activeColor = league === 'kings' ? 'text-[#ffd300]' : 'text-[#01d6c3]'
   const accentHex = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-20 px-4 text-white">
-      {/* Selector de Competición */}
       <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto pt-8">
         <div className="flex gap-4">
             <button 
                 onClick={() => { setLeague('kings'); setIsEditing(false); }} 
                 className={`text-xl font-black transition-all ${league === 'kings' ? 'text-[#ffd300] border-b-4 border-[#ffd300]' : 'text-gray-600'}`}
-            >
-                KINGS
-            </button>
+            >KINGS</button>
             <button 
                 onClick={() => { setLeague('queens'); setIsEditing(false); }} 
                 className={`text-xl font-black transition-all ${league === 'queens' ? 'text-[#01d6c3] border-b-4 border-[#01d6c3]' : 'text-gray-600'}`}
-            >
-                QUEENS
-            </button>
+            >QUEENS</button>
         </div>
         <button 
             onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
             className="text-[10px] font-bold text-red-500 uppercase border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
-        >
-            Cerrar Sesión
-        </button>
+        >Cerrar Sesión</button>
       </div>
 
       <div className="bg-slate-900/40 rounded-3xl p-4 min-h-[500px] border border-slate-800 shadow-2xl max-w-2xl mx-auto">
@@ -144,17 +138,13 @@ export default function UserDashboard() {
            </div>
         ) : (
             <>
-                {/* Navegación de Jornadas */}
                 <div className="flex justify-between items-center mb-6 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/30">
-                    {/* CORRECCIÓN 4: BOTONES CON COLOR FIJO */}
                     <button 
                         disabled={currentDayIndex === 0} 
                         onClick={() => { setCurrentDayIndex(i => i-1); setIsEditing(false); }} 
                         style={{ color: accentHex, borderColor: accentHex + '40' }}
                         className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-10 transition-all font-black"
-                    >
-                        ←
-                    </button>
+                    > ← </button>
                     
                     <div className="text-center">
                         <h2 className={`text-2xl font-black italic uppercase ${activeColor}`}>
@@ -168,14 +158,11 @@ export default function UserDashboard() {
                         onClick={() => { setCurrentDayIndex(i => i+1); setIsEditing(false); }} 
                         style={{ color: accentHex, borderColor: accentHex + '40' }}
                         className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-10 transition-all font-black"
-                    >
-                        →
-                    </button>
+                    > → </button>
                 </div>
 
-                {/* Lista de Partidos */}
                 <div className="space-y-4">
-                    {matchdays[currentDayIndex].matches.map((match: any) => {
+                    {currentMatches.map((match: any) => {
                         const isLocked = matchdays[currentDayIndex].is_locked
                         const myPick = predictions[match.id]
                         return (
@@ -185,7 +172,8 @@ export default function UserDashboard() {
                                     league={league}
                                     isSelected={myPick === match.home_team_id}
                                     onClick={() => handlePredict(match.id, match.home_team_id)}
-                                    disabled={(!isEditing && hasSaved) || isLocked}
+                                    // Bloquear solo si ya se guardó y no estamos editando
+                                    disabled={(hasSavedInDB && !isEditing) || isLocked}
                                 />
                                 <div className="flex flex-col items-center z-10">
                                     <span className="text-[10px] font-black text-slate-700 italic">VS</span>
@@ -195,7 +183,7 @@ export default function UserDashboard() {
                                     league={league}
                                     isSelected={myPick === match.away_team_id}
                                     onClick={() => handlePredict(match.id, match.away_team_id)}
-                                    disabled={(!isEditing && hasSaved) || isLocked}
+                                    disabled={(hasSavedInDB && !isEditing) || isLocked}
                                 />
                             </div>
                         )
@@ -208,20 +196,16 @@ export default function UserDashboard() {
                             JORNADA BLOQUEADA
                         </div>
                     ) : (
-                        hasSaved && !isEditing ? (
+                        hasSavedInDB && !isEditing ? (
                             <button 
                                 onClick={() => setIsEditing(true)} 
                                 className="bg-white text-slate-900 px-10 py-3 rounded-full font-black italic uppercase hover:scale-105 transition-transform"
-                            >
-                                Editar mi elección
-                            </button>
+                            >Editar mi elección</button>
                         ) : (
                             <button 
                                 onClick={savePredictions} 
                                 className={`${btnColor} text-slate-900 px-10 py-3 rounded-full font-black italic uppercase shadow-xl hover:scale-105 transition-transform`}
-                            >
-                                GUARDAR JORNADA
-                            </button>
+                            >GUARDAR JORNADA</button>
                         )
                     )}
                 </div>
@@ -234,7 +218,6 @@ export default function UserDashboard() {
 
 function TeamButton({ team, league, isSelected, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
-    
     return (
         <button 
             onClick={onClick}
