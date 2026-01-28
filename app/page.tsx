@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -9,11 +9,15 @@ export default function Login() {
   const [error, setError] = useState('')
   const router = useRouter()
 
+  // MODO OSCURO TOTAL DESDE EL INICIO
+  useEffect(() => {
+    document.body.style.backgroundColor = '#0a0a0a'
+    return () => { document.body.style.backgroundColor = '' }
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    console.log("Intentando login con:", username, password)
 
     const { data, error: dbError } = await supabase
       .from('app_users')
@@ -22,16 +26,11 @@ export default function Login() {
       .eq('password', password)
       .single()
 
-    if (dbError) console.error("Error de Supabase:", dbError)
-    
     if (dbError || !data) {
       setError('Credenciales incorrectas (o mojadas)')
       return
     }
 
-    console.log("Usuario encontrado:", data)
-
-    // ESTO ES LO QUE TE FALTABA: Guardar y Redirigir
     localStorage.setItem('muertazos_user', JSON.stringify(data))
 
     if (data.role === 'admin') {
@@ -42,33 +41,54 @@ export default function Login() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center pt-20">
-      <div className="bg-slate-800 p-8 rounded-lg shadow-xl w-full max-w-sm border border-slate-700">
-        <h1 className="text-2xl font-bold text-center mb-6 text-[#ffd300]">INICIAR SESIÓN</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Usuario"
-            className="w-full p-3 bg-slate-900 border border-slate-600 rounded text-white"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            className="w-full p-3 bg-slate-900 border border-slate-600 rounded text-white"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#0a0a0a]">
+      {/* TARJETA DE LOGIN CON EL ESTILO DE LA APP */}
+      <div className="bg-slate-900/40 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-800 backdrop-blur-sm">
+        
+        <h1 className="text-3xl font-black italic text-center mb-8 tracking-tighter uppercase leading-none">
+            <span style={{ color: '#FFFFFF' }}>INICIAR</span> 
+            <span className="ml-2" style={{ color: '#FFD300' }}>SESIÓN</span>
+        </h1>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 ml-2 uppercase tracking-widest">Usuario</label>
+            <input
+              type="text"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:outline-none focus:border-[#ffd300] transition-all font-bold"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 ml-2 uppercase tracking-widest">Contraseña</label>
+            <input
+              type="password"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:outline-none focus:border-[#01d6c3] transition-all font-bold"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-xl">
+                <p className="text-red-500 text-[11px] font-bold text-center uppercase italic">{error}</p>
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-[#01d6c3] hover:bg-[#00b5a4] text-slate-900 font-bold py-3 rounded transition-colors"
+            className="w-full bg-[#01d6c3] hover:scale-[1.02] active:scale-95 text-slate-900 font-black italic py-4 rounded-2xl transition-all uppercase tracking-tighter"
           >
-            ENTRAR
+            ENTRAR AL PANEL
           </button>
         </form>
       </div>
+
+      <p className="mt-8 text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
+        MUERTAZOS © 2026
+      </p>
     </div>
   )
 }
