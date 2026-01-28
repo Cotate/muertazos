@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-20 px-4 max-w-7xl mx-auto text-white">
         
-        {/* CABECERA REESTRUCTURADA: Texto centrado y botón a la misma altura */}
+        {/* CABECERA */}
         <div className="relative flex items-center justify-center py-10">
             <h1 className="text-2xl font-black italic tracking-tighter uppercase text-center">
                 <span style={{ color: '#FFFFFF', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>PANEL CONTROL</span> 
@@ -75,10 +75,18 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
             .eq('competition_key', competitionKey)
             .order('display_order')
+
         const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
-        const { data: pData } = await supabase.from('predictions').select('*, team:predicted_team_id(logo_file)')
+        
+        // CORRECCIÓN LOGOS: Traemos la relación del equipo predicho explícitamente
+        const { data: pData } = await supabase
+            .from('predictions')
+            .select('*, predicted_team:predicted_team_id(logo_file)')
+
         if (mData) {
-            mData.forEach(day => day.matches.sort((a: any, b: any) => a.id - b.id))
+            mData.forEach(day => {
+                if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id)
+            })
             setMatchdays(mData)
         }
         setUsers(uData || [])
@@ -129,16 +137,16 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {day.matches.map((m: any) => (
+                                {day.matches?.map((m: any) => (
                                     <tr key={m.id} className="border-b border-slate-800/50 hover:bg-white/[0.02] transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`p-2 rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20' : 'border-transparent bg-slate-800 opacity-40 hover:opacity-100'}`}>
-                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={35} height={35} alt="h" />
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={35} height={35} alt="h" className="object-contain" />}
                                                 </button>
                                                 <span className="text-xs font-black text-slate-600 italic">VS</span>
                                                 <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`p-2 rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20' : 'border-transparent bg-slate-800 opacity-40 hover:opacity-100'}`}>
-                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={35} height={35} alt="a" />
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={35} height={35} alt="a" className="object-contain" />}
                                                 </button>
                                             </div>
                                         </td>
@@ -147,7 +155,9 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
                                             return (
                                                 <td key={u.id} className="p-2">
-                                                    {pred ? <Image src={`/logos/${folder}/${pred.team.logo_file}`} width={28} height={28} className={`mx-auto ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.6)] scale-110' : 'opacity-20 grayscale'}`} alt="p" /> : <span className="text-slate-800">-</span>}
+                                                    {pred?.predicted_team?.logo_file ? (
+                                                        <Image src={`/logos/${folder}/${pred.predicted_team.logo_file}`} width={28} height={28} className={`mx-auto object-contain ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.6)] scale-110' : 'opacity-20 grayscale'}`} alt="p" />
+                                                    ) : <span className="text-slate-800">-</span>}
                                                 </td>
                                             )
                                         })}
@@ -204,7 +214,6 @@ function RankingView() {
     }, [])
 
     return (
-        // CAMBIO: Fondo slate-900/40 para coincidir con las otras tablas
         <div className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl mb-10">
             <div className="p-10 bg-slate-800/40 border-b border-slate-700/50 text-center md:text-left">
                 <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">
