@@ -216,32 +216,42 @@ function RankingView() {
     }, [])
 
     return (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl mb-10">
-            <div className="p-10 bg-slate-800/40 border-b border-slate-700/50 text-center md:text-left">
-                <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-10">
+            <div className="p-6 bg-slate-800/40 border-b border-slate-700/50 text-center md:text-left">
+                <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">
                     <span style={{ color: '#FFFFFF' }}>CLASIFICACIÓN</span> 
-                    <span className="ml-3" style={{ color: '#FFD300' }}>GENERAL</span>
+                    <span className="ml-2" style={{ color: '#FFD300' }}>GENERAL</span>
                 </h2>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-slate-800/60 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em]">
-                            <th className="p-4 md:p-6 text-slate-500">Pos</th>
-                            <th className="p-4 md:p-6 text-slate-200">Participante</th>
-                            {headerJornadas.map(h => <th key={h.id} className="p-4 md:p-6 text-center text-slate-500">{h.label}</th>)}
-                            <th className="p-4 md:p-6 text-right text-[#ffd300]">Total</th>
+                        <tr className="bg-slate-800/60 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                            <th className="px-4 py-3 w-12 text-center">Pos</th>
+                            <th className="px-4 py-3">Participante</th>
+                            {headerJornadas.map(h => (
+                                <th key={h.id} className="px-2 py-3 text-center w-14">{h.label}</th>
+                            ))}
+                            <th className="px-6 py-3 text-right text-[#ffd300] w-20">Total</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-800/50">
                         {rankingData.map((row, i) => (
-                            <tr key={row.username} className="hover:bg-white/[0.03] transition-colors">
-                                <td className="p-4 md:p-6 font-black italic text-xl md:text-2xl text-slate-600">
-                                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}
+                            <tr key={row.username} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-4 py-2 text-center font-bold text-sm">
+                                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="text-slate-500 text-xs">{i + 1}º</span>}
                                 </td>
-                                <td className="p-4 md:p-6 font-black uppercase text-base md:text-xl text-white tracking-tight">{row.username}</td>
-                                {headerJornadas.map(h => <td key={h.id} className="p-4 md:p-6 text-center text-slate-400 font-mono text-base md:text-lg">{row.breakdown[h.label]}</td>)}
-                                <td className="p-4 md:p-6 text-right font-black italic text-3xl md:text-5xl" style={{ color: i === 0 ? '#FFD300' : '#FFFFFF' }}>{row.total}</td>
+                                <td className="px-4 py-2 font-bold uppercase text-sm text-white tracking-tight">
+                                    {row.username}
+                                </td>
+                                {headerJornadas.map(h => (
+                                    <td key={h.id} className="px-2 py-2 text-center text-slate-400 font-mono text-sm">
+                                        {row.breakdown[h.label]}
+                                    </td>
+                                ))}
+                                <td className="px-6 py-2 text-right font-black italic text-xl" style={{ color: i === 0 ? '#FFD300' : '#FFFFFF' }}>
+                                    {row.total}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
