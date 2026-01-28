@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Muertazos - Predicciones',
   description: 'Liga de predicciones Kings & Queens',
+  // AQUI AÑADIMOS EL FAVICON
+  icons: {
+    icon: '/Muertazos.png',
+    apple: '/Muertazos.png',
+  },
 }
 
 export default function RootLayout({
@@ -17,10 +22,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${inter.className} bg-slate-900 text-white min-h-screen`}>
+      {/* CAMBIO: bg-[#0a0a0a] para consistencia total con el modo oscuro */}
+      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen`}>
         <header className="w-full p-4 flex justify-center bg-slate-950 border-b border-slate-800 shadow-lg relative z-10">
             <div className="relative w-48 h-16">
-                 {/* Asegúrate de tener Muertazos.png en public */}
                 <Image 
                   src="/Muertazos.png" 
                   alt="Muertazos Logo" 
