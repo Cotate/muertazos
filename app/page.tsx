@@ -9,7 +9,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  // MODO OSCURO TOTAL DESDE EL INICIO
   useEffect(() => {
     document.body.style.backgroundColor = '#0a0a0a'
     return () => { document.body.style.backgroundColor = '' }
@@ -41,8 +40,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#0a0a0a]">
-      {/* TARJETA DE LOGIN CON EL ESTILO DE LA APP */}
+    // CAMBIO: Quitamos justify-center y añadimos pt-24 para que respire por arriba
+    <div className="min-h-screen flex flex-col items-center pt-24 px-4 bg-[#0a0a0a]">
+      
+      {/* TARJETA DE LOGIN */}
       <div className="bg-slate-900/40 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-800 backdrop-blur-sm">
         
         <h1 className="text-3xl font-black italic text-center mb-8 tracking-tighter uppercase leading-none">
@@ -81,7 +82,7 @@ export default function Login() {
             type="submit"
             className="w-full bg-[#01d6c3] hover:scale-[1.02] active:scale-95 text-slate-900 font-black italic py-4 rounded-2xl transition-all uppercase tracking-tighter"
           >
-            ENTRAR AL PANEL
+            ENTRAR
           </button>
         </form>
       </div>
