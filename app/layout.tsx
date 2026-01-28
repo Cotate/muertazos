@@ -8,10 +8,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Muertazos - Predicciones',
   description: 'Liga de predicciones Kings & Queens',
-  // AQUI AÑADIMOS EL FAVICON
   icons: {
-    icon: '/Muertazos.png',
-    apple: '/Muertazos.png',
+    // Le añadimos ?v=1 al final para forzar la actualización
+    icon: '/Muertazos.png?v=1',
+    apple: '/Muertazos.png?v=1',
   },
 }
 
