@@ -19,8 +19,8 @@ export default function AdminDashboard() {
   }, [router])
 
   return (
-    // Max-w-[98%] para reducir los márgenes laterales y aprovechar la pantalla
-    <div className="min-h-screen bg-[#0a0a0a] pb-20 px-2 max-w-[98%] mx-auto text-white">
+    /* CAMBIO: Eliminamos max-w-7xl y usamos w-full con un padding mínimo para que toque casi los bordes */
+    <div className="min-h-screen bg-[#0a0a0a] pb-20 px-4 w-full text-white">
         
         {/* CABECERA */}
         <div className="relative flex items-center justify-center py-10">
@@ -90,7 +90,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     useEffect(() => { load() }, [competitionKey])
 
     const toggleVisible = async (id: number, val: boolean) => {
-        await supabase.from('matchdays').update({ is_visible: !val }).eq('id', id); load()
+        await supabase.from('matchdays').update({ is_visible: !val }).eq( 'id', id); load()
     }
     const toggleLock = async (id: number, val: boolean) => {
         await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load()
@@ -102,33 +102,33 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const colorHex = competitionKey === 'kings' ? '#ffd300' : '#01d6c3'
 
     return (
-        <div className="space-y-10">
+        <div className="w-full space-y-10">
             {matchdays.map(day => (
-                <div key={day.id} className="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+                <div key={day.id} className="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl w-full">
                     <div className="p-4 bg-slate-800/60 flex justify-between items-center border-b border-slate-700/50">
                         <div>
                             <h3 style={{ color: colorHex }} className="text-xl font-black uppercase italic tracking-tight">{day.name}</h3>
                             <p className="text-[10px] text-slate-500 font-mono italic">{day.date_label || 'FECHA POR DEFINIR'}</p>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_visible ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_visible ? 'bg-green-600 text-white border-green-500' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
                                 {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
                             </button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_locked ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
+                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_locked ? 'bg-red-600 text-white border-red-500' : 'bg-blue-600 text-white border-blue-500'}`}>
                                 {day.is_locked ? 'CERRADO' : 'ABIERTO'}
                             </button>
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                        <table className="w-full border-collapse">
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse table-fixed">
                             <thead>
-                                <tr className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                                    {/* Columna fija con fondo oscuro sólido para que no transparente al hacer scroll */}
-                                    <th className="w-44 p-3 text-left sticky left-0 bg-[#0f172a] z-20 border-r border-slate-800">PARTIDO</th>
+                                <tr className="text-[10px] text-slate-500 font-black uppercase">
+                                    {/* CAMBIO: Columna de partido mucho más ancha y con fondo opaco */}
+                                    <th className="w-[180px] p-4 text-left sticky left-0 bg-[#0f172a] z-20 border-r border-slate-800">PARTIDO</th>
                                     {users.map(u => (
-                                        <th key={u.id} className="p-2 text-center min-w-[110px]">
-                                            <div className="truncate bg-slate-800/60 rounded py-1 px-2 text-slate-300 font-bold">
+                                        <th key={u.id} className="w-[120px] p-2 text-center">
+                                            <div className="truncate bg-slate-800/60 rounded py-2 px-1 text-slate-300 font-bold text-[11px]">
                                                 {u.username}
                                             </div>
                                         </th>
@@ -137,15 +137,16 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             </thead>
                             <tbody>
                                 {day.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-slate-800/30 hover:bg-white/[0.02]">
-                                        <td className="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800 shadow-xl">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`p-1.5 rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={32} height={32} alt="h" className="object-contain" />}
+                                    <tr key={m.id} className="border-b border-slate-800/50 hover:bg-white/[0.02]">
+                                        <td className="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800 shadow-2xl">
+                                            <div className="flex items-center justify-around">
+                                                {/* CAMBIO: Contenedores de imagen con tamaño fijo para que no colapsen */}
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`relative w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={35} height={35} alt="h" className="object-contain min-w-[35px]" />}
                                                 </button>
                                                 <span className="text-[9px] font-black text-slate-700 italic">VS</span>
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`p-1.5 rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={32} height={32} alt="a" className="object-contain" />}
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`relative w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={35} height={35} alt="a" className="object-contain min-w-[35px]" />}
                                                 </button>
                                             </div>
                                         </td>
@@ -155,12 +156,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             return (
                                                 <td key={u.id} className="p-2 text-center">
                                                     {pred?.predicted_team?.logo_file ? (
-                                                        <Image 
-                                                            src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                            width={35} height={35} 
-                                                            className={`mx-auto object-contain transition-all ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.8)] scale-125' : 'opacity-20 grayscale'}`} 
-                                                            alt="p" 
-                                                        />
+                                                        <div className="flex justify-center">
+                                                            <Image 
+                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                width={38} height={38} 
+                                                                className={`object-contain transition-all ${isHit ? 'drop-shadow-[0_0_10px_rgba(34,197,94,1)] scale-110' : 'opacity-20 grayscale'}`} 
+                                                                alt="p" 
+                                                            />
+                                                        </div>
                                                     ) : <span className="text-slate-800 font-bold text-lg">-</span>}
                                                 </td>
                                             )
@@ -218,7 +221,7 @@ function RankingView() {
     }, [])
 
     return (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-10">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-10 w-full">
             <div className="p-6 bg-slate-800/40 border-b border-slate-700/50 text-center md:text-left">
                 <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">
                     <span style={{ color: '#FFFFFF' }}>CLASIFICACIÓN</span> 
