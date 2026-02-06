@@ -19,7 +19,8 @@ export default function AdminDashboard() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20 px-2 max-w-7xl mx-auto text-white">
+    // Max-w-[98%] para reducir los márgenes laterales y aprovechar la pantalla
+    <div className="min-h-screen bg-[#0a0a0a] pb-20 px-2 max-w-[98%] mx-auto text-white">
         
         {/* CABECERA */}
         <div className="relative flex items-center justify-center py-10">
@@ -101,34 +102,33 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const colorHex = competitionKey === 'kings' ? '#ffd300' : '#01d6c3'
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-10">
             {matchdays.map(day => (
-                <div key={day.id} className="bg-slate-900/40 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
-                    <div className="p-4 bg-slate-800/40 flex justify-between items-center border-b border-slate-700/50">
+                <div key={day.id} className="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+                    <div className="p-4 bg-slate-800/60 flex justify-between items-center border-b border-slate-700/50">
                         <div>
                             <h3 style={{ color: colorHex }} className="text-xl font-black uppercase italic tracking-tight">{day.name}</h3>
-                            <p className="text-[9px] text-slate-500 font-mono italic">{day.date_label || 'FECHA POR DEFINIR'}</p>
+                            <p className="text-[10px] text-slate-500 font-mono italic">{day.date_label || 'FECHA POR DEFINIR'}</p>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-3 py-1 text-[9px] font-black rounded-lg border transition-all ${day.is_visible ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_visible ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
                                 {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
                             </button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-3 py-1 text-[9px] font-black rounded-lg border transition-all ${day.is_locked ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
+                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg border transition-all ${day.is_locked ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
                                 {day.is_locked ? 'CERRADO' : 'ABIERTO'}
                             </button>
                         </div>
                     </div>
 
-                    {/* Contenedor con scroll horizontal */}
-                    <div className="p-2 md:p-4 overflow-x-auto scrollbar-hide">
+                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                         <table className="w-full border-collapse">
                             <thead>
-                                <tr className="text-[8px] md:text-[10px] text-slate-500 font-black uppercase tracking-tighter">
-                                    {/* Columna de partido fija a la izquierda */}
-                                    <th className="w-24 md:w-32 p-1 text-left sticky left-0 bg-[#111827] z-20">Partido</th>
+                                <tr className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                                    {/* Columna fija con fondo oscuro sólido para que no transparente al hacer scroll */}
+                                    <th className="w-44 p-3 text-left sticky left-0 bg-[#0f172a] z-20 border-r border-slate-800">PARTIDO</th>
                                     {users.map(u => (
-                                        <th key={u.id} className="p-0.5 text-center min-w-[100px]">
-                                            <div className="truncate w-full bg-slate-800/40 rounded py-1 px-1 text-slate-400 font-bold">
+                                        <th key={u.id} className="p-2 text-center min-w-[110px]">
+                                            <div className="truncate bg-slate-800/60 rounded py-1 px-2 text-slate-300 font-bold">
                                                 {u.username}
                                             </div>
                                         </th>
@@ -137,16 +137,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             </thead>
                             <tbody>
                                 {day.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-slate-800/30 hover:bg-white/[0.01]">
-                                        {/* Fila de partido fija a la izquierda */}
-                                        <td className="p-1 sticky left-0 bg-[#111827]/95 backdrop-blur-sm z-10 border-r border-slate-800/50">
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`p-1 rounded-lg border ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20' : 'border-transparent opacity-40 hover:opacity-100'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={20} height={20} alt="h" />}
+                                    <tr key={m.id} className="border-b border-slate-800/30 hover:bg-white/[0.02]">
+                                        <td className="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800 shadow-xl">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`p-1.5 rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={32} height={32} alt="h" className="object-contain" />}
                                                 </button>
-                                                <span className="text-[8px] font-black text-slate-700 italic">VS</span>
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`p-1 rounded-lg border ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20' : 'border-transparent opacity-40 hover:opacity-100'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={20} height={20} alt="a" />}
+                                                <span className="text-[9px] font-black text-slate-700 italic">VS</span>
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`p-1.5 rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={32} height={32} alt="a" className="object-contain" />}
                                                 </button>
                                             </div>
                                         </td>
@@ -154,15 +153,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
                                             const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
                                             return (
-                                                <td key={u.id} className="p-0.5 text-center">
+                                                <td key={u.id} className="p-2 text-center">
                                                     {pred?.predicted_team?.logo_file ? (
                                                         <Image 
                                                             src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                            width={22} height={22} 
-                                                            className={`mx-auto object-contain ${isHit ? 'drop-shadow-[0_0_5px_rgba(34,197,94,0.8)] scale-110' : 'opacity-20 grayscale'}`} 
+                                                            width={35} height={35} 
+                                                            className={`mx-auto object-contain transition-all ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.8)] scale-125' : 'opacity-20 grayscale'}`} 
                                                             alt="p" 
                                                         />
-                                                    ) : <span className="text-slate-800 text-[10px]">-</span>}
+                                                    ) : <span className="text-slate-800 font-bold text-lg">-</span>}
                                                 </td>
                                             )
                                         })}
