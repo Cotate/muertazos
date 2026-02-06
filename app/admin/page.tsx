@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
-// Aumentamos los usuarios por página para que ocupen más espacio horizontal
-const USERS_PER_PAGE = 15; 
+// Aumentamos los usuarios para que la tabla se vea llena
+const USERS_PER_PAGE = 14; 
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -22,33 +22,38 @@ export default function AdminDashboard() {
   }, [router])
 
   return (
-    /* Eliminamos cualquier max-width y padding lateral del contenedor principal */
-    <div className="min-h-screen bg-[#0a0a0a] pb-20 w-full text-white overflow-x-hidden">
+    /* IMPORTANTE: 
+       - Usamos w-screen y relative left-1/2 -ml-[50vw] para forzar el ancho total 
+         incluso si el padre tiene un contenedor limitado.
+    */
+    <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
         
         {/* CABECERA */}
-        <div className="relative flex items-center justify-center py-8 w-full border-b border-white/5">
-            <h1 className="text-2xl font-black italic tracking-tighter uppercase text-center">
+        <div className="relative flex items-center justify-center py-10 border-b border-white/5 bg-black/40">
+            <h1 className="text-3xl font-black italic tracking-tighter uppercase text-center">
                 <span style={{ color: '#FFFFFF', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>PANEL CONTROL</span> 
                 <span className="ml-2" style={{ color: '#FFD300', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>MUERTAZOS</span>
             </h1>
             
             <button 
                 onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="absolute right-6 bg-red-600/10 text-red-500 border border-red-500/30 px-3 py-1.5 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-[10px]"
+                className="absolute right-10 bg-red-600/10 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-xs"
             >
                 CERRAR SESIÓN
             </button>
         </div>
         
-        {/* NAVEGACIÓN TABS - Ahora ocupa todo el ancho también */}
-        <div className="flex justify-center gap-12 border-b border-slate-800 w-full bg-black/20">
+        {/* NAVEGACIÓN TABS */}
+        <div className="flex justify-center gap-10 border-b border-slate-800 bg-black/20">
             <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
             <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
             <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
         </div>
 
-        {/* CONTENEDOR DE CONTENIDO - Forzado a ocupar el 100% real */}
-        <div className="w-full">
+        {/* CONTENEDOR MÁGICO PARA FULL WIDTH 
+            Esto ignora los márgenes del padre (layout.tsx)
+        */}
+        <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             {tab === 'ranking' ? <RankingView /> : <CompetitionAdmin key={tab} competitionKey={tab} />}
         </div>
     </div>
@@ -63,7 +68,7 @@ function TabBtn({label, active, onClick, activeColor}: any) {
                 color: active ? activeColor : '#475569',
                 borderBottom: active ? `4px solid ${activeColor}` : '4px solid transparent',
             }}
-            className="py-5 px-4 font-black italic tracking-tighter transition-all uppercase text-sm hover:text-white"
+            className="py-6 px-6 font-black italic tracking-tighter transition-all uppercase text-base hover:text-white"
         >
             {label}
         </button>
@@ -112,112 +117,109 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const colorHex = competitionKey === 'kings' ? '#ffd300' : '#01d6c3'
 
     return (
-        <div className="w-full relative">
+        <div className="w-full">
             {matchdays.map(day => (
-                <div key={day.id} className="relative group w-full mb-1">
+                <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
                     
-                    {/* BOTONES LATERALES PEQUEÑOS Y FIJOS AL BORDE */}
+                    {/* BOTONES LATERALES FIJOS AL BORDE DE LA PANTALLA */}
                     {totalPages > 1 && (
                         <>
                             {currentPage > 0 && (
                                 <button 
                                     onClick={() => setCurrentPage(prev => prev - 1)}
-                                    className="fixed left-0 top-1/2 -translate-y-1/2 z-[100] w-10 h-16 bg-black/60 backdrop-blur-md border border-white/10 rounded-r-xl flex items-center justify-center hover:bg-white hover:text-black transition-all"
+                                    className="fixed left-0 top-1/2 -translate-y-1/2 z-[100] w-12 h-20 bg-black/80 backdrop-blur-xl border border-white/10 rounded-r-2xl flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-2xl"
                                 >
-                                    <span className="text-lg">◀</span>
+                                    <span className="text-2xl">◀</span>
                                 </button>
                             )}
                             {currentPage < totalPages - 1 && (
                                 <button 
                                     onClick={() => setCurrentPage(prev => prev + 1)}
-                                    className="fixed right-0 top-1/2 -translate-y-1/2 z-[100] w-10 h-16 bg-black/60 backdrop-blur-md border border-white/10 rounded-l-xl flex items-center justify-center hover:bg-white hover:text-black transition-all"
+                                    className="fixed right-0 top-1/2 -translate-y-1/2 z-[100] w-12 h-20 bg-black/80 backdrop-blur-xl border border-white/10 rounded-l-2xl flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-2xl"
                                 >
-                                    <span className="text-lg">▶</span>
+                                    <span className="text-2xl">▶</span>
                                 </button>
                             )}
                         </>
                     )}
 
-                    <div className="w-full border-b border-slate-800 bg-slate-900/10">
-                        {/* HEADER JORNADA - SIN MARGENES */}
-                        <div className="w-full px-6 py-4 flex justify-between items-center bg-slate-800/20">
-                            <div className="flex items-center gap-6">
-                                <h3 style={{ color: colorHex }} className="text-2xl font-black italic uppercase tracking-tighter">{day.name}</h3>
-                                {totalPages > 1 && (
-                                    <div className="flex gap-1">
-                                        {[...Array(totalPages)].map((_, i) => (
-                                            <div key={i} className={`h-1.5 w-6 rounded-full transition-all ${currentPage === i ? 'bg-white' : 'bg-white/10'}`} />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex gap-3">
-                                <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[11px] font-black rounded border transition-all ${day.is_visible ? 'bg-green-600 border-green-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                                    {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
-                                </button>
-                                <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[11px] font-black rounded border transition-all ${day.is_locked ? 'bg-red-600 border-red-400 text-white' : 'bg-blue-600 border-blue-400 text-white'}`}>
-                                    {day.is_locked ? 'CERRADO' : 'ABIERTO'}
-                                </button>
-                            </div>
+                    {/* HEADER JORNADA */}
+                    <div className="w-full px-10 py-5 flex justify-between items-center bg-slate-900/40">
+                        <div className="flex items-center gap-8">
+                            <h3 style={{ color: colorHex }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3>
+                            {totalPages > 1 && (
+                                <div className="bg-white/5 px-4 py-1 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    GRUPO {currentPage + 1} DE {totalPages}
+                                </div>
+                            )}
                         </div>
+                        <div className="flex gap-4">
+                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_visible ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                                {day.is_visible ? '• PÚBLICO' : '• OCULTO'}
+                            </button>
+                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_locked ? 'bg-red-600 border-red-400 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`}>
+                                {day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}
+                            </button>
+                        </div>
+                    </div>
 
-                        {/* TABLA REALMENTE FULL WIDTH */}
-                        <div className="w-full">
-                            <table className="w-full border-collapse table-fixed">
-                                <thead>
-                                    <tr className="bg-black/40 text-[10px] text-slate-500 font-black uppercase">
-                                        <th className="w-[140px] p-4 text-left border-r border-white/5">PARTIDO</th>
-                                        {paginatedUsers.map(u => (
-                                            <th key={u.id} className="p-2 border-r border-white/5 truncate">
-                                                <span className="text-slate-300">{u.username}</span>
-                                            </th>
-                                        ))}
-                                        {/* Celdas vacías para mantener el ancho si hay pocos usuarios en la última página */}
+                    {/* TABLA SIN SCROLLBARS Y SIN MARGENES */}
+                    <div className="w-full overflow-hidden">
+                        <table className="w-full border-collapse table-fixed">
+                            <thead>
+                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
+                                    <th className="w-[180px] p-6 text-left border-r border-white/5">PARTIDO</th>
+                                    {paginatedUsers.map(u => (
+                                        <th key={u.id} className="p-2 border-r border-white/5 bg-black/20">
+                                            <div className="text-slate-200 truncate px-1 text-center font-bold">
+                                                {u.username}
+                                            </div>
+                                        </th>
+                                    ))}
+                                    {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
+                                        <th key={`empty-${i}`} className="p-2 border-r border-white/5"></th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {day.matches?.map((m: any) => (
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                                        <td className="p-4 border-r border-white/5 bg-slate-900/30">
+                                            <div className="flex items-center justify-between gap-2 px-2">
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-12 h-12 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-20 hover:opacity-100'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={36} height={36} alt="h" className="object-contain" />}
+                                                </button>
+                                                <span className="text-[10px] font-black text-slate-700 italic">VS</span>
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-12 h-12 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-20 hover:opacity-100'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={36} height={36} alt="a" className="object-contain" />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                        {paginatedUsers.map(u => {
+                                            const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                            return (
+                                                <td key={u.id} className="p-2 text-center border-r border-white/5">
+                                                    {pred?.predicted_team?.logo_file ? (
+                                                        <div className="flex justify-center">
+                                                            <Image 
+                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                width={45} height={45} 
+                                                                className={`object-contain transition-all duration-500 ${isHit ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110' : 'opacity-10 grayscale hover:opacity-40'}`} 
+                                                                alt="p" 
+                                                            />
+                                                        </div>
+                                                    ) : <span className="text-slate-800 font-bold text-sm">-</span>}
+                                                </td>
+                                            )
+                                        })}
                                         {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
-                                            <th key={`empty-${i}`} className="p-2 border-r border-white/5"></th>
+                                            <td key={`empty-td-${i}`} className="p-2 border-r border-white/5"></td>
                                         ))}
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {day.matches?.map((m: any) => (
-                                        <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                            <td className="p-3 border-r border-white/5 bg-black/20">
-                                                <div className="flex items-center justify-between">
-                                                    <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-10 h-10 flex items-center justify-center rounded-lg border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'border-transparent grayscale opacity-30 hover:opacity-100 hover:grayscale-0'}`}>
-                                                        {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={32} height={32} alt="h" className="object-contain" />}
-                                                    </button>
-                                                    <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                    <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-10 h-10 flex items-center justify-center rounded-lg border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'border-transparent grayscale opacity-30 hover:opacity-100 hover:grayscale-0'}`}>
-                                                        {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={32} height={32} alt="a" className="object-contain" />}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            {paginatedUsers.map(u => {
-                                                const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                                const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                                return (
-                                                    <td key={u.id} className="p-2 text-center border-r border-white/5">
-                                                        {pred?.predicted_team?.logo_file ? (
-                                                            <div className="flex justify-center">
-                                                                <Image 
-                                                                    src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                    width={40} height={40} 
-                                                                    className={`object-contain transition-all ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,1)] scale-110' : 'opacity-10 grayscale'}`} 
-                                                                    alt="p" 
-                                                                />
-                                                            </div>
-                                                        ) : <span className="text-slate-800 font-bold text-xs">-</span>}
-                                                    </td>
-                                                )
-                                            })}
-                                            {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
-                                                <td key={`empty-td-${i}`} className="p-2 border-r border-white/5"></td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             ))}
@@ -226,5 +228,5 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function RankingView() {
-    return <div className="w-full text-center py-20 text-slate-600 font-black italic uppercase">Sección de Ranking (Full Width)</div>
+    return <div className="w-full text-center py-40 text-slate-700 font-black italic text-4xl uppercase opacity-20">Clasificación General</div>
 }
