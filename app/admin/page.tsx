@@ -119,14 +119,16 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                     </div>
 
-                    <div className="p-2 md:p-4">
-                        <table className="w-full table-fixed border-collapse">
+                    {/* Contenedor con scroll horizontal */}
+                    <div className="p-2 md:p-4 overflow-x-auto scrollbar-hide">
+                        <table className="w-full border-collapse">
                             <thead>
                                 <tr className="text-[8px] md:text-[10px] text-slate-500 font-black uppercase tracking-tighter">
-                                    <th className="w-20 md:w-32 p-1 text-left">Partido</th>
+                                    {/* Columna de partido fija a la izquierda */}
+                                    <th className="w-24 md:w-32 p-1 text-left sticky left-0 bg-[#111827] z-20">Partido</th>
                                     {users.map(u => (
-                                        <th key={u.id} className="p-0.5 text-center">
-                                            <div className="truncate w-full bg-slate-800/40 rounded py-1 px-0.5 text-slate-400">
+                                        <th key={u.id} className="p-0.5 text-center min-w-[100px]">
+                                            <div className="truncate w-full bg-slate-800/40 rounded py-1 px-1 text-slate-400 font-bold">
                                                 {u.username}
                                             </div>
                                         </th>
@@ -136,7 +138,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             <tbody>
                                 {day.matches?.map((m: any) => (
                                     <tr key={m.id} className="border-b border-slate-800/30 hover:bg-white/[0.01]">
-                                        <td className="p-1">
+                                        {/* Fila de partido fija a la izquierda */}
+                                        <td className="p-1 sticky left-0 bg-[#111827]/95 backdrop-blur-sm z-10 border-r border-slate-800/50">
                                             <div className="flex items-center gap-1">
                                                 <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`p-1 rounded-lg border ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20' : 'border-transparent opacity-40 hover:opacity-100'}`}>
                                                     {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={20} height={20} alt="h" />}
