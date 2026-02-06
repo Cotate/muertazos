@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
-// Configuración de paginación
-const USERS_PER_PAGE = 10;
+// CAMBIO: Ahora dividimos exactamente en 11 participantes por página
+const USERS_PER_PAGE = 11;
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -22,7 +22,7 @@ export default function AdminDashboard() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20 w-full text-white">
+    <div className="min-h-screen bg-[#0a0a0a] pb-20 w-full text-white overflow-x-hidden">
         
         {/* CABECERA */}
         <div className="relative flex items-center justify-center py-10 px-6">
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
             <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
         </div>
 
-        <div className="w-full px-4">
+        <div className="w-full px-2 md:px-4">
             {tab === 'ranking' ? <RankingView /> : <CompetitionAdmin key={tab} competitionKey={tab} />}
         </div>
     </div>
@@ -72,11 +72,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
     const [allPreds, setAllPreds] = useState<any[]>([])
-    const [currentPage, setCurrentPage] = useState(0) // Estado para la página actual
+    const [currentPage, setCurrentPage] = useState(0)
     
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
 
-    // Lógica de paginación de usuarios
     const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
     const paginatedUsers = users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
 
@@ -112,39 +111,38 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const colorHex = competitionKey === 'kings' ? '#ffd300' : '#01d6c3'
 
     return (
-        <div className="w-full space-y-10">
+        <div className="w-full space-y-6">
             
-            {/* SELECTOR DE PÁGINAS (Solo si hay más de una) */}
+            {/* SELECTOR DE PÁGINAS */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 bg-slate-900/50 p-3 rounded-2xl border border-slate-800 mb-6">
+                <div className="flex items-center justify-between bg-slate-900/80 p-4 rounded-2xl border border-slate-800 shadow-xl">
                     <button 
                         disabled={currentPage === 0}
                         onClick={() => setCurrentPage(prev => prev - 1)}
-                        className="p-2 disabled:opacity-20 hover:text-[#ffd300] transition-colors"
+                        className={`font-black italic text-xs px-4 py-2 rounded-lg transition-all ${currentPage === 0 ? 'opacity-10' : 'hover:text-[#ffd300] bg-slate-800'}`}
                     >
                         ◀ ANTERIOR
                     </button>
-                    <div className="flex gap-2">
+                    
+                    <div className="flex gap-3">
                         {[...Array(totalPages)].map((_, i) => (
                             <button 
                                 key={i}
                                 onClick={() => setCurrentPage(i)}
-                                className={`w-8 h-8 rounded-lg font-bold text-xs transition-all ${currentPage === i ? 'bg-[#ffd300] text-black' : 'bg-slate-800 text-slate-400'}`}
+                                className={`px-4 py-2 rounded-lg font-black italic text-sm transition-all ${currentPage === i ? 'bg-[#ffd300] text-black scale-110 shadow-lg shadow-[#ffd300]/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}
                             >
-                                {i + 1}
+                                GRUPO {i + 1}
                             </button>
                         ))}
                     </div>
+
                     <button 
                         disabled={currentPage === totalPages - 1}
                         onClick={() => setCurrentPage(prev => prev + 1)}
-                        className="p-2 disabled:opacity-20 hover:text-[#ffd300] transition-colors"
+                        className={`font-black italic text-xs px-4 py-2 rounded-lg transition-all ${currentPage === totalPages - 1 ? 'opacity-10' : 'hover:text-[#ffd300] bg-slate-800'}`}
                     >
                         SIGUIENTE ▶
                     </button>
-                    <span className="text-[10px] text-slate-500 font-bold ml-4 uppercase tracking-widest">
-                        Mostrando {currentPage * USERS_PER_PAGE + 1}-{Math.min((currentPage + 1) * USERS_PER_PAGE, users.length)} de {users.length}
-                    </span>
                 </div>
             )}
 
@@ -165,31 +163,37 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto scrollbar-hide">
-                        <table className="w-full border-collapse">
+                    {/* CAMBIO: Quitamos overflow-x-auto para forzar que quepa en pantalla */}
+                    <div className="w-full">
+                        <table className="w-full border-collapse table-fixed">
                             <thead>
                                 <tr className="text-[10px] text-slate-500 font-black uppercase">
-                                    <th className="w-[180px] p-4 text-left sticky left-0 bg-[#0f172a] z-20 border-r border-slate-800">PARTIDO</th>
+                                    {/* CAMBIO: El ancho del partido es fijo, el resto se reparte */}
+                                    <th className="w-[140px] p-4 text-left bg-slate-900/50 border-r border-slate-800">PARTIDO</th>
                                     {paginatedUsers.map(u => (
-                                        <th key={u.id} className="p-2 text-center">
-                                            <div className="truncate bg-slate-800/60 rounded py-2 px-1 text-slate-300 font-bold text-[11px] border border-slate-700/30">
+                                        <th key={u.id} className="p-1 text-center">
+                                            <div className="truncate bg-slate-800/60 rounded py-2 px-1 text-slate-300 font-bold text-[9px] border border-slate-700/30">
                                                 {u.username}
                                             </div>
                                         </th>
+                                    ))}
+                                    {/* Relleno para que la tabla no se deforme si hay menos de 11 en la última página */}
+                                    {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
+                                        <th key={`empty-${i}`} className="p-1"></th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {day.matches?.map((m: any) => (
                                     <tr key={m.id} className="border-b border-slate-800/50 hover:bg-white/[0.02]">
-                                        <td className="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800 shadow-2xl">
-                                            <div className="flex items-center justify-around gap-2">
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`relative w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-105' : 'border-transparent opacity-40 hover:opacity-100'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={35} height={35} alt="h" className="object-contain" />}
+                                        <td className="p-2 border-r border-slate-800">
+                                            <div className="flex items-center justify-between gap-1">
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`relative w-8 h-8 flex items-center justify-center rounded-lg border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-105' : 'border-transparent opacity-40 hover:opacity-100'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={28} height={28} alt="h" className="object-contain" />}
                                                 </button>
-                                                <span className="text-[9px] font-black text-slate-700 italic">VS</span>
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`relative w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-105' : 'border-transparent opacity-40 hover:opacity-100'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={35} height={35} alt="a" className="object-contain" />}
+                                                <span className="text-[8px] font-black text-slate-700 italic">VS</span>
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`relative w-8 h-8 flex items-center justify-center rounded-lg border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-105' : 'border-transparent opacity-40 hover:opacity-100'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={28} height={28} alt="a" className="object-contain" />}
                                                 </button>
                                             </div>
                                         </td>
@@ -197,20 +201,24 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
                                             const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
                                             return (
-                                                <td key={u.id} className="p-2 text-center border-r border-slate-800/10">
+                                                <td key={u.id} className="p-1 text-center border-r border-slate-800/10">
                                                     {pred?.predicted_team?.logo_file ? (
                                                         <div className="flex justify-center">
                                                             <Image 
                                                                 src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={38} height={38} 
-                                                                className={`object-contain transition-all ${isHit ? 'drop-shadow-[0_0_10px_rgba(34,197,94,1)] scale-110' : 'opacity-20 grayscale'}`} 
+                                                                width={32} height={32} 
+                                                                className={`object-contain transition-all ${isHit ? 'drop-shadow-[0_0_8px_rgba(34,197,94,1)] scale-110' : 'opacity-20 grayscale'}`} 
                                                                 alt="p" 
                                                             />
                                                         </div>
-                                                    ) : <span className="text-slate-800 font-bold text-lg">-</span>}
+                                                    ) : <span className="text-slate-800 font-bold text-sm">-</span>}
                                                 </td>
                                             )
                                         })}
+                                        {/* Celdas vacías para mantener el ancho de columna constante */}
+                                        {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
+                                            <td key={`empty-td-${i}`} className="p-1"></td>
+                                        ))}
                                     </tr>
                                 ))}
                             </tbody>
@@ -223,7 +231,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function RankingView() {
-    // ... Código del Ranking (se mantiene igual)
+    // El ranking lo dejamos con scroll porque es una lista vertical de usuarios y suele leerse mejor así
     const [rankingData, setRankingData] = useState<any[]>([])
     const [headerJornadas, setHeaderJornadas] = useState<any[]>([])
 
@@ -272,7 +280,7 @@ function RankingView() {
                     <span className="ml-2" style={{ color: '#FFD300' }}>GENERAL</span>
                 </h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-hide">
                 <table className="w-full text-left border-collapse min-w-max">
                     <thead>
                         <tr className="bg-slate-800/60 text-[10px] font-black uppercase tracking-widest text-slate-500">
