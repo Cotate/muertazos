@@ -40,11 +40,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            {tab === 'ranking' ? (
-                <RankingView />
-            ) : (
-                <CompetitionAdmin key={tab} competitionKey={tab} />
-            )}
+            {tab === 'ranking' ? <RankingView /> : <CompetitionAdmin key={tab} competitionKey={tab} />}
         </div>
     </div>
   )
@@ -65,7 +61,6 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
-// ... (Componente CompetitionAdmin se mantiene igual que en la versión anterior)
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
@@ -200,14 +195,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
 function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
+    const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchRanking = async () => {
-            // 1. Obtener jornadas bloqueadas
             const { data: lockedDays } = await supabase
                 .from('matchdays')
-                .select('id, name')
+                .select('id, name, competition_key')
                 .eq('is_locked', true)
                 .order('display_order')
             
@@ -217,116 +212,92 @@ function RankingView() {
                 return
             }
 
-            const lockedIds = lockedDays.map(d => d.id)
+            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
+            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
+            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
 
-            // 2. Obtener partidos de esas jornadas con sus ganadores
-            const { data: matches } = await supabase
-                .from('matches')
-                .select('id, winner_team_id, matchday_id')
-                .in('matchday_id', lockedIds)
-                .not('winner_team_id', 'is', null)
-
-            // 3. Obtener todas las predicciones para esos partidos
-            const { data: predictions } = await supabase
-                .from('predictions')
-                .select('user_id, match_id, predicted_team_id')
-                .in('match_id', matches?.map(m => m.id) || [])
-
-            // 4. Obtener nombres de usuarios
-            const { data: appUsers } = await supabase
-                .from('app_users')
-                .select('id, username')
-                .neq('role', 'admin')
-
-            // 5. Mapear aciertos por usuario y jornada
             const userScores = appUsers?.map(u => {
                 let total = 0
                 const dayBreakdown: any = {}
-                
                 lockedDays.forEach(day => {
                     const matchesInDay = matches?.filter(m => m.matchday_id === day.id) || []
                     let dayHits = 0
-                    
                     matchesInDay.forEach(m => {
                         const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
-                        if (userPred && userPred.predicted_team_id === m.winner_team_id) {
-                            dayHits++
-                        }
+                        if (userPred && userPred.predicted_team_id === m.winner_team_id) dayHits++
                     })
-                    
                     dayBreakdown[day.id] = dayHits
                     total += dayHits
                 })
-
-                return {
-                    username: u.username,
-                    total,
-                    dayBreakdown
-                }
+                return { username: u.username, total, dayBreakdown }
             })
 
-            // Ordenar por total descendente
             userScores?.sort((a, b) => b.total - a.total)
-
             setRankingData({ users: userScores || [], days: lockedDays })
             setLoading(false)
         }
-
         fetchRanking()
     }, [])
 
-    if (loading) return <div className="py-40 text-center text-slate-500 font-black italic uppercase animate-pulse">Cargando desglose de puntos...</div>
+    if (loading) return <div className="py-20 text-center text-slate-500 font-black italic uppercase animate-pulse">Cargando posiciones...</div>
 
     return (
-        <div className="w-full px-10 py-10 overflow-x-auto">
-            <h2 className="text-4xl font-black italic uppercase text-center mb-10 tracking-tighter">
-                <span className="text-white">DESGLOSE</span> <span className="text-[#FFD300]">PUNTUACIÓN</span>
-            </h2>
+        <div className="w-full max-w-5xl mx-auto py-10 px-4">
+            <div className="flex flex-col items-center mb-8 gap-4">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center">
+                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+                </h2>
+                
+                <button 
+                    onClick={() => setShowFull(!showFull)}
+                    className="bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-widest hover:bg-white/10 transition-all text-slate-400"
+                >
+                    {showFull ? 'VER SOLO TOTAL' : 'VER DESGLOSE COMPLETO'}
+                </button>
+            </div>
 
-            <div className="bg-slate-900/40 rounded-2xl border border-white/5 shadow-2xl overflow-hidden min-w-max">
-                <table className="w-full text-left border-collapse">
+            <div className="bg-slate-900/40 rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+                <table className="w-full text-left border-collapse table-auto">
                     <thead>
-                        <tr className="bg-black/60 text-[10px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
-                            <th className="px-6 py-4 border-r border-white/5">POS</th>
-                            <th className="px-6 py-4 border-r border-white/5 min-w-[200px]">USUARIO</th>
-                            {rankingData.days.map(day => (
-                                <th key={day.id} className="px-6 py-4 text-center border-r border-white/5">
-                                    {day.name}
+                        <tr className="bg-black/60 text-[9px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
+                            <th className="px-4 py-3 w-12 text-center">POS</th>
+                            <th className="px-4 py-3 min-w-[140px]">USUARIO</th>
+                            {showFull && rankingData.days.map(day => (
+                                <th key={day.id} className={`px-2 py-3 text-center border-l border-white/5 w-16 ${day.competition_key === 'kings' ? 'text-[#FFD300]/60 bg-[#FFD300]/5' : 'text-[#01d6c3]/60 bg-[#01d6c3]/5'}`}>
+                                    {day.name.replace('JORNADA ', 'J')}
                                 </th>
                             ))}
-                            <th className="px-10 py-4 text-center bg-[#FFD300]/10 text-[#FFD300]">TOTAL</th>
+                            <th className="px-6 py-3 text-center bg-[#FFD300]/20 text-[#FFD300] w-20 border-l border-white/10">TOTAL</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rankingData.users.length > 0 ? rankingData.users.map((user, idx) => (
                             <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                                <td className="px-6 py-4 border-r border-white/5">
-                                    <span className={`font-black italic text-lg ${idx === 0 ? 'text-[#FFD300]' : idx === 1 ? 'text-slate-300' : 'text-slate-600'}`}>
-                                        #{idx + 1}
+                                <td className="px-4 py-2 text-center border-r border-white/5">
+                                    <span className={`font-black italic text-sm ${idx === 0 ? 'text-[#FFD300]' : idx === 1 ? 'text-slate-300' : 'text-slate-600'}`}>
+                                        {idx + 1}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 border-r border-white/5">
-                                    <span className="text-white font-bold uppercase tracking-tight group-hover:text-[#FFD300] transition-colors">
+                                <td className="px-4 py-2">
+                                    <span className="text-slate-200 font-bold uppercase text-xs tracking-tight group-hover:text-white transition-colors">
                                         {user.username}
                                     </span>
                                 </td>
-                                {rankingData.days.map(day => (
-                                    <td key={day.id} className="px-6 py-4 text-center border-r border-white/5 text-slate-400 font-mono">
-                                        {user.dayBreakdown[day.id] || 0}
+                                {showFull && rankingData.days.map(day => (
+                                    <td key={day.id} className={`px-2 py-2 text-center border-l border-white/5 text-[11px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
+                                        <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-300' : 'text-slate-700'}>
+                                            {user.dayBreakdown[day.id] || 0}
+                                        </span>
                                     </td>
                                 ))}
-                                <td className="px-10 py-4 text-center bg-[#FFD300]/5">
-                                    <span className="text-[#FFD300] font-black text-xl">
+                                <td className="px-6 py-2 text-center bg-[#FFD300]/10 border-l border-white/10">
+                                    <span className="text-[#FFD300] font-black text-sm">
                                         {user.total}
                                     </span>
                                 </td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={rankingData.days.length + 3} className="py-20 text-center text-slate-600 font-bold uppercase italic opacity-50">
-                                    No hay datos disponibles. Bloquea jornadas para ver el desglose.
-                                </td>
-                            </tr>
+                            <tr><td colSpan={10} className="py-10 text-center text-slate-700 text-xs font-bold uppercase">Sin datos</td></tr>
                         )}
                     </tbody>
                 </table>
