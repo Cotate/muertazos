@@ -23,31 +23,29 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
         
-        {/* CABECERA PRINCIPAL */}
-        <div className="relative flex items-center justify-center py-10 border-b border-white/5 bg-black/40">
-            <h1 className="text-3xl font-black italic tracking-tighter uppercase text-center">
-                <span style={{ color: '#FFFFFF', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>PANEL CONTROL</span> 
-                <span className="ml-2" style={{ color: '#FFD300', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>MUERTAZOS</span>
-            </h1>
-            
+        {/* NAVEGACIÓN Y CIERRE DE SESIÓN */}
+        <div className="relative flex justify-center items-center border-b border-slate-800 bg-black/20 px-10">
+            <div className="flex gap-10">
+                <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
+                <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
+                <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
+            </div>
+
             <button 
                 onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="absolute right-10 bg-red-600/10 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-xs"
+                className="absolute right-10 bg-red-600/10 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-[10px] uppercase italic tracking-tighter"
             >
                 CERRAR SESIÓN
             </button>
         </div>
-        
-        {/* NAVEGACIÓN TABS */}
-        <div className="flex justify-center gap-10 border-b border-slate-800 bg-black/20">
-            <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
-            <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
-            <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
-        </div>
 
-        {/* CONTENEDOR FULL WIDTH */}
+        {/* CONTENEDOR CONTENIDO */}
         <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            {tab === 'ranking' ? <RankingView /> : <CompetitionAdmin key={tab} competitionKey={tab} />}
+            {tab === 'ranking' ? (
+                <RankingView />
+            ) : (
+                <CompetitionAdmin key={tab} competitionKey={tab} />
+            )}
         </div>
     </div>
   )
@@ -114,10 +112,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             {matchdays.map(day => (
                 <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
                     
-                    {/* HEADER JORNADA - NUEVA DISPOSICIÓN */}
                     <div className="w-full px-10 py-5 grid grid-cols-3 items-center bg-slate-900/40">
-                        
-                        {/* IZQUIERDA: FLECHAS */}
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
@@ -140,14 +135,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             )}
                         </div>
 
-                        {/* CENTRO: NOMBRE JORNADA */}
                         <div className="flex justify-center">
                             <h3 style={{ color: colorHex }} className="text-3xl font-black italic uppercase tracking-tighter text-center">
                                 {day.name}
                             </h3>
                         </div>
 
-                        {/* DERECHA: BOTONES DE ACCIÓN */}
                         <div className="flex justify-end gap-4">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_visible ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                                 {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
@@ -191,9 +184,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                 >
                                                     {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" className="object-contain" />}
                                                 </button>
-
                                                 <span className="text-[10px] font-black text-slate-700 italic">VS</span>
-
                                                 <button 
                                                     onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
                                                     className={`w-14 h-14 flex items-center justify-center rounded-xl border-2 transition-all duration-300 
@@ -219,12 +210,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                             <Image 
                                                                 src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
                                                                 width={48} height={48} 
-                                                                className={`object-contain transition-all duration-500 
+                                                                className={`object-contain transition-all duration-300 
                                                                     ${hasWinner 
                                                                         ? isHit 
-                                                                            ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110 opacity-100' 
-                                                                            : 'opacity-10 grayscale scale-90'
-                                                                        : 'opacity-100'
+                                                                            ? 'opacity-100 scale-100' // Acierto: Normal pero sin brillo
+                                                                            : 'opacity-10 grayscale scale-90' // Fallo: Apagado
+                                                                        : 'opacity-100' // Sin ganador: Normal
                                                                     }`} 
                                                                 alt="p" 
                                                             />
@@ -248,5 +239,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function RankingView() {
-    return <div className="w-full text-center py-40 text-slate-700 font-black italic text-4xl uppercase opacity-20">Clasificación General</div>
+    return (
+        <div className="w-full h-[60vh] flex flex-col items-center justify-center">
+            <h2 className="text-slate-700 font-black italic text-4xl uppercase opacity-20 tracking-tighter">
+                Clasificación General
+            </h2>
+            <p className="text-slate-800 text-xs font-bold uppercase mt-4 tracking-widest">
+                Próximamente disponible
+            </p>
+        </div>
+    )
 }
