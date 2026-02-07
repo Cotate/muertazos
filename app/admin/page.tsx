@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
-const USERS_PER_PAGE = 22; // Página de 22 usuarios (11 arriba + 11 abajo)
+const USERS_PER_PAGE = 22; // Cambiado a 22 para que las flechas manejen 11+11 por página
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -53,7 +53,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
     const paginatedUsers = users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
 
-    // Dividimos los usuarios de la página actual en dos bloques de máximo 11
+    // Lógica de división en grupos de 11
     const midPoint = Math.ceil(paginatedUsers.length / 2);
     const userGroups = [paginatedUsers.slice(0, midPoint), paginatedUsers.slice(midPoint)];
 
@@ -65,7 +65,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setUsers(uData || []); setAllPreds(pData || [])
     }
     useEffect(() => { load() }, [competitionKey])
-
     const toggleVisible = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_visible: !val }).eq('id', id); load() }
     const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
     const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
@@ -74,13 +73,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         <div className="w-full">
             {matchdays.map(day => (
                 <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
-                    {/* HEADER CON BOTONES DE NAVEGACIÓN */}
                     <div className="w-full px-10 py-5 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-4 py-2 text-xs ${currentPage === 0 ? 'opacity-10 text-slate-600' : 'hover:bg-white/10 text-white'}`}>◀</button>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-4 py-2 text-xs border-l border-white/10 ${currentPage === totalPages - 1 ? 'opacity-10 text-slate-600' : 'hover:bg-white/10 text-white'}`}>▶</button>
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-4 py-2 text-xs ${currentPage === 0 ? 'opacity-10' : 'hover:bg-white/10'}`}>◀</button>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-4 py-2 text-xs border-l border-white/10 ${currentPage === totalPages - 1 ? 'opacity-10' : 'hover:bg-white/10'}`}>▶</button>
                                 </div>
                             )}
                         </div>
@@ -90,55 +88,51 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
                         </div>
                     </div>
-
-                    {/* LAS DOS TABLAS (GRUPO 1 Y GRUPO 2) */}
-                    <div className="flex flex-col gap-4">
-                        {userGroups.map((group, groupIdx) => group.length > 0 && (
-                            <div key={groupIdx} className="w-full overflow-hidden">
-                                <table className="w-full border-collapse table-fixed text-center">
-                                    <thead>
-                                        <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
-                                            <th className="w-[220px] p-6 border-r border-white/5">PARTIDO</th>
-                                            {group.map(u => <th key={u.id} className="p-1 border-r border-white/5 bg-black/20 text-[10px] text-slate-200">{u.username}</th>)}
+                    <div className="w-full overflow-hidden flex flex-col gap-4">
+                        {userGroups.map((group, gIdx) => group.length > 0 && (
+                            <table key={gIdx} className="w-full border-collapse table-fixed text-center">
+                                <thead>
+                                    <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
+                                        <th className="w-[220px] p-6 border-r border-white/5">PARTIDO</th>
+                                        {group.map(u => <th key={u.id} className="p-1 border-r border-white/5 bg-black/20 text-[10px] text-slate-200">{u.username}</th>)}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {day.matches?.map((m: any) => (
+                                        <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                            <td className="p-4 border-r border-white/5 bg-slate-900/30">
+                                                <div className="flex items-center justify-center gap-4">
+                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
+                                                        {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" />}
+                                                    </button>
+                                                    <span className="text-[10px] font-black text-slate-700 italic">VS</span>
+                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
+                                                        {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" />}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            {group.map(u => {
+                                                const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                                const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                                const hasWinner = m.winner_team_id !== null
+                                                return (
+                                                    <td key={u.id} className="p-1 border-r border-white/5">
+                                                        {pred?.predicted_team?.logo_file ? (
+                                                            <div className="flex justify-center">
+                                                                <Image 
+                                                                    src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                    width={44} height={44} alt="p" 
+                                                                    className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
+                                                                />
+                                                            </div>
+                                                        ) : '-'}
+                                                    </td>
+                                                )
+                                            })}
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {day.matches?.map((m: any) => (
-                                            <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                                <td className="p-4 border-r border-white/5 bg-slate-900/30">
-                                                    <div className="flex items-center justify-center gap-4">
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
-                                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" />}
-                                                        </button>
-                                                        <span className="text-[10px] font-black text-slate-700 italic">VS</span>
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
-                                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" />}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                {group.map(u => {
-                                                    const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                                    const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                                    const hasWinner = m.winner_team_id !== null
-                                                    return (
-                                                        <td key={u.id} className="p-1 border-r border-white/5">
-                                                            {pred?.predicted_team?.logo_file ? (
-                                                                <div className="flex justify-center">
-                                                                    <Image 
-                                                                        src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                        width={44} height={44} alt="p" 
-                                                                        className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
-                                                                    />
-                                                                </div>
-                                                            ) : '-'}
-                                                        </td>
-                                                    )
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
                         ))}
                     </div>
                 </div>
@@ -195,7 +189,7 @@ function RankingView() {
                             {day.name.replace('JORNADA ', 'J')}
                         </th>
                     ))}
-                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10 font-black italic">TOTAL</th>
+                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
@@ -218,7 +212,7 @@ function RankingView() {
     return (
         <div className="w-full flex flex-col items-center py-12 px-6">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
-            <button onClick={() => setShowFull(!showFull)} className="mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]">
+            <button onClick={() => setShowFull(!showFull)} className="mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300] hover:shadow-[0_0_15px_rgba(255,211,0,0.2)]">
                 {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
             </button>
             <div className={`w-full transition-all duration-700 ease-in-out ${showFull ? 'max-w-4xl' : 'max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8'}`}>
