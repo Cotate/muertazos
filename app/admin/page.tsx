@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
+const USERS_PER_BLOCK = 12; // Cuántos usuarios ver por cada tabla dividida (2 tablas de 12 = 24 total por página)
+
 export default function AdminDashboard() {
   const router = useRouter()
   const [tab, setTab] = useState<'kings' | 'queens' | 'ranking'>('kings')
@@ -20,7 +22,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
-        {/* NAVEGACIÓN */}
+        {/* NAVEGACIÓN CENTRADA */}
         <div className="flex justify-center items-center border-b border-slate-800 bg-black/20 px-10">
             <div className="flex items-center gap-2">
                 <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
@@ -46,8 +48,18 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
     const [allPreds, setAllPreds] = useState<any[]>([])
+    const [currentPage, setCurrentPage] = useState(0)
     
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
+    
+    // Paginación: Mostramos 2 bloques de USERS_PER_BLOCK por página
+    const usersPerPage = USERS_PER_BLOCK * 2;
+    const totalPages = Math.ceil(users.length / usersPerPage);
+    const paginatedUsers = users.slice(currentPage * usersPerPage, (currentPage + 1) * usersPerPage);
+
+    // División equitativa de los usuarios visibles en la página actual
+    const midPoint = Math.ceil(paginatedUsers.length / 2);
+    const userGroups = [paginatedUsers.slice(0, midPoint), paginatedUsers.slice(midPoint)];
 
     const load = async () => {
         const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
@@ -62,43 +74,53 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load()
     }
 
-    // Lógica para dividir usuarios en dos bloques equitativos
-    const midPoint = Math.ceil(users.length / 2);
-    const userGroups = [users.slice(0, midPoint), users.slice(midPoint)];
-
     return (
         <div className="w-full">
             {matchdays.map(day => (
                 <div key={day.id} className="w-full mb-12 border-b border-white/5 pb-8">
-                    {/* CABECERA JORNADA */}
-                    <div className="w-full px-10 py-5 flex justify-center bg-slate-900/40">
-                        <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3>
+                    {/* CABECERA JORNADA CON FLECHAS RECUPERADAS */}
+                    <div className="w-full px-10 py-5 grid grid-cols-3 items-center bg-slate-900/40">
+                        <div className="flex justify-start">
+                            {totalPages > 1 && (
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden shadow-lg">
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs transition-colors ${currentPage === 0 ? 'opacity-10' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                                    <div className="w-[1px] h-4 bg-white/10"></div>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs transition-colors ${currentPage === totalPages - 1 ? 'opacity-10' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-center">
+                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3>
+                        </div>
+                        <div className="flex justify-end gap-2 text-[10px] font-black text-slate-500 italic uppercase">
+                            Página {currentPage + 1} de {totalPages || 1}
+                        </div>
                     </div>
 
-                    {/* RENDERIZADO DE LAS DOS TABLAS DIVIDIDAS */}
-                    <div className="flex flex-col gap-4 mt-4">
-                        {userGroups.map((group, groupIdx) => (
-                            <div key={groupIdx} className="w-full overflow-hidden">
+                    {/* TABLAS DIVIDIDAS */}
+                    <div className="flex flex-col gap-6 mt-6">
+                        {userGroups.map((group, groupIdx) => group.length > 0 && (
+                            <div key={groupIdx} className="w-full overflow-hidden border-y border-white/[0.03]">
                                 <table className="w-full border-collapse table-fixed text-center">
                                     <thead>
-                                        <tr className="bg-black/60 text-[10px] text-slate-500 font-black uppercase">
+                                        <tr className="bg-black/40 text-[10px] text-slate-500 font-black uppercase">
                                             <th className="w-[180px] p-4 border-r border-white/5">PARTIDO</th>
                                             {group.map(u => (
-                                                <th key={u.id} className="p-1 border-r border-white/5 bg-black/20 text-[9px] text-slate-200 truncate px-2">{u.username}</th>
+                                                <th key={u.id} className="p-1 border-r border-white/5 bg-black/20 text-[9px] text-slate-300 truncate px-2 italic">{u.username}</th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {day.matches?.map((m: any) => (
                                             <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                                <td className="p-2 border-r border-white/5 bg-slate-900/20">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-10 h-10 rounded-lg border transition-all flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/10' : m.winner_team_id === null ? 'border-transparent' : 'opacity-20 grayscale'}`}>
-                                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={30} height={30} alt="h" />}
+                                                <td className="p-2 border-r border-white/5 bg-slate-900/10">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
+                                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={34} height={34} alt="h" />}
                                                         </button>
                                                         <span className="text-[8px] font-black text-slate-800">VS</span>
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-10 h-10 rounded-lg border transition-all flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/10' : m.winner_team_id === null ? 'border-transparent' : 'opacity-20 grayscale'}`}>
-                                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={30} height={30} alt="a" />}
+                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
+                                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={34} height={34} alt="a" />}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -111,10 +133,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                             {pred?.predicted_team?.logo_file ? (
                                                                 <Image 
                                                                     src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                    width={36} height={36} alt="p" 
-                                                                    className={`mx-auto transition-all ${hasWinner ? (isHit ? 'opacity-100' : 'opacity-10 grayscale') : 'opacity-100'}`} 
+                                                                    width={38} height={38} alt="p" 
+                                                                    className={`mx-auto transition-all duration-300 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
                                                                 />
-                                                            ) : <span className="text-slate-900 text-[10px]">-</span>}
+                                                            ) : <span className="text-slate-900 font-bold">-</span>}
                                                         </td>
                                                     )
                                                 })}
@@ -162,7 +184,7 @@ function RankingView() {
         fetchRanking()
     }, [])
 
-    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase tracking-widest">Calculando Ranking...</div>
 
     const half = Math.ceil(rankingData.users.length / 2)
     const col1 = showFull ? rankingData.users : rankingData.users.slice(0, half)
@@ -179,7 +201,7 @@ function RankingView() {
                             {day.name.replace('JORNADA ', 'J')}
                         </th>
                     ))}
-                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10 font-black">TOTAL</th>
+                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10 font-black tracking-tighter">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
@@ -192,7 +214,7 @@ function RankingView() {
                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-300' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                             </td>
                         ))}
-                        <td className="px-5 py-2 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm">{user.total}</td>
+                        <td className="px-5 py-2 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">{user.total}</td>
                     </tr>
                 ))}
             </tbody>
@@ -202,7 +224,7 @@ function RankingView() {
     return (
         <div className="w-full flex flex-col items-center py-12 px-6">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
-            <button onClick={() => setShowFull(!showFull)} className={`mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300] hover:shadow-[0_0_15px_rgba(255,211,0,0.2)]'}`}>
+            <button onClick={() => setShowFull(!showFull)} className={`mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                 {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
             </button>
             <div className={`w-full transition-all duration-700 ease-in-out ${showFull ? 'max-w-4xl' : 'max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8'}`}>
