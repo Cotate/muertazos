@@ -23,20 +23,21 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
         
-        {/* NAVEGACIÓN Y CIERRE DE SESIÓN */}
-        <div className="relative flex justify-center items-center border-b border-slate-800 bg-black/20 px-10">
-            <div className="flex gap-10">
+        {/* NAVEGACIÓN CENTRADA (4 ELEMENTOS) */}
+        <div className="flex justify-center items-center border-b border-slate-800 bg-black/20 px-10">
+            <div className="flex items-center gap-2">
                 <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
                 <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
                 <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
+                
+                {/* BOTÓN CERRAR SESIÓN COMO CUARTO ELEMENTO */}
+                <button 
+                    onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
+                    className="ml-6 bg-red-600/10 text-red-500 border border-red-500/30 px-6 py-2 rounded-lg font-black hover:bg-red-600 hover:text-white transition-all text-[11px] uppercase italic tracking-tighter"
+                >
+                    CERRAR SESIÓN
+                </button>
             </div>
-
-            <button 
-                onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="absolute right-10 bg-red-600/10 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-[10px] uppercase italic tracking-tighter"
-            >
-                CERRAR SESIÓN
-            </button>
         </div>
 
         {/* CONTENEDOR CONTENIDO */}
@@ -59,7 +60,7 @@ function TabBtn({label, active, onClick, activeColor}: any) {
                 color: active ? activeColor : '#475569',
                 borderBottom: active ? `4px solid ${activeColor}` : '4px solid transparent',
             }}
-            className="py-6 px-6 font-black italic tracking-tighter transition-all uppercase text-base hover:text-white"
+            className="py-6 px-6 font-black italic tracking-tighter transition-all uppercase text-sm hover:text-white"
         >
             {label}
         </button>
@@ -213,9 +214,9 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                                 className={`object-contain transition-all duration-300 
                                                                     ${hasWinner 
                                                                         ? isHit 
-                                                                            ? 'opacity-100 scale-100' // Acierto: Normal pero sin brillo
-                                                                            : 'opacity-10 grayscale scale-90' // Fallo: Apagado
-                                                                        : 'opacity-100' // Sin ganador: Normal
+                                                                            ? 'opacity-100 scale-100' 
+                                                                            : 'opacity-10 grayscale scale-90'
+                                                                        : 'opacity-100'
                                                                     }`} 
                                                                 alt="p" 
                                                             />
@@ -239,14 +240,123 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function RankingView() {
+    const [ranking, setRanking] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchRanking = async () => {
+            // 1. Obtener jornadas bloqueadas
+            const { data: lockedDays } = await supabase
+                .from('matchdays')
+                .select('id')
+                .eq('is_locked', true)
+            
+            if (!lockedDays || lockedDays.length === 0) {
+                setRanking([])
+                setLoading(false)
+                return
+            }
+
+            const lockedIds = lockedDays.map(d => d.id)
+
+            // 2. Obtener partidos de esas jornadas con sus ganadores
+            const { data: matches } = await supabase
+                .from('matches')
+                .select('id, winner_team_id')
+                .in('matchday_id', lockedIds)
+                .not('winner_team_id', 'is', null)
+
+            if (!matches || matches.length === 0) {
+                setRanking([])
+                setLoading(false)
+                return
+            }
+
+            const matchWinners = matches.reduce((acc: any, m: any) => {
+                acc[m.id] = m.winner_team_id
+                return acc
+            }, {})
+
+            // 3. Obtener todas las predicciones para esos partidos
+            const { data: predictions } = await supabase
+                .from('predictions')
+                .select('user_id, match_id, predicted_team_id')
+                .in('match_id', Object.keys(matchWinners))
+
+            // 4. Obtener nombres de usuarios
+            const { data: users } = await supabase
+                .from('app_users')
+                .select('id, username')
+                .neq('role', 'admin')
+
+            // 5. Calcular puntos
+            const pointsMap = users?.reduce((acc: any, u: any) => {
+                acc[u.id] = { username: u.username, hits: 0 }
+                return acc
+            }, {})
+
+            predictions?.forEach(p => {
+                if (pointsMap[p.user_id] && p.predicted_team_id === matchWinners[p.match_id]) {
+                    pointsMap[p.user_id].hits += 1
+                }
+            })
+
+            const sortedRanking = Object.values(pointsMap || {})
+                .sort((a: any, b: any) => b.hits - a.hits)
+            
+            setRanking(sortedRanking)
+            setLoading(false)
+        }
+
+        fetchRanking()
+    }, [])
+
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 uppercase font-black italic">Calculando Ranking...</div>
+
     return (
-        <div className="w-full h-[60vh] flex flex-col items-center justify-center">
-            <h2 className="text-slate-700 font-black italic text-4xl uppercase opacity-20 tracking-tighter">
-                Clasificación General
+        <div className="w-full max-w-4xl mx-auto py-10 px-4">
+            <h2 className="text-4xl font-black italic uppercase text-center mb-10 tracking-tighter">
+                <span className="text-white">RANKING</span> <span className="text-[#FFD300]">GENERAL</span>
             </h2>
-            <p className="text-slate-800 text-xs font-bold uppercase mt-4 tracking-widest">
-                Próximamente disponible
-            </p>
+            
+            <div className="bg-slate-900/40 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-black/60 text-[10px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
+                            <th className="px-8 py-4 w-20">POS</th>
+                            <th className="px-8 py-4">USUARIO</th>
+                            <th className="px-8 py-4 text-right">ACIERTOS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {ranking.length > 0 ? ranking.map((user, index) => (
+                            <tr key={index} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                                <td className="px-8 py-5">
+                                    <span className={`text-xl font-black italic ${index === 0 ? 'text-[#FFD300]' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-700' : 'text-slate-600'}`}>
+                                        #{index + 1}
+                                    </span>
+                                </td>
+                                <td className="px-8 py-5">
+                                    <span className="text-white font-bold uppercase tracking-tight group-hover:text-[#FFD300] transition-colors">
+                                        {user.username}
+                                    </span>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                    <span className="bg-white/5 px-4 py-1 rounded-full text-white font-black text-lg">
+                                        {user.hits}
+                                    </span>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={3} className="py-20 text-center text-slate-600 font-bold uppercase italic opacity-50">
+                                    No hay jornadas bloqueadas con resultados aún.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     )
 }
