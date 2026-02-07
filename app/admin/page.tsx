@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
         
-        {/* CABECERA */}
+        {/* CABECERA PRINCIPAL */}
         <div className="relative flex items-center justify-center py-10 border-b border-white/5 bg-black/40">
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-center">
                 <span style={{ color: '#FFFFFF', textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>PANEL CONTROL</span> 
@@ -114,11 +114,11 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             {matchdays.map(day => (
                 <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
                     
-                    {/* HEADER JORNADA */}
-                    <div className="w-full px-10 py-5 flex justify-between items-center bg-slate-900/40">
-                        <div className="flex items-center gap-6">
-                            <h3 style={{ color: colorHex }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3>
-                            
+                    {/* HEADER JORNADA - NUEVA DISPOSICIÓN */}
+                    <div className="w-full px-10 py-5 grid grid-cols-3 items-center bg-slate-900/40">
+                        
+                        {/* IZQUIERDA: FLECHAS */}
+                        <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button 
@@ -140,7 +140,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             )}
                         </div>
 
-                        <div className="flex gap-4">
+                        {/* CENTRO: NOMBRE JORNADA */}
+                        <div className="flex justify-center">
+                            <h3 style={{ color: colorHex }} className="text-3xl font-black italic uppercase tracking-tighter text-center">
+                                {day.name}
+                            </h3>
+                        </div>
+
+                        {/* DERECHA: BOTONES DE ACCIÓN */}
+                        <div className="flex justify-end gap-4">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_visible ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                                 {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
                             </button>
@@ -172,8 +180,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                     <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
                                         <td className="p-4 border-r border-white/5 bg-slate-900/30">
                                             <div className="flex items-center justify-center gap-4 px-2">
-                                                
-                                                {/* ESCUDO LOCAL */}
                                                 <button 
                                                     onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
                                                     className={`w-14 h-14 flex items-center justify-center rounded-xl border-2 transition-all duration-300 
@@ -188,7 +194,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
                                                 <span className="text-[10px] font-black text-slate-700 italic">VS</span>
 
-                                                {/* ESCUDO VISITANTE */}
                                                 <button 
                                                     onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
                                                     className={`w-14 h-14 flex items-center justify-center rounded-xl border-2 transition-all duration-300 
@@ -219,7 +224,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                                         ? isHit 
                                                                             ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110 opacity-100' 
                                                                             : 'opacity-10 grayscale scale-90'
-                                                                        : 'opacity-100' // Si no hay ganador, se ve normal
+                                                                        : 'opacity-100'
                                                                     }`} 
                                                                 alt="p" 
                                                             />
