@@ -114,28 +114,26 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             {matchdays.map(day => (
                 <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
                     
-                    {/* HEADER JORNADA CON NAVEGACIÓN INTEGRADA */}
+                    {/* HEADER JORNADA */}
                     <div className="w-full px-10 py-5 flex justify-between items-center bg-slate-900/40">
-                        <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-6">
                             <h3 style={{ color: colorHex }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3>
                             
-                            {/* FLECHAS DE GRUPO PEQUEÑAS AQUÍ */}
+                            {/* SOLO FLECHAS */}
                             {totalPages > 1 && (
-                                <div className="flex items-center bg-black/40 rounded border border-white/10 p-1">
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button 
                                         disabled={currentPage === 0}
                                         onClick={() => setCurrentPage(prev => prev - 1)}
-                                        className={`px-3 py-1 text-xs transition-opacity ${currentPage === 0 ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/10'}`}
+                                        className={`px-4 py-2 text-xs transition-all ${currentPage === 0 ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/10 active:scale-90'}`}
                                     >
                                         ◀
                                     </button>
-                                    <span className="px-4 text-[10px] font-black italic text-slate-400 border-x border-white/5 uppercase tracking-widest">
-                                        PAG {currentPage + 1} / {totalPages}
-                                    </span>
+                                    <div className="w-[1px] h-4 bg-white/10"></div>
                                     <button 
                                         disabled={currentPage === totalPages - 1}
                                         onClick={() => setCurrentPage(prev => prev + 1)}
-                                        className={`px-3 py-1 text-xs transition-opacity ${currentPage === totalPages - 1 ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/10'}`}
+                                        className={`px-4 py-2 text-xs transition-all ${currentPage === totalPages - 1 ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/10 active:scale-90'}`}
                                     >
                                         ▶
                                     </button>
@@ -145,7 +143,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
                         <div className="flex gap-4">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_visible ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                                {day.is_visible ? '• PÚBLICO' : '• OCULTO'}
+                                {day.is_visible ? 'PÚBLICO' : 'OCULTO'}
                             </button>
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border transition-all ${day.is_locked ? 'bg-red-600 border-red-400 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`}>
                                 {day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}
@@ -153,22 +151,22 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                     </div>
 
-                    {/* TABLA SIN SCROLLBARS Y SIN MARGENES */}
                     <div className="w-full overflow-hidden">
                         <table className="w-full border-collapse table-fixed">
                             <thead>
                                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
-                                    <th className="w-[180px] p-6 text-left border-r border-white/5">PARTIDO</th>
+                                    {/* PARTIDO CENTRADO */}
+                                    <th className="w-[200px] p-6 text-center border-r border-white/5">PARTIDO</th>
                                     {paginatedUsers.map(u => (
-                                        <th key={u.id} className="p-2 border-r border-white/5 bg-black/20">
-                                            {/* NOMBRES EN DOBLE LÍNEA */}
-                                            <div className="text-slate-200 text-center font-bold whitespace-normal leading-tight break-words px-1 uppercase min-h-[40px] flex items-center justify-center">
+                                        /* COLUMNAS MÁS DELGADAS PARA EVITAR SCROLL */
+                                        <th key={u.id} className="p-1 border-r border-white/5 bg-black/20">
+                                            <div className="text-slate-200 text-center font-bold whitespace-normal leading-tight break-words px-1 uppercase min-h-[40px] flex items-center justify-center text-[10px]">
                                                 {u.username}
                                             </div>
                                         </th>
                                     ))}
                                     {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
-                                        <th key={`empty-${i}`} className="p-2 border-r border-white/5"></th>
+                                        <th key={`empty-${i}`} className="p-1 border-r border-white/5"></th>
                                     ))}
                                 </tr>
                             </thead>
@@ -176,13 +174,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                 {day.matches?.map((m: any) => (
                                     <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
                                         <td className="p-4 border-r border-white/5 bg-slate-900/30">
-                                            <div className="flex items-center justify-between gap-2 px-2">
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-12 h-12 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-20 hover:opacity-100'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={36} height={36} alt="h" className="object-contain" />}
+                                            <div className="flex items-center justify-center gap-4 px-2">
+                                                {/* ESCUDOS MÁS GRANDES (w-14 h-14) */}
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-30 hover:opacity-100'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" className="object-contain" />}
                                                 </button>
                                                 <span className="text-[10px] font-black text-slate-700 italic">VS</span>
-                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-12 h-12 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-20 hover:opacity-100'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={36} height={36} alt="a" className="object-contain" />}
+                                                <button onClick={()=>setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 flex items-center justify-center rounded-xl border-2 transition-all ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/20 scale-110 shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'border-transparent opacity-30 hover:opacity-100'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" className="object-contain" />}
                                                 </button>
                                             </div>
                                         </td>
@@ -190,12 +189,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
                                             const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
                                             return (
-                                                <td key={u.id} className="p-2 text-center border-r border-white/5">
+                                                <td key={u.id} className="p-1 text-center border-r border-white/5">
                                                     {pred?.predicted_team?.logo_file ? (
                                                         <div className="flex justify-center">
                                                             <Image 
                                                                 src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={45} height={45} 
+                                                                width={48} height={48} 
                                                                 className={`object-contain transition-all duration-500 ${isHit ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110' : 'opacity-10 grayscale hover:opacity-40'}`} 
                                                                 alt="p" 
                                                             />
@@ -205,7 +204,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             )
                                         })}
                                         {[...Array(Math.max(0, USERS_PER_PAGE - paginatedUsers.length))].map((_, i) => (
-                                            <td key={`empty-td-${i}`} className="p-2 border-r border-white/5"></td>
+                                            <td key={`empty-td-${i}`} className="p-1 border-r border-white/5"></td>
                                         ))}
                                     </tr>
                                 ))}
