@@ -205,6 +205,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                         {paginatedUsers.map(u => {
                                             const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
                                             const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                            const hasWinner = m.winner_team_id !== null
+                                            
                                             return (
                                                 <td key={u.id} className="p-1 text-center border-r border-white/5">
                                                     {pred?.predicted_team?.logo_file ? (
@@ -212,7 +214,13 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                             <Image 
                                                                 src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
                                                                 width={48} height={48} 
-                                                                className={`object-contain transition-all duration-500 ${isHit ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110 opacity-100' : 'opacity-10 grayscale hover:opacity-40'}`} 
+                                                                className={`object-contain transition-all duration-500 
+                                                                    ${hasWinner 
+                                                                        ? isHit 
+                                                                            ? 'drop-shadow-[0_0_12px_rgba(34,197,94,1)] scale-110 opacity-100' 
+                                                                            : 'opacity-10 grayscale scale-90'
+                                                                        : 'opacity-100' // Si no hay ganador, se ve normal
+                                                                    }`} 
                                                                 alt="p" 
                                                             />
                                                         </div>
