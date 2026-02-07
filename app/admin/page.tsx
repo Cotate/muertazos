@@ -61,7 +61,6 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
-// ... (Componente CompetitionAdmin se mantiene igual)
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
@@ -180,40 +179,42 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    // Lógica para dividir en 2 columnas (Periódico)
+    // Lógica de división para modo periódico
     const half = Math.ceil(rankingData.users.length / 2)
-    const col1 = rankingData.users.slice(0, half)
+    const col1 = showFull ? rankingData.users : rankingData.users.slice(0, half)
     const col2 = rankingData.users.slice(half)
 
-    const TableContent = ({ data, startIdx }: { data: any[], startIdx: number }) => (
+    const TableContent = ({ data, startIdx, isFull }: { data: any[], startIdx: number, isFull: boolean }) => (
         <table className="w-full text-left border-collapse table-auto">
             <thead>
-                <tr className="bg-black/60 text-[8px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
-                    <th className="px-3 py-2 w-10 text-center">POS</th>
-                    <th className="px-3 py-2">USUARIO</th>
-                    {showFull && rankingData.days.map(day => (
-                        <th key={day.id} className={`px-2 py-2 text-center border-l border-white/5 w-10 ${day.competition_key === 'kings' ? 'text-[#FFD300]/60' : 'text-[#01d6c3]/60'}`}>
+                <tr className="bg-black/60 text-[9px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
+                    <th className="px-4 py-2.5 w-12 text-center">POS</th>
+                    <th className="px-4 py-2.5">USUARIO</th>
+                    {isFull && rankingData.days.map(day => (
+                        <th key={day.id} className={`px-2 py-2.5 text-center border-l border-white/5 w-14 ${day.competition_key === 'kings' ? 'text-[#FFD300]/70 bg-[#FFD300]/5' : 'text-[#01d6c3]/70 bg-[#01d6c3]/5'}`}>
                             {day.name.replace('JORNADA ', 'J')}
                         </th>
                     ))}
-                    <th className="px-4 py-2 text-center bg-[#FFD300]/10 text-[#FFD300] w-14 border-l border-white/10">PTS</th>
+                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
                 {data.map((user, idx) => (
-                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                        <td className="px-3 py-1.5 text-center border-r border-white/5 font-black italic text-xs text-slate-500">
+                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
+                        <td className="px-4 py-2 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">
                             {startIdx + idx + 1}
                         </td>
-                        <td className="px-3 py-1.5 truncate max-w-[120px]">
-                            <span className="text-slate-300 font-bold uppercase text-[10px] tracking-tight">{user.username}</span>
+                        <td className="px-4 py-2">
+                            <span className="text-slate-300 font-bold uppercase text-[11px] tracking-tight group-hover:text-white">{user.username}</span>
                         </td>
-                        {showFull && rankingData.days.map(day => (
-                            <td key={day.id} className="px-2 py-1.5 text-center border-l border-white/5 text-[10px] font-mono text-slate-500">
-                                {user.dayBreakdown[day.id] || 0}
+                        {isFull && rankingData.days.map(day => (
+                            <td key={day.id} className={`px-2 py-2 text-center border-l border-white/5 text-[10px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
+                                <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-300' : 'text-slate-700'}>
+                                    {user.dayBreakdown[day.id] || 0}
+                                </span>
                             </td>
                         ))}
-                        <td className="px-4 py-1.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-xs">
+                        <td className="px-5 py-2 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
                             {user.total}
                         </td>
                     </tr>
@@ -223,35 +224,45 @@ function RankingView() {
     )
 
     return (
-        <div className="w-full flex flex-col items-center py-10 px-4">
-            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-6">
+        <div className="w-full flex flex-col items-center py-12 px-6">
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8">
                 <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
             </h2>
 
-            {/* BOTÓN MÁS BONITO */}
+            {/* BOTÓN ESTILO CONTROL DE INTERFAZ */}
             <button 
                 onClick={() => setShowFull(!showFull)}
-                className={`mb-8 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-300 border
+                className={`mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border
                     ${showFull 
-                        ? 'bg-white text-black border-white' 
-                        : 'bg-transparent text-white border-white/20 hover:border-white/60 hover:bg-white/5'
+                        ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+                        : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300] hover:shadow-[0_0_15px_rgba(255,211,0,0.2)]'
                     }`}
             >
-                {showFull ? 'OCULTAR DESGLOSE' : 'VER DESGLOSE COMPLETO'}
+                {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
             </button>
 
-            {/* GRID DE PERIÓDICO */}
-            <div className={`grid gap-6 w-full transition-all duration-500 ${showFull ? 'max-w-6xl grid-cols-1' : 'max-w-4xl grid-cols-1 md:grid-cols-2'}`}>
-                <div className="bg-slate-900/40 rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
-                    <TableContent data={col1} startIdx={0} />
+            {/* LÓGICA DE GRID DINÁMICO */}
+            <div className={`w-full transition-all duration-700 ease-in-out ${showFull ? 'max-w-4xl' : 'max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8'}`}>
+                
+                {/* COLUMNA 1 (Siempre visible, cambia de tamaño según showFull) */}
+                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
+                    <TableContent data={col1} startIdx={0} isFull={showFull} />
                 </div>
                 
-                {(!showFull || rankingData.users.length > 10) && (
-                    <div className="bg-slate-900/40 rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
-                        <TableContent data={col2} startIdx={half} />
+                {/* COLUMNA 2 (Solo visible en modo periódico) */}
+                {!showFull && rankingData.users.length > 1 && (
+                    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
+                        <TableContent data={col2} startIdx={half} isFull={false} />
                     </div>
                 )}
+
             </div>
+
+            {rankingData.users.length === 0 && (
+                <div className="py-20 text-slate-700 text-xs font-black uppercase tracking-[0.4em] italic opacity-50">
+                    No hay datos suficientes
+                </div>
+            )}
         </div>
     )
 }
