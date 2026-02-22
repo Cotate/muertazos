@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
-const USERS_PER_PAGE = 14; 
+const USERS_PER_PAGE = 22; 
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -49,8 +49,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [allPreds, setAllPreds] = useState<any[]>([])
     const [currentPage, setCurrentPage] = useState(0)
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
+    
     const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
     const paginatedUsers = users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
+
+    const midPoint = Math.ceil(paginatedUsers.length / 2);
+    const userGroups = [
+        paginatedUsers.slice(0, midPoint),
+        paginatedUsers.slice(midPoint)
+    ];
 
     const load = async () => {
         const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
@@ -60,6 +67,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setUsers(uData || []); setAllPreds(pData || [])
     }
     useEffect(() => { load() }, [competitionKey])
+
     const toggleVisible = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_visible: !val }).eq('id', id); load() }
     const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
     const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
@@ -83,50 +91,82 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
                         </div>
                     </div>
-                    <div className="w-full overflow-hidden">
-                        <table className="w-full border-collapse table-fixed text-center">
-                            <thead>
-                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
-                                    <th className="w-[220px] p-6 border-r border-white/5">PARTIDO</th>
-                                    {paginatedUsers.map(u => <th key={u.id} className="p-1 border-r border-white/5 bg-black/20 text-[10px] text-slate-200">{u.username}</th>)}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {day.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                        <td className="p-4 border-r border-white/5 bg-slate-900/30">
-                                            <div className="flex items-center justify-center gap-4">
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" />}
-                                                </button>
-                                                <span className="text-[10px] font-black text-slate-700 italic">VS</span>
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl border-2 transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'border-green-500 bg-green-500/10 scale-105' : m.winner_team_id === null ? 'border-transparent opacity-100 hover:scale-110' : 'border-transparent opacity-20 grayscale scale-90'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" />}
-                                                </button>
-                                            </div>
-                                        </td>
-                                        {paginatedUsers.map(u => {
-                                            const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                            const hasWinner = m.winner_team_id !== null
-                                            return (
-                                                <td key={u.id} className="p-1 border-r border-white/5">
-                                                    {pred?.predicted_team?.logo_file ? (
-                                                        <div className="flex justify-center">
+
+                    <div className="flex flex-col gap-4">
+                        {userGroups.map((group, gIdx) => group.length > 0 && (
+                            <div key={gIdx} className="w-full overflow-hidden">
+                                <table className="w-full border-collapse table-fixed text-center">
+                                    <thead>
+                                        <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
+                                            <th className="w-[220px] p-4 border-r border-white/5 align-middle">PARTIDO</th>
+                                            {group.map(u => (
+                                                <th key={u.id} className="p-2 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
+                                                    <div className="flex flex-col items-center justify-center gap-1.5">
+                                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-slate-800">
                                                             <Image 
-                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={44} height={44} alt="p" 
-                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
+                                                                src={`/usuarios/${u.username}.jpg`} 
+                                                                alt={u.username} 
+                                                                fill 
+                                                                sizes="32px" 
+                                                                className="object-cover" 
                                                             />
                                                         </div>
-                                                    ) : '-'}
+                                                        <span className="text-[9px] leading-tight">{u.username}</span>
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {day.matches?.map((m: any) => (
+                                            <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                                <td className="p-4 border-r border-white/5 bg-slate-900/30">
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        {/* Botón Equipo Local sin recuadro verde */}
+                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
+                                                            className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                            ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 
+                                                              m.winner_team_id === null ? 'opacity-100 hover:scale-110' : 
+                                                              'opacity-20 grayscale scale-90'}`}>
+                                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" />}
+                                                        </button>
+                                                        
+                                                        <span className="text-[10px] font-black text-slate-700 italic">VS</span>
+                                                        
+                                                        {/* Botón Equipo Visitante sin recuadro verde */}
+                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
+                                                            className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                            ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 
+                                                              m.winner_team_id === null ? 'opacity-100 hover:scale-110' : 
+                                                              'opacity-20 grayscale scale-90'}`}>
+                                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" />}
+                                                        </button>
+                                                    </div>
                                                 </td>
-                                            )
-                                        })}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                {group.map(u => {
+                                                    const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                                    const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                                    const hasWinner = m.winner_team_id !== null
+                                                    return (
+                                                        <td key={u.id} className="p-1 border-r border-white/5">
+                                                            {pred?.predicted_team?.logo_file ? (
+                                                                <div className="flex justify-center">
+                                                                    <Image 
+                                                                        src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                        width={44} height={44} alt="p" 
+                                                                        className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
+                                                                    />
+                                                                </div>
+                                                            ) : '-'}
+                                                        </td>
+                                                    )
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
                     </div>
                 </div>
             ))}
