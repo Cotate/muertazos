@@ -40,6 +40,59 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
+// --- FUNCIÓN DE DESCARGA GLOBAL REUTILIZABLE ---
+const handleDownloadImg = async (elementId: string, filename: string, setLoader: (val: string | null) => void) => {
+    setLoader(elementId);
+    const element = document.getElementById(elementId);
+    if (!element) { setLoader(null); return; }
+    
+    try {
+        const { default: html2canvas } = await import('html2canvas');
+        
+        // Preparar imágenes para evitar errores de CORS en Vercel
+        const images = element.getElementsByTagName('img');
+        for (let img of Array.from(images)) {
+            img.crossOrigin = "anonymous";
+            if (img.src.indexOf('?t=') === -1) {
+                img.src = img.src + "?t=" + new Date().getTime();
+            }
+        }
+
+        const canvas = await html2canvas(element, {
+            backgroundColor: '#0a0a0a',
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+            onclone: (clonedDocument) => {
+                const el = clonedDocument.getElementById(elementId);
+                if (el) {
+                    const logos = el.querySelectorAll('.export-logo');
+                    logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
+                    el.style.padding = '40px';
+                    el.style.width = 'fit-content';
+                    el.style.margin = '0 auto';
+                }
+            }
+        });
+        
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}.jpg`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }, 'image/jpeg', 0.95);
+
+    } catch (err) {
+        console.error('Error capturando imagen:', err);
+        alert('Error al generar imagen. Intenta de nuevo.');
+    } finally {
+        setLoader(null);
+    }
+};
+
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
@@ -58,7 +111,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
         
         if (mData) { mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); setMatchdays(mData) }
-        
         const fetchedUsers = uData || []
         setUsers(fetchedUsers)
         setAllPreds(pData || [])
@@ -73,8 +125,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 let size = base + (i < remainder ? 1 : 0);
                 chunks.push([start, start + size]); start += size;
             }
-            setPageChunks(chunks)
-            setCurrentPage(0)
+            setPageChunks(chunks); setCurrentPage(0);
         }
     }
     
@@ -84,59 +135,24 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
     const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
 
-    const handleDownload = async (elementId: string, filename: string) => {
-        setDownloadingId(elementId);
-        const element = document.getElementById(elementId);
-        if (!element) { setDownloadingId(null); return; }
-        
-        try {
-            const { default: html2canvas } = await import('html2canvas'); 
-            const canvas = await html2canvas(element, {
-                backgroundColor: '#0a0a0a',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                onclone: (clonedDocument) => {
-                    const el = clonedDocument.getElementById(elementId);
-                    if (el) {
-                        const logos = el.querySelectorAll('.export-logo');
-                        logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
-                        el.style.padding = '40px'; 
-                    }
-                }
-            });
-            
-            const data = canvas.toDataURL('image/jpeg', 0.9);
-            const link = document.createElement('a');
-            link.href = data;
-            link.download = `${filename}.jpg`;
-            link.click();
-        } catch (err) {
-            console.error('Error al generar la imagen:', err);
-            alert('Hubo un error al crear la imagen. Revisa la consola para más detalles.');
-        } finally {
-            setDownloadingId(null);
-        }
-    };
-
     const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
-    const totalPages = pageChunks.length;
 
     return (
         <div className="w-full">
             {matchdays.map(day => (
-                <div id={`capture-day-${day.id}`} key={day.id} className="relative group w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
+                <div id={`capture-day-${day.id}`} key={day.id} className="relative w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
                     
-                    <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
+                    <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6 pt-4">
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+                        <div className="h-1 w-20 bg-[#FFD300]"></div>
                     </div>
 
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
-                            {totalPages > 1 && (
+                            {pageChunks.length > 1 && (
                                 <div data-html2canvas-ignore="true" className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === pageChunks.length - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
@@ -145,81 +161,73 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <div data-html2canvas-ignore="true" className="flex justify-end gap-3 items-center">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-600/20 text-red-400 border-red-500/30' : 'bg-blue-600/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
-                            <button onClick={() => handleDownload(`capture-day-${day.id}`, `${competitionKey}_${day.name}`)} disabled={downloadingId === `capture-day-${day.id}`} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button onClick={() => handleDownloadImg(`capture-day-${day.id}`, `${competitionKey}_${day.name.replace(/\s+/g, '_')}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest disabled:opacity-50">
                                 {downloadingId === `capture-day-${day.id}` ? '...' : '↓ JPG'}
                             </button>
                         </div>
                     </div>
 
-                    {paginatedUsers.length > 0 && (
-                        <div className="w-full overflow-hidden">
-                            <table className="w-full border-collapse table-fixed text-center">
-                                <thead>
-                                    <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
-                                        <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
-                                        {paginatedUsers.map(u => (
-                                            <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
-                                                <div className="flex flex-col items-center justify-center gap-1.5">
-                                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg">
-                                                        {/* Cambiado a <img> normal para html2canvas */}
-                                                        <img src={`/usuarios/${u.username}.jpg`} alt={u.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
-                                                    </div>
-                                                    <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
+                    <div className="w-full overflow-hidden">
+                        <table className="w-full border-collapse table-fixed text-center">
+                            <thead>
+                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
+                                    <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                                    {paginatedUsers.map(u => (
+                                        <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
+                                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800">
+                                                    <img src={`/usuarios/${u.username}.jpg`} alt={u.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
                                                 </div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {day.matches?.map((m: any) => (
-                                        <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                            <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
-                                                        className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                        ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                          m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
-                                                          'opacity-20 grayscale scale-90'}`}>
-                                                        {/* Cambiado a <img> normal */}
-                                                        {m.home && <img src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" crossOrigin="anonymous" />}
-                                                    </button>
-                                                    <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
-                                                        className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                        ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                          m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
-                                                          'opacity-20 grayscale scale-90'}`}>
-                                                        {m.away && <img src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" crossOrigin="anonymous" />}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            {paginatedUsers.map(u => {
-                                                const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                                const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                                const hasWinner = m.winner_team_id !== null
-                                                return (
-                                                    <td key={u.id} className="p-1 border-r border-white/5">
-                                                        {pred?.predicted_team?.logo_file ? (
-                                                            <div className="flex justify-center">
-                                                                <img 
-                                                                    src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                    width={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                    height={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                    alt="p" 
-                                                                    crossOrigin="anonymous"
-                                                                    className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
-                                                                />
-                                                            </div>
-                                                        ) : <span className="text-slate-800 text-xs">-</span>}
-                                                    </td>
-                                                )
-                                            })}
-                                        </tr>
+                                                <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
+                                            </div>
+                                        </th>
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {day.matches?.map((m: any) => (
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                        <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
+                                                    className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                    ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                    {m.home && <img src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" crossOrigin="anonymous" />}
+                                                </button>
+                                                <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
+                                                    className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                    ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                    {m.away && <img src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" crossOrigin="anonymous" />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                        {paginatedUsers.map(u => {
+                                            const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                            const hasWinner = m.winner_team_id !== null
+                                            return (
+                                                <td key={u.id} className="p-1 border-r border-white/5">
+                                                    {pred?.predicted_team?.logo_file ? (
+                                                        <div className="flex justify-center">
+                                                            <img 
+                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                width={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                height={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                alt="p" 
+                                                                crossOrigin="anonymous"
+                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
+                                                            />
+                                                        </div>
+                                                    ) : <span className="text-slate-800 text-xs">-</span>}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             ))}
         </div>
@@ -262,109 +270,68 @@ function RankingView() {
         fetchRanking()
     }, [])
 
-    const handleDownload = async (elementId: string, filename: string) => {
-        setDownloadingId(elementId);
-        const element = document.getElementById(elementId);
-        if (!element) { setDownloadingId(null); return; }
-        
-        try {
-            const { default: html2canvas } = await import('html2canvas'); 
-            const canvas = await html2canvas(element, {
-                backgroundColor: '#0a0a0a',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                onclone: (clonedDocument) => {
-                    const el = clonedDocument.getElementById(elementId);
-                    if (el) {
-                        const logos = el.querySelectorAll('.export-logo');
-                        logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
-                        el.style.padding = '40px'; 
-                    }
-                }
-            });
-            
-            const data = canvas.toDataURL('image/jpeg', 0.9);
-            const link = document.createElement('a');
-            link.href = data;
-            link.download = `${filename}.jpg`;
-            link.click();
-        } catch (err) {
-            console.error('Error al generar la imagen:', err);
-            alert('Hubo un error al crear la imagen. Revisa la consola para más detalles.');
-        } finally {
-            setDownloadingId(null);
-        }
-    };
-
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
     const totalPages = Math.ceil(rankingData.users.length / USERS_PER_PAGE_RANKING);
     const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE_RANKING, (currentPage + 1) * USERS_PER_PAGE_RANKING);
-
-    const TableContent = ({ data, startIdx, isFull }: { data: any[], startIdx: number, isFull: boolean }) => (
-        <table className="w-full text-left border-collapse table-auto">
-            <tbody>
-                {data.map((user, idx) => (
-                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                        <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600 group-hover:text-slate-400">
-                            {startIdx + idx + 1}
-                        </td>
-                        <td className="w-[160px] max-w-[160px] px-3 py-2">
-                            <div className="flex items-center gap-2.5">
-                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
-                                    {/* Cambiado a <img> normal */}
-                                    <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
-                                </div>
-                                <span className="text-slate-300 font-black uppercase text-[22px] leading-[32px] tracking-tighter group-hover:text-white truncate block">
-                                    {user.username}
-                                </span>
-                            </div>
-                        </td>
-                        {isFull && rankingData.days.map(day => (
-                            <td key={day.id} className={`px-1 py-2.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
-                                <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
-                            </td>
-                        ))}
-                        <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
-                            {user.total}
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    )
 
     return (
         <div id="capture-ranking" className="w-full flex flex-col items-center py-12 px-6 bg-[#0a0a0a]">
             
             <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
                  <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+                 <div className="h-1 w-20 bg-[#FFD300]"></div>
             </div>
 
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
             <div data-html2canvas-ignore="true" className="flex gap-4 items-center mb-8">
-                <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
+                <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                     {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
                 </button>
 
                 {totalPages > 1 && (
-                    <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px] shadow-lg">
+                    <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px]">
                         <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-6 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                         <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-6 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                     </div>
                 )}
 
-                <button onClick={() => handleDownload('capture-ranking', 'Ranking_General')} disabled={downloadingId === 'capture-ranking'} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent shadow-[0_0_15px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={() => handleDownloadImg('capture-ranking', 'Ranking_General_Muertazos', setDownloadingId)} disabled={!!downloadingId} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent disabled:opacity-50">
                     {downloadingId === 'capture-ranking' ? '...' : '↓ JPG'}
                 </button>
             </div>
 
-            <div className={`w-full transition-all duration-700 ease-in-out max-w-4xl`}>
-                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-                    <TableContent data={paginatedUsers} startIdx={currentPage * USERS_PER_PAGE_RANKING} isFull={showFull} />
-                </div>
+            <div className="w-full max-w-4xl bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                <table className="w-full text-left border-collapse table-auto">
+                    <tbody>
+                        {paginatedUsers.map((user, idx) => (
+                            <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
+                                <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600">
+                                    {(currentPage * USERS_PER_PAGE_RANKING) + idx + 1}
+                                </td>
+                                <td className="w-[160px] max-w-[160px] px-3 py-2">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                            <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
+                                        </div>
+                                        <span className="text-slate-300 font-black uppercase text-[22px] tracking-tighter truncate block group-hover:text-white">
+                                            {user.username}
+                                        </span>
+                                    </div>
+                                </td>
+                                {showFull && rankingData.days.map(day => (
+                                    <td key={day.id} className="px-1 py-2.5 text-center border-l border-white/5 text-[10px] font-mono w-8">
+                                        <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
+                                    </td>
+                                ))}
+                                <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
+                                    {user.total}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     )
