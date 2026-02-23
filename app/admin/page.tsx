@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
-const USERS_PER_PAGE = 22; 
-
 export default function AdminDashboard() {
   const router = useRouter()
   const [tab, setTab] = useState<'kings' | 'queens' | 'ranking'>('kings')
@@ -48,40 +46,63 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [users, setUsers] = useState<any[]>([])
     const [allPreds, setAllPreds] = useState<any[]>([])
     const [currentPage, setCurrentPage] = useState(0)
+    const [pageChunks, setPageChunks] = useState<number[][]>([])
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
     
-    const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
-    const paginatedUsers = users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
-
-    const midPoint = Math.ceil(paginatedUsers.length / 2);
-    const userGroups = [
-        paginatedUsers.slice(0, midPoint),
-        paginatedUsers.slice(midPoint)
-    ];
+    // Función para detectar si el equipo es Pio y mantener su tamaño
+    const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
+    const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
     const load = async () => {
         const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
         const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
         const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
+        
         if (mData) { mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); setMatchdays(mData) }
-        setUsers(uData || []); setAllPreds(pData || [])
+        
+        const fetchedUsers = uData || []
+        setUsers(fetchedUsers)
+        setAllPreds(pData || [])
+
+        // Lógica para dividir participantes inteligentemente en bloques de ~11 a 14
+        if (fetchedUsers.length > 0) {
+            const targetPerPage = 12; // Busca acercarse a 12 por página
+            const pages = Math.ceil(fetchedUsers.length / targetPerPage);
+            const base = Math.floor(fetchedUsers.length / pages);
+            const remainder = fetchedUsers.length % pages;
+            
+            let chunks = [];
+            let start = 0;
+            for(let i=0; i<pages; i++) {
+                let size = base + (i < remainder ? 1 : 0);
+                chunks.push([start, start + size]);
+                start += size;
+            }
+            setPageChunks(chunks)
+            setCurrentPage(0)
+        }
     }
+    
     useEffect(() => { load() }, [competitionKey])
 
     const toggleVisible = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_visible: !val }).eq('id', id); load() }
     const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
     const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
 
+    const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
+    const totalPages = pageChunks.length;
+
     return (
         <div className="w-full">
             {matchdays.map(day => (
                 <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
-                    <div className="w-full px-10 py-5 grid grid-cols-3 items-center bg-slate-900/40">
+                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-4 py-2 text-xs ${currentPage === 0 ? 'opacity-10' : 'hover:bg-white/10'}`}>◀</button>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-4 py-2 text-xs border-l border-white/10 ${currentPage === totalPages - 1 ? 'opacity-10' : 'hover:bg-white/10'}`}>▶</button>
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-4 py-2 text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀ ANTERIOR</button>
+                                    <div className="px-3 py-2 text-[10px] text-slate-400 border-x border-white/10">PÁG {currentPage + 1}/{totalPages}</div>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-4 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>SIGUIENTE ▶</button>
                                 </div>
                             )}
                         </div>
@@ -92,82 +113,80 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-4">
-                        {userGroups.map((group, gIdx) => group.length > 0 && (
-                            <div key={gIdx} className="w-full overflow-hidden">
-                                <table className="w-full border-collapse table-fixed text-center">
-                                    <thead>
-                                        <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
-                                            <th className="w-[220px] p-4 border-r border-white/5 align-middle">PARTIDO</th>
-                                            {group.map(u => (
-                                                <th key={u.id} className="p-2 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
-                                                    <div className="flex flex-col items-center justify-center gap-1.5">
-                                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-slate-800">
-                                                            <Image 
-                                                                src={`/usuarios/${u.username}.jpg`} 
-                                                                alt={u.username} 
-                                                                fill 
-                                                                sizes="32px" 
-                                                                className="object-cover" 
-                                                            />
-                                                        </div>
-                                                        <span className="text-[9px] leading-tight">{u.username}</span>
+                    {paginatedUsers.length > 0 && (
+                        <div className="w-full overflow-hidden">
+                            <table className="w-full border-collapse table-fixed text-center">
+                                <thead>
+                                    <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
+                                        <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                                        {paginatedUsers.map(u => (
+                                            <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
+                                                <div className="flex flex-col items-center justify-center gap-1.5">
+                                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg">
+                                                        <Image 
+                                                            src={`/usuarios/${u.username}.jpg`} 
+                                                            alt={u.username} 
+                                                            fill 
+                                                            sizes="48px" 
+                                                            className="object-cover" 
+                                                        />
                                                     </div>
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {day.matches?.map((m: any) => (
-                                            <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                                <td className="p-4 border-r border-white/5 bg-slate-900/30">
-                                                    <div className="flex items-center justify-center gap-4">
-                                                        {/* Botón Equipo Local sin recuadro verde */}
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
-                                                            className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                            ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 
-                                                              m.winner_team_id === null ? 'opacity-100 hover:scale-110' : 
-                                                              'opacity-20 grayscale scale-90'}`}>
-                                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={42} height={42} alt="h" />}
-                                                        </button>
-                                                        
-                                                        <span className="text-[10px] font-black text-slate-700 italic">VS</span>
-                                                        
-                                                        {/* Botón Equipo Visitante sin recuadro verde */}
-                                                        <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
-                                                            className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                            ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 
-                                                              m.winner_team_id === null ? 'opacity-100 hover:scale-110' : 
-                                                              'opacity-20 grayscale scale-90'}`}>
-                                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={42} height={42} alt="a" />}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                {group.map(u => {
-                                                    const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                                    const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                                    const hasWinner = m.winner_team_id !== null
-                                                    return (
-                                                        <td key={u.id} className="p-1 border-r border-white/5">
-                                                            {pred?.predicted_team?.logo_file ? (
-                                                                <div className="flex justify-center">
-                                                                    <Image 
-                                                                        src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                        width={44} height={44} alt="p" 
-                                                                        className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'opacity-10 grayscale scale-90') : 'opacity-100'}`} 
-                                                                    />
-                                                                </div>
-                                                            ) : '-'}
-                                                        </td>
-                                                    )
-                                                })}
-                                            </tr>
+                                                    <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
+                                                </div>
+                                            </th>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
-                    </div>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {day.matches?.map((m: any) => (
+                                        <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                            <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
+                                                        className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                        ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                          m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
+                                                          'opacity-20 grayscale scale-90'}`}>
+                                                        {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
+                                                    </button>
+                                                    
+                                                    <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                                                    
+                                                    <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
+                                                        className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                        ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                          m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
+                                                          'opacity-20 grayscale scale-90'}`}>
+                                                        {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            {paginatedUsers.map(u => {
+                                                const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                                const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                                const hasWinner = m.winner_team_id !== null
+                                                return (
+                                                    <td key={u.id} className="p-1 border-r border-white/5">
+                                                        {pred?.predicted_team?.logo_file ? (
+                                                            <div className="flex justify-center">
+                                                                <Image 
+                                                                    src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                    width={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                    height={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                    alt="p" 
+                                                                    className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
+                                                                />
+                                                            </div>
+                                                        ) : <span className="text-slate-800 text-xs">-</span>}
+                                                    </td>
+                                                )
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>
@@ -186,6 +205,7 @@ function RankingView() {
             const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
             const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
             const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
+            
             const userScores = appUsers?.map(u => {
                 let total = 0; const dayBreakdown: any = {}
                 lockedDays.forEach(day => {
@@ -229,7 +249,12 @@ function RankingView() {
                 {data.map((user, idx) => (
                     <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
                         <td className="px-4 py-2 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">{startIdx + idx + 1}</td>
-                        <td className="px-4 py-2"><span className="text-slate-300 font-bold uppercase text-[11px] tracking-tight group-hover:text-white">{user.username}</span></td>
+                        <td className="px-4 py-2 flex items-center gap-3">
+                            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/10">
+                                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="24px" className="object-cover" />
+                            </div>
+                            <span className="text-slate-300 font-bold uppercase text-[11px] tracking-tight group-hover:text-white">{user.username}</span>
+                        </td>
                         {isFull && rankingData.days.map(day => (
                             <td key={day.id} className={`px-2 py-2 text-center border-l border-white/5 text-[10px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-700'}>{user.dayBreakdown[day.id] || 0}</span>
