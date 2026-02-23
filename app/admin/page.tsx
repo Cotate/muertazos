@@ -40,7 +40,7 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
-// --- FUNCIÓN DE DESCARGA GLOBAL REUTILIZABLE ---
+// --- FUNCIÓN DE DESCARGA ULTRA-ROBUSTA ---
 const handleDownloadImg = async (elementId: string, filename: string, setLoader: (val: string | null) => void) => {
     setLoader(elementId);
     const element = document.getElementById(elementId);
@@ -49,45 +49,55 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
     try {
         const { default: html2canvas } = await import('html2canvas');
         
-        // Preparar imágenes para evitar errores de CORS en Vercel
+        // 1. Asegurar carga y permisos de imágenes
         const images = element.getElementsByTagName('img');
-        for (let img of Array.from(images)) {
-            img.crossOrigin = "anonymous";
-            if (img.src.indexOf('?t=') === -1) {
-                img.src = img.src + "?t=" + new Date().getTime();
-            }
-        }
+        const loadPromises = Array.from(images).map(img => {
+            return new Promise((resolve) => {
+                if (img.complete) resolve(img);
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(img);
+                // Forzar CORS y bust de caché
+                img.crossOrigin = "anonymous";
+                const currentSrc = img.src.split('?')[0];
+                img.src = `${currentSrc}?t=${new Date().getTime()}`;
+            });
+        });
 
+        await Promise.all(loadPromises);
+
+        // 2. Ejecutar captura
         const canvas = await html2canvas(element, {
             backgroundColor: '#0a0a0a',
             scale: 2,
             useCORS: true,
             allowTaint: false,
-            logging: false,
-            onclone: (clonedDocument) => {
-                const el = clonedDocument.getElementById(elementId);
+            onclone: (clonedDoc) => {
+                const el = clonedDoc.getElementById(elementId);
                 if (el) {
                     const logos = el.querySelectorAll('.export-logo');
-                    logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
-                    el.style.padding = '40px';
+                    logos.forEach(l => (l as HTMLElement).style.display = 'flex');
+                    el.style.padding = '30px';
                     el.style.width = 'fit-content';
-                    el.style.margin = '0 auto';
                 }
             }
         });
         
+        // 3. Descarga vía Blob
         canvas.toBlob((blob) => {
-            if (!blob) return;
+            if (!blob) throw new Error("Canvas vacio");
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
+            link.href = url;
             link.download = `${filename}.jpg`;
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(link.href);
-        }, 'image/jpeg', 0.95);
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 'image/jpeg', 0.9);
 
     } catch (err) {
-        console.error('Error capturando imagen:', err);
-        alert('Error al generar imagen. Intenta de nuevo.');
+        console.error('Error de renderizado:', err);
+        alert('Error al generar imagen. Intenta recargar la página.');
     } finally {
         setLoader(null);
     }
@@ -111,20 +121,13 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
         
         if (mData) { mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); setMatchdays(mData) }
-        const fetchedUsers = uData || []
-        setUsers(fetchedUsers)
-        setAllPreds(pData || [])
+        setUsers(uData || []); setAllPreds(pData || [])
 
-        if (fetchedUsers.length > 0) {
-            const targetPerPage = 12;
-            const pages = Math.ceil(fetchedUsers.length / targetPerPage);
-            const base = Math.floor(fetchedUsers.length / pages);
-            const remainder = fetchedUsers.length % pages;
-            let chunks = []; let start = 0;
-            for(let i=0; i<pages; i++) {
-                let size = base + (i < remainder ? 1 : 0);
-                chunks.push([start, start + size]); start += size;
-            }
+        if (uData && uData.length > 0) {
+            const perPage = 12;
+            const pages = Math.ceil(uData.length / perPage);
+            let chunks = [];
+            for(let i=0; i<pages; i++) { chunks.push([i * perPage, (i + 1) * perPage]); }
             setPageChunks(chunks); setCurrentPage(0);
         }
     }
@@ -141,34 +144,29 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         <div className="w-full">
             {matchdays.map(day => (
                 <div id={`capture-day-${day.id}`} key={day.id} className="relative w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
-                    
                     <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6 pt-4">
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
-                        <div className="h-1 w-20 bg-[#FFD300]"></div>
                     </div>
-
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
-                        <div className="flex justify-start">
+                        <div className="flex justify-start" data-html2canvas-ignore="true">
                             {pageChunks.length > 1 && (
-                                <div data-html2canvas-ignore="true" className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === pageChunks.length - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
                         <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
-                        
-                        <div data-html2canvas-ignore="true" className="flex justify-end gap-3 items-center">
+                        <div className="flex justify-end gap-3 items-center" data-html2canvas-ignore="true">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-600/20 text-red-400 border-red-500/30' : 'bg-blue-600/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
-                            <button onClick={() => handleDownloadImg(`capture-day-${day.id}`, `${competitionKey}_${day.name.replace(/\s+/g, '_')}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest disabled:opacity-50">
+                            <button onClick={() => handleDownloadImg(`capture-day-${day.id}`, `Jornada_${day.id}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase disabled:opacity-50">
                                 {downloadingId === `capture-day-${day.id}` ? '...' : '↓ JPG'}
                             </button>
                         </div>
                     </div>
-
-                    <div className="w-full overflow-hidden">
-                        <table className="w-full border-collapse table-fixed text-center">
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full border-collapse table-fixed text-center min-w-[800px]">
                             <thead>
                                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
                                     <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
@@ -189,15 +187,11 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                     <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                                         <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
-                                                    className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.home && <img src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" crossOrigin="anonymous" />}
                                                 </button>
                                                 <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
-                                                    className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.away && <img src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" crossOrigin="anonymous" />}
                                                 </button>
                                             </div>
@@ -210,14 +204,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                 <td key={u.id} className="p-1 border-r border-white/5">
                                                     {pred?.predicted_team?.logo_file ? (
                                                         <div className="flex justify-center">
-                                                            <img 
-                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                height={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                alt="p" 
-                                                                crossOrigin="anonymous"
-                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
-                                                            />
+                                                            <img src={`/logos/${folder}/${pred.predicted_team.logo_file}`} width={getLogoSize(pred.predicted_team.logo_file)} height={getLogoSize(pred.predicted_team.logo_file)} alt="p" crossOrigin="anonymous" className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} />
                                                         </div>
                                                     ) : <span className="text-slate-800 text-xs">-</span>}
                                                 </td>
@@ -240,8 +227,7 @@ function RankingView() {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
     const [downloadingId, setDownloadingId] = useState<string | null>(null)
-
-    const USERS_PER_PAGE_RANKING = 17; 
+    const USERS_PER_PAGE = 17; 
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -271,53 +257,34 @@ function RankingView() {
     }, [])
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
-
-    const totalPages = Math.ceil(rankingData.users.length / USERS_PER_PAGE_RANKING);
-    const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE_RANKING, (currentPage + 1) * USERS_PER_PAGE_RANKING);
+    const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
 
     return (
         <div id="capture-ranking" className="w-full flex flex-col items-center py-12 px-6 bg-[#0a0a0a]">
-            
-            <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
+            <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6 pt-4 text-center">
                  <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
-                 <div className="h-1 w-20 bg-[#FFD300]"></div>
             </div>
-
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
-            
             <div data-html2canvas-ignore="true" className="flex gap-4 items-center mb-8">
-                <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
-                    {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
+                <button onClick={() => setShowFull(!showFull)} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest italic transition-all border border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]">
+                    {showFull ? '← RANKING' : 'DESGLOSE'}
                 </button>
-
-                {totalPages > 1 && (
-                    <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px]">
-                        <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-6 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                        <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-6 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
-                    </div>
-                )}
-
-                <button onClick={() => handleDownloadImg('capture-ranking', 'Ranking_General_Muertazos', setDownloadingId)} disabled={!!downloadingId} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent disabled:opacity-50">
+                <button onClick={() => handleDownloadImg('capture-ranking', 'Ranking_General', setDownloadingId)} disabled={!!downloadingId} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest italic bg-white text-black hover:bg-[#FFD300] disabled:opacity-50">
                     {downloadingId === 'capture-ranking' ? '...' : '↓ JPG'}
                 </button>
             </div>
-
             <div className="w-full max-w-4xl bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
                 <table className="w-full text-left border-collapse table-auto">
                     <tbody>
                         {paginatedUsers.map((user, idx) => (
                             <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                                <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600">
-                                    {(currentPage * USERS_PER_PAGE_RANKING) + idx + 1}
-                                </td>
+                                <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600">{(currentPage * USERS_PER_PAGE) + idx + 1}</td>
                                 <td className="w-[160px] max-w-[160px] px-3 py-2">
                                     <div className="flex items-center gap-2.5">
                                         <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0">
                                             <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
                                         </div>
-                                        <span className="text-slate-300 font-black uppercase text-[22px] tracking-tighter truncate block group-hover:text-white">
-                                            {user.username}
-                                        </span>
+                                        <span className="text-slate-300 font-black uppercase text-[22px] tracking-tighter truncate block group-hover:text-white">{user.username}</span>
                                     </div>
                                 </td>
                                 {showFull && rankingData.days.map(day => (
@@ -325,9 +292,7 @@ function RankingView() {
                                         <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                                     </td>
                                 ))}
-                                <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
-                                    {user.total}
-                                </td>
+                                <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">{user.total}</td>
                             </tr>
                         ))}
                     </tbody>
