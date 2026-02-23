@@ -39,7 +39,7 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
-// --- COMPONENTE DE IMAGEN ROBUSTA (EVITA EL ERROR 404) ---
+// --- COMPONENTE DE IMAGEN ROBUSTA ---
 function SafeUserImage({ username, className }: { username: string, className: string }) {
     const [error, setError] = useState(false);
     if (error) {
@@ -60,7 +60,7 @@ function SafeUserImage({ username, className }: { username: string, className: s
     );
 }
 
-// --- FUNCIÓN DE DESCARGA MODIFICADA PARA EVITAR "OKLAB" Y ERRORES ---
+// --- FUNCIÓN DE DESCARGA ANTI-ERRORES (OKLAB FIX) ---
 const handleDownloadImg = async (elementId: string, filename: string, setLoader: (val: string | null) => void) => {
     setLoader(elementId);
     const element = document.getElementById(elementId);
@@ -74,20 +74,31 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
             scale: 2,
             useCORS: true,
             allowTaint: false,
+            logging: false, // Menos ruido en consola
             onclone: (clonedDoc) => {
                 const el = clonedDoc.getElementById(elementId);
                 if (el) {
-                    // Forzamos colores básicos para evitar el error "oklab"
-                    el.style.color = '#ffffff';
+                    // FIX CRÍTICO: Eliminar colores oklab/oklch que rompen html2canvas
+                    const allElements = el.getElementsByTagName("*");
+                    for (let i = 0; i < allElements.length; i++) {
+                        const style = window.getComputedStyle(allElements[i]);
+                        // Si el color contiene funciones modernas, lo forzamos a algo que html2canvas entienda
+                        if (style.color.includes('okl') || style.backgroundColor.includes('okl')) {
+                            (allElements[i] as HTMLElement).style.color = 'white';
+                        }
+                    }
+
+                    // Mostrar logo oculto para la exportación
                     const logos = el.querySelectorAll('.export-logo');
-                    logos.forEach(l => (l as HTMLElement).style.display = 'flex');
-                    el.style.padding = '30px';
+                    logos.forEach(l => (l as HTMLElement).style.setProperty('display', 'flex', 'important'));
+                    
+                    el.style.padding = '40px';
                     el.style.width = 'fit-content';
                 }
             }
         });
         
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = `${filename}.jpg`;
@@ -95,7 +106,7 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
 
     } catch (err) {
         console.error('Error de renderizado:', err);
-        alert('Error al generar imagen. Revisa que las fotos de los usuarios existan.');
+        alert('Error al generar imagen. Intenta cerrar y abrir el navegador o usar Chrome.');
     } finally {
         setLoader(null);
     }
@@ -146,7 +157,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
                         <div className="h-1 w-20 bg-[#FFD300]"></div>
                     </div>
-                    {/* AQUI ESTÁN LAS CORRECCIONES DEL GRID Y BOTONES */}
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
                             {pageChunks.length > 1 && (
@@ -165,7 +175,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             </button>
                         </div>
                     </div>
-                    {/* FIN DE LAS CORRECCIONES */}
                     <div className="w-full overflow-x-auto">
                         <table className="w-full border-collapse table-fixed text-center min-w-[800px]">
                             <thead>
@@ -264,6 +273,7 @@ function RankingView() {
         <div id="capture-ranking" className="w-full flex flex-col items-center py-12 px-6 bg-[#0a0a0a]">
             <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6 pt-4 text-center">
                  <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+                 <div className="h-1 w-20 bg-[#FFD300] mx-auto"></div>
             </div>
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             <div data-html2canvas-ignore="true" className="flex gap-4 items-center mb-8">
