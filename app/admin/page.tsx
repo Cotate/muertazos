@@ -4,6 +4,40 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
+// Función global para descargar la imagen
+const handleDownloadImage = async (elementId: string, filename: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    try {
+        // Importación dinámica para evitar errores de SSR en Next.js
+        const { default: html2canvas } = await import('html2canvas'); 
+        const canvas = await html2canvas(element, {
+            backgroundColor: '#0a0a0a', // Fondo oscuro para que coincida con la web
+            scale: 2, // Alta resolución
+            useCORS: true, // Para que las fotos de los usuarios se rendericen bien
+            onclone: (clonedDocument) => {
+                const el = clonedDocument.getElementById(elementId);
+                if (el) {
+                    // Hacemos visible el logo/título solo en la exportación
+                    const logos = el.querySelectorAll('.export-logo');
+                    logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
+                    // Le damos un poco de margen a la imagen final para que respire
+                    el.style.padding = '40px'; 
+                }
+            }
+        });
+        
+        const data = canvas.toDataURL('image/jpeg', 0.9);
+        const link = document.createElement('a');
+        link.href = data;
+        link.download = `${filename}.jpg`;
+        link.click();
+    } catch (err) {
+        console.error('Error al generar la imagen', err);
+    }
+};
+
 export default function AdminDashboard() {
   const router = useRouter()
   const [tab, setTab] = useState<'kings' | 'queens' | 'ranking'>('kings')
@@ -49,7 +83,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [pageChunks, setPageChunks] = useState<number[][]>([])
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
     
-    // Función para detectar si el equipo es Pio y mantener su tamaño
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
     const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
@@ -64,19 +97,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setUsers(fetchedUsers)
         setAllPreds(pData || [])
 
-        // Lógica para dividir participantes inteligentemente
         if (fetchedUsers.length > 0) {
-            const targetPerPage = 12; // Busca acercarse a 12 por página
+            const targetPerPage = 12;
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
             const base = Math.floor(fetchedUsers.length / pages);
             const remainder = fetchedUsers.length % pages;
-            
-            let chunks = [];
-            let start = 0;
+            let chunks = []; let start = 0;
             for(let i=0; i<pages; i++) {
                 let size = base + (i < remainder ? 1 : 0);
-                chunks.push([start, start + size]);
-                start += size;
+                chunks.push([start, start + size]); start += size;
             }
             setPageChunks(chunks)
             setCurrentPage(0)
@@ -95,21 +124,32 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     return (
         <div className="w-full">
             {matchdays.map(day => (
-                <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
+                <div id={`capture-day-${day.id}`} key={day.id} className="relative group w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
+                    
+                    {/* LOGO OCULTO: Solo se mostrará en el JPG exportado */}
+                    <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
+                        <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+                        {/* Si tienes un logo en archivo, descomenta la línea de abajo y ajusta la ruta */}
+                        {/* <Image src="/logo.png" width={100} height={100} alt="Muertazos" className="object-contain" /> */}
+                    </div>
+
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
-                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    {/* Flechas minimalistas sin texto */}
+                                /* El atributo data-html2canvas-ignore oculta esto en la foto */
+                                <div data-html2canvas-ignore="true" className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
                         <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
-                        <div className="flex justify-end gap-4">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_visible ? 'bg-green-600 border-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
+                        
+                        {/* El atributo data-html2canvas-ignore oculta estos botones en la foto */}
+                        <div data-html2canvas-ignore="true" className="flex justify-end gap-3 items-center">
+                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
+                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-600/20 text-red-400 border-red-500/30' : 'bg-blue-600/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
+                            <button onClick={() => handleDownloadImage(`capture-day-${day.id}`, `${competitionKey}_${day.name}`)} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.2)]">↓ JPG</button>
                         </div>
                     </div>
 
@@ -233,7 +273,6 @@ function RankingView() {
                         <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600 group-hover:text-slate-400">
                             {startIdx + idx + 1}
                         </td>
-                        {/* Modificación: Columna más estrecha, foto y texto de la misma altura */}
                         <td className="w-[160px] max-w-[160px] px-3 py-2">
                             <div className="flex items-center gap-2.5">
                                 <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
@@ -259,21 +298,31 @@ function RankingView() {
     )
 
     return (
-        <div className="w-full flex flex-col items-center py-12 px-6">
+        <div id="capture-ranking" className="w-full flex flex-col items-center py-12 px-6 bg-[#0a0a0a]">
+            
+            {/* LOGO OCULTO: Solo se mostrará en el JPG exportado */}
+            <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
+                 <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+            </div>
+
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
-            <div className="flex gap-4 items-center mb-8">
+            {/* El data-html2canvas-ignore oculta todo este panel de botones en la foto */}
+            <div data-html2canvas-ignore="true" className="flex gap-4 items-center mb-8">
                 <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                     {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
                 </button>
 
-                {/* Controles de paginación del Ranking ultra minimalistas */}
                 {totalPages > 1 && (
                     <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px] shadow-lg">
                         <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-6 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                         <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-6 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                     </div>
                 )}
+
+                <button onClick={() => handleDownloadImage('capture-ranking', 'Ranking_General')} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                    ↓ JPG
+                </button>
             </div>
 
             <div className={`w-full transition-all duration-700 ease-in-out max-w-4xl`}>
