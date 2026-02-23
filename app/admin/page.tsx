@@ -100,9 +100,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    {/* Flechas minimalistas */}
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                                    <div className="px-3 py-2 text-[10px] text-slate-400 border-x border-white/10 font-mono">{currentPage + 1}/{totalPages}</div>
+                                    {/* Flechas minimalistas sin texto */}
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
@@ -190,9 +189,9 @@ function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
-    const [currentPage, setCurrentPage] = useState(0) // Estado de paginación para el Ranking
+    const [currentPage, setCurrentPage] = useState(0) 
 
-    const USERS_PER_PAGE_RANKING = 17; // Muestra 17 por página (2 páginas si hay 34 participantes)
+    const USERS_PER_PAGE_RANKING = 17; 
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -223,25 +222,27 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    // Lógica de paginación del Ranking
     const totalPages = Math.ceil(rankingData.users.length / USERS_PER_PAGE_RANKING);
     const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE_RANKING, (currentPage + 1) * USERS_PER_PAGE_RANKING);
 
     const TableContent = ({ data, startIdx, isFull }: { data: any[], startIdx: number, isFull: boolean }) => (
         <table className="w-full text-left border-collapse table-auto">
-            {/* Los encabezados "POS", "USUARIO", "TOTAL" han sido eliminados por completo a petición */}
             <tbody>
                 {data.map((user, idx) => (
                     <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                        {/* Columna POS muy estrecha (w-8 o w-6) */}
                         <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600 group-hover:text-slate-400">
                             {startIdx + idx + 1}
                         </td>
-                        <td className="px-4 py-2 flex items-center gap-3">
-                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
-                                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover" />
+                        {/* Modificación: Columna más estrecha, foto y texto de la misma altura */}
+                        <td className="w-[160px] max-w-[160px] px-3 py-2">
+                            <div className="flex items-center gap-2.5">
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
+                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover" />
+                                </div>
+                                <span className="text-slate-300 font-black uppercase text-[22px] leading-[32px] tracking-tighter group-hover:text-white truncate block">
+                                    {user.username}
+                                </span>
                             </div>
-                            <span className="text-slate-300 font-bold uppercase text-[12px] tracking-tight group-hover:text-white truncate">{user.username}</span>
                         </td>
                         {isFull && rankingData.days.map(day => (
                             <td key={day.id} className={`px-1 py-2.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
@@ -262,22 +263,19 @@ function RankingView() {
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
             <div className="flex gap-4 items-center mb-8">
-                {/* Botón de Desglose */}
                 <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                     {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
                 </button>
 
-                {/* Controles de paginación del Ranking con diseño minimalista */}
+                {/* Controles de paginación del Ranking ultra minimalistas */}
                 {totalPages > 1 && (
                     <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px] shadow-lg">
-                        <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 h-full text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                        <div className="px-3 text-[10px] text-slate-400 border-x border-white/10 font-mono tracking-widest">{currentPage + 1}/{totalPages}</div>
-                        <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                        <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-6 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                        <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-6 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                     </div>
                 )}
             </div>
 
-            {/* Tabla Principal Paginada */}
             <div className={`w-full transition-all duration-700 ease-in-out max-w-4xl`}>
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <TableContent data={paginatedUsers} startIdx={currentPage * USERS_PER_PAGE_RANKING} isFull={showFull} />
