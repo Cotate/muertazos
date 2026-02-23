@@ -64,7 +64,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setUsers(fetchedUsers)
         setAllPreds(pData || [])
 
-        // Lógica para dividir participantes inteligentemente en bloques de ~11 a 14
+        // Lógica para dividir participantes inteligentemente
         if (fetchedUsers.length > 0) {
             const targetPerPage = 12; // Busca acercarse a 12 por página
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
@@ -100,9 +100,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-4 py-2 text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀ ANTERIOR</button>
-                                    <div className="px-3 py-2 text-[10px] text-slate-400 border-x border-white/10">PÁG {currentPage + 1}/{totalPages}</div>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-4 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>SIGUIENTE ▶</button>
+                                    {/* Flechas minimalistas */}
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                                    <div className="px-3 py-2 text-[10px] text-slate-400 border-x border-white/10 font-mono">{currentPage + 1}/{totalPages}</div>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
@@ -123,13 +124,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
                                                 <div className="flex flex-col items-center justify-center gap-1.5">
                                                     <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg">
-                                                        <Image 
-                                                            src={`/usuarios/${u.username}.jpg`} 
-                                                            alt={u.username} 
-                                                            fill 
-                                                            sizes="48px" 
-                                                            className="object-cover" 
-                                                        />
+                                                        <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover" />
                                                     </div>
                                                     <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
                                                 </div>
@@ -149,9 +144,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                           'opacity-20 grayscale scale-90'}`}>
                                                         {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
                                                     </button>
-                                                    
                                                     <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                    
                                                     <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
                                                         className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
                                                         ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
@@ -197,6 +190,9 @@ function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(0) // Estado de paginación para el Ranking
+
+    const USERS_PER_PAGE_RANKING = 17; // Muestra 17 por página (2 páginas si hay 34 participantes)
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -227,40 +223,34 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    const half = Math.ceil(rankingData.users.length / 2)
-    const col1 = showFull ? rankingData.users : rankingData.users.slice(0, half)
-    const col2 = rankingData.users.slice(half)
+    // Lógica de paginación del Ranking
+    const totalPages = Math.ceil(rankingData.users.length / USERS_PER_PAGE_RANKING);
+    const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE_RANKING, (currentPage + 1) * USERS_PER_PAGE_RANKING);
 
     const TableContent = ({ data, startIdx, isFull }: { data: any[], startIdx: number, isFull: boolean }) => (
         <table className="w-full text-left border-collapse table-auto">
-            <thead>
-                <tr className="bg-black/60 text-[9px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
-                    <th className="px-4 py-2.5 w-12 text-center">POS</th>
-                    <th className="px-4 py-2.5">USUARIO</th>
-                    {isFull && rankingData.days.map(day => (
-                        <th key={day.id} className={`px-2 py-2.5 text-center border-l border-white/5 w-14 ${day.competition_key === 'kings' ? 'text-[#FFD300]/70 bg-[#FFD300]/5' : 'text-[#01d6c3]/70 bg-[#01d6c3]/5'}`}>
-                            {day.name.replace('JORNADA ', 'J')}
-                        </th>
-                    ))}
-                    <th className="px-5 py-2.5 text-center bg-[#FFD300]/10 text-[#FFD300] w-16 border-l border-white/10">TOTAL</th>
-                </tr>
-            </thead>
+            {/* Los encabezados "POS", "USUARIO", "TOTAL" han sido eliminados por completo a petición */}
             <tbody>
                 {data.map((user, idx) => (
                     <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                        <td className="px-4 py-2 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">{startIdx + idx + 1}</td>
+                        {/* Columna POS muy estrecha (w-8 o w-6) */}
+                        <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600 group-hover:text-slate-400">
+                            {startIdx + idx + 1}
+                        </td>
                         <td className="px-4 py-2 flex items-center gap-3">
-                            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/10">
-                                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="24px" className="object-cover" />
+                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
+                                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover" />
                             </div>
-                            <span className="text-slate-300 font-bold uppercase text-[11px] tracking-tight group-hover:text-white">{user.username}</span>
+                            <span className="text-slate-300 font-bold uppercase text-[12px] tracking-tight group-hover:text-white truncate">{user.username}</span>
                         </td>
                         {isFull && rankingData.days.map(day => (
-                            <td key={day.id} className={`px-2 py-2 text-center border-l border-white/5 text-[10px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
-                                <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-700'}>{user.dayBreakdown[day.id] || 0}</span>
+                            <td key={day.id} className={`px-1 py-2.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
+                                <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                             </td>
                         ))}
-                        <td className="px-5 py-2 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">{user.total}</td>
+                        <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
+                            {user.total}
+                        </td>
                     </tr>
                 ))}
             </tbody>
@@ -270,18 +260,28 @@ function RankingView() {
     return (
         <div className="w-full flex flex-col items-center py-12 px-6">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
-            <button onClick={() => setShowFull(!showFull)} className={`mb-10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300] hover:shadow-[0_0_15px_rgba(255,211,0,0.2)]'}`}>
-                {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
-            </button>
-            <div className={`w-full transition-all duration-700 ease-in-out ${showFull ? 'max-w-4xl' : 'max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8'}`}>
-                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
-                    <TableContent data={col1} startIdx={0} isFull={showFull} />
-                </div>
-                {!showFull && rankingData.users.length > 1 && (
-                    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden self-start">
-                        <TableContent data={col2} startIdx={half} isFull={false} />
+            
+            <div className="flex gap-4 items-center mb-8">
+                {/* Botón de Desglose */}
+                <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
+                    {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
+                </button>
+
+                {/* Controles de paginación del Ranking con diseño minimalista */}
+                {totalPages > 1 && (
+                    <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px] shadow-lg">
+                        <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 h-full text-xs font-black transition-colors ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                        <div className="px-3 text-[10px] text-slate-400 border-x border-white/10 font-mono tracking-widest">{currentPage + 1}/{totalPages}</div>
+                        <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                     </div>
                 )}
+            </div>
+
+            {/* Tabla Principal Paginada */}
+            <div className={`w-full transition-all duration-700 ease-in-out max-w-4xl`}>
+                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+                    <TableContent data={paginatedUsers} startIdx={currentPage * USERS_PER_PAGE_RANKING} isFull={showFull} />
+                </div>
             </div>
         </div>
     )
