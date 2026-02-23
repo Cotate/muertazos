@@ -1,42 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-
-// Función global para descargar la imagen
-const handleDownloadImage = async (elementId: string, filename: string) => {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    try {
-        // Importación dinámica para evitar errores de SSR en Next.js
-        const { default: html2canvas } = await import('html2canvas'); 
-        const canvas = await html2canvas(element, {
-            backgroundColor: '#0a0a0a', // Fondo oscuro para que coincida con la web
-            scale: 2, // Alta resolución
-            useCORS: true, // Para que las fotos de los usuarios se rendericen bien
-            onclone: (clonedDocument) => {
-                const el = clonedDocument.getElementById(elementId);
-                if (el) {
-                    // Hacemos visible el logo/título solo en la exportación
-                    const logos = el.querySelectorAll('.export-logo');
-                    logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
-                    // Le damos un poco de margen a la imagen final para que respire
-                    el.style.padding = '40px'; 
-                }
-            }
-        });
-        
-        const data = canvas.toDataURL('image/jpeg', 0.9);
-        const link = document.createElement('a');
-        link.href = data;
-        link.download = `${filename}.jpg`;
-        link.click();
-    } catch (err) {
-        console.error('Error al generar la imagen', err);
-    }
-};
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -81,6 +46,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [allPreds, setAllPreds] = useState<any[]>([])
     const [currentPage, setCurrentPage] = useState(0)
     const [pageChunks, setPageChunks] = useState<number[][]>([])
+    const [downloadingId, setDownloadingId] = useState<string | null>(null)
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
     
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
@@ -118,6 +84,41 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
     const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
 
+    const handleDownload = async (elementId: string, filename: string) => {
+        setDownloadingId(elementId);
+        const element = document.getElementById(elementId);
+        if (!element) { setDownloadingId(null); return; }
+        
+        try {
+            const { default: html2canvas } = await import('html2canvas'); 
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#0a0a0a',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                onclone: (clonedDocument) => {
+                    const el = clonedDocument.getElementById(elementId);
+                    if (el) {
+                        const logos = el.querySelectorAll('.export-logo');
+                        logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
+                        el.style.padding = '40px'; 
+                    }
+                }
+            });
+            
+            const data = canvas.toDataURL('image/jpeg', 0.9);
+            const link = document.createElement('a');
+            link.href = data;
+            link.download = `${filename}.jpg`;
+            link.click();
+        } catch (err) {
+            console.error('Error al generar la imagen:', err);
+            alert('Hubo un error al crear la imagen. Revisa la consola para más detalles.');
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
     const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
     const totalPages = pageChunks.length;
 
@@ -126,17 +127,13 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             {matchdays.map(day => (
                 <div id={`capture-day-${day.id}`} key={day.id} className="relative group w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
                     
-                    {/* LOGO OCULTO: Solo se mostrará en el JPG exportado */}
                     <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
-                        {/* Si tienes un logo en archivo, descomenta la línea de abajo y ajusta la ruta */}
-                        {/* <Image src="/logo.png" width={100} height={100} alt="Muertazos" className="object-contain" /> */}
                     </div>
 
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
-                                /* El atributo data-html2canvas-ignore oculta esto en la foto */
                                 <div data-html2canvas-ignore="true" className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
@@ -145,11 +142,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                         <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
                         
-                        {/* El atributo data-html2canvas-ignore oculta estos botones en la foto */}
                         <div data-html2canvas-ignore="true" className="flex justify-end gap-3 items-center">
                             <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
                             <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-600/20 text-red-400 border-red-500/30' : 'bg-blue-600/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
-                            <button onClick={() => handleDownloadImage(`capture-day-${day.id}`, `${competitionKey}_${day.name}`)} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.2)]">↓ JPG</button>
+                            <button onClick={() => handleDownload(`capture-day-${day.id}`, `${competitionKey}_${day.name}`)} disabled={downloadingId === `capture-day-${day.id}`} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed">
+                                {downloadingId === `capture-day-${day.id}` ? '...' : '↓ JPG'}
+                            </button>
                         </div>
                     </div>
 
@@ -163,7 +161,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
                                                 <div className="flex flex-col items-center justify-center gap-1.5">
                                                     <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg">
-                                                        <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover" />
+                                                        {/* Cambiado a <img> normal para html2canvas */}
+                                                        <img src={`/usuarios/${u.username}.jpg`} alt={u.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
                                                     </div>
                                                     <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
                                                 </div>
@@ -181,7 +180,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                         ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
                                                           m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
                                                           'opacity-20 grayscale scale-90'}`}>
-                                                        {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
+                                                        {/* Cambiado a <img> normal */}
+                                                        {m.home && <img src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" crossOrigin="anonymous" />}
                                                     </button>
                                                     <span className="text-[9px] font-black text-slate-600 italic">VS</span>
                                                     <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
@@ -189,7 +189,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                         ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
                                                           m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 
                                                           'opacity-20 grayscale scale-90'}`}>
-                                                        {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
+                                                        {m.away && <img src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" crossOrigin="anonymous" />}
                                                     </button>
                                                 </div>
                                             </td>
@@ -201,11 +201,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                     <td key={u.id} className="p-1 border-r border-white/5">
                                                         {pred?.predicted_team?.logo_file ? (
                                                             <div className="flex justify-center">
-                                                                <Image 
+                                                                <img 
                                                                     src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
                                                                     width={getLogoSize(pred.predicted_team.logo_file)} 
                                                                     height={getLogoSize(pred.predicted_team.logo_file)} 
                                                                     alt="p" 
+                                                                    crossOrigin="anonymous"
                                                                     className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
                                                                 />
                                                             </div>
@@ -230,6 +231,7 @@ function RankingView() {
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
+    const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
     const USERS_PER_PAGE_RANKING = 17; 
 
@@ -260,6 +262,41 @@ function RankingView() {
         fetchRanking()
     }, [])
 
+    const handleDownload = async (elementId: string, filename: string) => {
+        setDownloadingId(elementId);
+        const element = document.getElementById(elementId);
+        if (!element) { setDownloadingId(null); return; }
+        
+        try {
+            const { default: html2canvas } = await import('html2canvas'); 
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#0a0a0a',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                onclone: (clonedDocument) => {
+                    const el = clonedDocument.getElementById(elementId);
+                    if (el) {
+                        const logos = el.querySelectorAll('.export-logo');
+                        logos.forEach(l => { (l as HTMLElement).style.display = 'flex'; });
+                        el.style.padding = '40px'; 
+                    }
+                }
+            });
+            
+            const data = canvas.toDataURL('image/jpeg', 0.9);
+            const link = document.createElement('a');
+            link.href = data;
+            link.download = `${filename}.jpg`;
+            link.click();
+        } catch (err) {
+            console.error('Error al generar la imagen:', err);
+            alert('Hubo un error al crear la imagen. Revisa la consola para más detalles.');
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
     const totalPages = Math.ceil(rankingData.users.length / USERS_PER_PAGE_RANKING);
@@ -276,7 +313,8 @@ function RankingView() {
                         <td className="w-[160px] max-w-[160px] px-3 py-2">
                             <div className="flex items-center gap-2.5">
                                 <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
-                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover" />
+                                    {/* Cambiado a <img> normal */}
+                                    <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
                                 </div>
                                 <span className="text-slate-300 font-black uppercase text-[22px] leading-[32px] tracking-tighter group-hover:text-white truncate block">
                                     {user.username}
@@ -300,14 +338,12 @@ function RankingView() {
     return (
         <div id="capture-ranking" className="w-full flex flex-col items-center py-12 px-6 bg-[#0a0a0a]">
             
-            {/* LOGO OCULTO: Solo se mostrará en el JPG exportado */}
             <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6">
                  <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
             </div>
 
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
-            {/* El data-html2canvas-ignore oculta todo este panel de botones en la foto */}
             <div data-html2canvas-ignore="true" className="flex gap-4 items-center mb-8">
                 <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                     {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
@@ -320,8 +356,8 @@ function RankingView() {
                     </div>
                 )}
 
-                <button onClick={() => handleDownloadImage('capture-ranking', 'Ranking_General')} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                    ↓ JPG
+                <button onClick={() => handleDownload('capture-ranking', 'Ranking_General')} disabled={downloadingId === 'capture-ranking'} className="px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border bg-white text-black hover:bg-[#FFD300] border-transparent shadow-[0_0_15px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed">
+                    {downloadingId === 'capture-ranking' ? '...' : '↓ JPG'}
                 </button>
             </div>
 
