@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -74,7 +74,6 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
             scale: 2,
             useCORS: true,
             allowTaint: false,
-            // Evitamos que use funciones de color modernas que rompen el renderizado
             onclone: (clonedDoc) => {
                 const el = clonedDoc.getElementById(elementId);
                 if (el) {
@@ -147,24 +146,26 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
                         <div className="h-1 w-20 bg-[#FFD300]"></div>
                     </div>
+                    {/* AQUI ESTÁN LAS CORRECCIONES DEL GRID Y BOTONES */}
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
-                        <div className="flex justify-start" data-html2canvas-ignore="true">
+                        <div className="flex justify-start">
                             {pageChunks.length > 1 && (
-                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                                <div data-html2canvas-ignore="true" className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20 text-slate-600' : 'text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === pageChunks.length - 1 ? 'opacity-20 text-slate-600' : 'text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
                         <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
-                        <div className="flex justify-end gap-3 items-center" data-html2canvas-ignore="true">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-900/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'bg-blue-900/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
-                            <button onClick={() => handleDownloadImg(`capture-day-${day.id}`, `Jornada_${day.id}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase disabled:opacity-50">
+                        <div className="flex justify-end gap-3 items-center">
+                            <button data-html2canvas-ignore="true" onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-900/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
+                            <button data-html2canvas-ignore="true" onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'bg-blue-900/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
+                            <button data-html2canvas-ignore="true" onClick={() => handleDownloadImg(`capture-day-${day.id}`, `Jornada_${day.id}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase disabled:opacity-50">
                                 {downloadingId === `capture-day-${day.id}` ? '...' : '↓ JPG'}
                             </button>
                         </div>
                     </div>
+                    {/* FIN DE LAS CORRECCIONES */}
                     <div className="w-full overflow-x-auto">
                         <table className="w-full border-collapse table-fixed text-center min-w-[800px]">
                             <thead>
