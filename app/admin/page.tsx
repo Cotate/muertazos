@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -14,7 +14,6 @@ export default function AdminDashboard() {
         return
     }
     document.body.style.backgroundColor = '#0a0a0a'
-    return () => { document.body.style.backgroundColor = '' }
   }, [router])
 
   return (
@@ -24,7 +23,7 @@ export default function AdminDashboard() {
                 <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
                 <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
                 <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
-                <button onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} className="ml-6 bg-red-600/10 text-red-500 border border-red-500/30 px-6 py-2 rounded-lg font-black hover:bg-red-600 hover:text-white transition-all text-[11px] uppercase italic tracking-tighter">CERRAR SESIÓN</button>
+                <button onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} className="ml-6 bg-red-900/20 text-red-500 border border-red-500/30 px-6 py-2 rounded-lg font-black hover:bg-red-600 hover:text-white transition-all text-[11px] uppercase italic tracking-tighter">CERRAR SESIÓN</button>
             </div>
         </div>
         <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
@@ -40,7 +39,28 @@ function TabBtn({label, active, onClick, activeColor}: any) {
     )
 }
 
-// --- FUNCIÓN DE DESCARGA ULTRA-ROBUSTA ---
+// --- COMPONENTE DE IMAGEN ROBUSTA (EVITA EL ERROR 404) ---
+function SafeUserImage({ username, className }: { username: string, className: string }) {
+    const [error, setError] = useState(false);
+    if (error) {
+        return (
+            <div className={`${className} bg-slate-700 flex items-center justify-center text-[10px] font-black text-white uppercase`}>
+                {username.substring(0, 2)}
+            </div>
+        );
+    }
+    return (
+        <img 
+            src={`/usuarios/${username}.jpg`} 
+            alt={username} 
+            className={className} 
+            crossOrigin="anonymous"
+            onError={() => setError(true)}
+        />
+    );
+}
+
+// --- FUNCIÓN DE DESCARGA MODIFICADA PARA EVITAR "OKLAB" Y ERRORES ---
 const handleDownloadImg = async (elementId: string, filename: string, setLoader: (val: string | null) => void) => {
     setLoader(elementId);
     const element = document.getElementById(elementId);
@@ -49,31 +69,17 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
     try {
         const { default: html2canvas } = await import('html2canvas');
         
-        // 1. Asegurar carga y permisos de imágenes
-        const images = element.getElementsByTagName('img');
-        const loadPromises = Array.from(images).map(img => {
-            return new Promise((resolve) => {
-                if (img.complete) resolve(img);
-                img.onload = () => resolve(img);
-                img.onerror = () => resolve(img);
-                // Forzar CORS y bust de caché
-                img.crossOrigin = "anonymous";
-                const currentSrc = img.src.split('?')[0];
-                img.src = `${currentSrc}?t=${new Date().getTime()}`;
-            });
-        });
-
-        await Promise.all(loadPromises);
-
-        // 2. Ejecutar captura
         const canvas = await html2canvas(element, {
             backgroundColor: '#0a0a0a',
             scale: 2,
             useCORS: true,
             allowTaint: false,
+            // Evitamos que use funciones de color modernas que rompen el renderizado
             onclone: (clonedDoc) => {
                 const el = clonedDoc.getElementById(elementId);
                 if (el) {
+                    // Forzamos colores básicos para evitar el error "oklab"
+                    el.style.color = '#ffffff';
                     const logos = el.querySelectorAll('.export-logo');
                     logos.forEach(l => (l as HTMLElement).style.display = 'flex');
                     el.style.padding = '30px';
@@ -82,22 +88,15 @@ const handleDownloadImg = async (elementId: string, filename: string, setLoader:
             }
         });
         
-        // 3. Descarga vía Blob
-        canvas.toBlob((blob) => {
-            if (!blob) throw new Error("Canvas vacio");
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${filename}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }, 'image/jpeg', 0.9);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `${filename}.jpg`;
+        link.click();
 
     } catch (err) {
         console.error('Error de renderizado:', err);
-        alert('Error al generar imagen. Intenta recargar la página.');
+        alert('Error al generar imagen. Revisa que las fotos de los usuarios existan.');
     } finally {
         setLoader(null);
     }
@@ -146,20 +145,21 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 <div id={`capture-day-${day.id}`} key={day.id} className="relative w-full mb-8 border-y border-white/5 bg-[#0a0a0a]">
                     <div className="export-logo hidden w-full justify-center flex-col items-center gap-2 pb-6 pt-4">
                         <h1 className="text-4xl font-black text-white italic tracking-widest uppercase">MUERTAZOS</h1>
+                        <div className="h-1 w-20 bg-[#FFD300]"></div>
                     </div>
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
                         <div className="flex justify-start" data-html2canvas-ignore="true">
                             {pageChunks.length > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === pageChunks.length - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20 text-slate-600' : 'text-[#FFD300]'}`}>◀</button>
+                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === pageChunks.length - 1 ? 'opacity-20 text-slate-600' : 'text-[#FFD300]'}`}>▶</button>
                                 </div>
                             )}
                         </div>
                         <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
                         <div className="flex justify-end gap-3 items-center" data-html2canvas-ignore="true">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-600/20 text-red-400 border-red-500/30' : 'bg-blue-600/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
+                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_visible ? 'bg-green-900/20 text-green-400 border-green-500/30' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
+                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-4 py-2 text-[10px] font-black rounded-full border ${day.is_locked ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'bg-blue-900/20 text-blue-400 border-blue-500/30'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
                             <button onClick={() => handleDownloadImg(`capture-day-${day.id}`, `Jornada_${day.id}`, setDownloadingId)} disabled={!!downloadingId} className="ml-2 px-5 py-2 text-[10px] font-black rounded-full bg-white text-black hover:bg-[#FFD300] transition-colors uppercase disabled:opacity-50">
                                 {downloadingId === `capture-day-${day.id}` ? '...' : '↓ JPG'}
                             </button>
@@ -174,7 +174,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                         <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
                                             <div className="flex flex-col items-center justify-center gap-1.5">
                                                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800">
-                                                    <img src={`/usuarios/${u.username}.jpg`} alt={u.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
+                                                    <SafeUserImage username={u.username} className="object-cover w-full h-full" />
                                                 </div>
                                                 <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
                                             </div>
@@ -184,14 +184,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             </thead>
                             <tbody>
                                 {day.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                    <tr key={m.id} className="border-b border-white/5">
                                         <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} className={`w-14 h-14 rounded-xl transition-all flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.home && <img src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" crossOrigin="anonymous" />}
                                                 </button>
                                                 <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} className={`w-14 h-14 rounded-xl transition-all flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.away && <img src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" crossOrigin="anonymous" />}
                                                 </button>
                                             </div>
@@ -204,7 +204,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                                 <td key={u.id} className="p-1 border-r border-white/5">
                                                     {pred?.predicted_team?.logo_file ? (
                                                         <div className="flex justify-center">
-                                                            <img src={`/logos/${folder}/${pred.predicted_team.logo_file}`} width={getLogoSize(pred.predicted_team.logo_file)} height={getLogoSize(pred.predicted_team.logo_file)} alt="p" crossOrigin="anonymous" className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} />
+                                                            <img src={`/logos/${folder}/${pred.predicted_team.logo_file}`} width={getLogoSize(pred.predicted_team.logo_file)} height={getLogoSize(pred.predicted_team.logo_file)} alt="p" crossOrigin="anonymous" className={`transition-all ${hasWinner ? (isHit ? 'opacity-100 scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} />
                                                         </div>
                                                     ) : <span className="text-slate-800 text-xs">-</span>}
                                                 </td>
@@ -256,7 +256,7 @@ function RankingView() {
         fetchRanking()
     }, [])
 
-    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Cargando Ranking...</div>
     const paginatedUsers = rankingData.users.slice(currentPage * USERS_PER_PAGE, (currentPage + 1) * USERS_PER_PAGE);
 
     return (
@@ -282,7 +282,7 @@ function RankingView() {
                                 <td className="w-[160px] max-w-[160px] px-3 py-2">
                                     <div className="flex items-center gap-2.5">
                                         <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0">
-                                            <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="object-cover w-full h-full" crossOrigin="anonymous" />
+                                            <SafeUserImage username={user.username} className="object-cover w-full h-full" />
                                         </div>
                                         <span className="text-slate-300 font-black uppercase text-[22px] tracking-tighter truncate block group-hover:text-white">{user.username}</span>
                                     </div>
