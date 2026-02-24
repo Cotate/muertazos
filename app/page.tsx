@@ -26,7 +26,7 @@ export default function Login() {
       .single()
 
     if (dbError || !data) {
-      setError('Credenciales incorrectas (o mojadas)')
+      setError('Credenciales incorrectas')
       return
     }
 
