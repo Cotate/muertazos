@@ -49,7 +49,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [pageChunks, setPageChunks] = useState<number[][]>([])
     const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
     
-    // Función para detectar si el equipo es Pio y mantener su tamaño
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
     const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
@@ -64,9 +63,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setUsers(fetchedUsers)
         setAllPreds(pData || [])
 
-        // Lógica para dividir participantes inteligentemente
         if (fetchedUsers.length > 0) {
-            const targetPerPage = 12; // Busca acercarse a 12 por página
+            const targetPerPage = 12;
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
             const base = Math.floor(fetchedUsers.length / pages);
             const remainder = fetchedUsers.length % pages;
@@ -100,7 +98,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    {/* Flechas minimalistas sin texto */}
                                     <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
                                     <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                                 </div>
@@ -122,8 +119,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                         {paginatedUsers.map(u => (
                                             <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
                                                 <div className="flex flex-col items-center justify-center gap-1.5">
-                                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg">
-                                                        <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover" />
+                                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
+                                                        {/* Fix 1: Eliminar imagen rota */}
+                                                        {u.username.charAt(0).toUpperCase()}
+                                                        <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
                                                     </div>
                                                     <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
                                                 </div>
@@ -191,7 +190,8 @@ function RankingView() {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
 
-    const USERS_PER_PAGE_RANKING = 17; 
+    // Fix 4: Reducido a 15 para que quepa mejor verticalmente
+    const USERS_PER_PAGE_RANKING = 15; 
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -230,26 +230,28 @@ function RankingView() {
             <tbody>
                 {data.map((user, idx) => (
                     <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                        <td className="w-6 px-1 py-2.5 text-center border-r border-white/5 font-black italic text-[11px] text-slate-600 group-hover:text-slate-400">
+                        <td className="w-8 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">
                             {startIdx + idx + 1}
                         </td>
-                        {/* Modificación: Columna más estrecha, foto y texto de la misma altura */}
-                        <td className="w-[160px] max-w-[160px] px-3 py-2">
-                            <div className="flex items-center gap-2.5">
-                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md">
-                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover" />
+                        {/* Fix 3: Fuente más delgada (font-medium), más pequeña y más espaciada (tracking-widest) */}
+                        <td className="w-[180px] max-w-[180px] px-4 py-1.5">
+                            <div className="flex items-center gap-3">
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md flex items-center justify-center bg-slate-800 text-slate-400 font-bold text-sm">
+                                     {/* Fix 1: Inicial si no hay foto en el ranking */}
+                                    {user.username.charAt(0).toUpperCase()}
+                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
                                 </div>
-                                <span className="text-slate-300 font-black uppercase text-[22px] leading-[32px] tracking-tighter group-hover:text-white truncate block">
+                                <span className="text-slate-300 font-medium uppercase text-sm tracking-widest group-hover:text-white truncate block">
                                     {user.username}
                                 </span>
                             </div>
                         </td>
                         {isFull && rankingData.days.map(day => (
-                            <td key={day.id} className={`px-1 py-2.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
+                            <td key={day.id} className={`px-1 py-1.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/2' : 'bg-[#01d6c3]/2'}`}>
                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                             </td>
                         ))}
-                        <td className="w-12 px-2 py-2.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
+                        <td className="w-12 px-2 py-1.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
                             {user.total}
                         </td>
                     </tr>
@@ -259,15 +261,15 @@ function RankingView() {
     )
 
     return (
-        <div className="w-full flex flex-col items-center py-12 px-6">
-            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-8"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
+        // Fix 4: py-8 en vez de py-12 para ahorrar espacio vertical
+        <div className="w-full flex flex-col items-center py-8 px-6">
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-6"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
-            <div className="flex gap-4 items-center mb-8">
+            <div className="flex gap-4 items-center mb-6">
                 <button onClick={() => setShowFull(!showFull)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}>
                     {showFull ? '← VOLVER AL RANKING' : 'VER DESGLOSE POR JORNADAS'}
                 </button>
 
-                {/* Controles de paginación del Ranking ultra minimalistas */}
                 {totalPages > 1 && (
                     <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[42px] shadow-lg">
                         <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-6 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
@@ -276,7 +278,8 @@ function RankingView() {
                 )}
             </div>
 
-            <div className={`w-full transition-all duration-700 ease-in-out max-w-4xl`}>
+            {/* Fix 2: max-w-2xl para que la tabla sea menos ancha */}
+            <div className={`w-full transition-all duration-700 ease-in-out max-w-2xl`}>
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <TableContent data={paginatedUsers} startIdx={currentPage * USERS_PER_PAGE_RANKING} isFull={showFull} />
                 </div>
