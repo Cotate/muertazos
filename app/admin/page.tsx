@@ -43,6 +43,7 @@ function TabBtn({label, active, onClick, activeColor}: any) {
 
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
+    const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null) // NUEVO: Estado para la jornada activa
     const [users, setUsers] = useState<any[]>([])
     const [allPreds, setAllPreds] = useState<any[]>([])
     const [currentPage, setCurrentPage] = useState(0)
@@ -57,7 +58,17 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
         const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
         
-        if (mData) { mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); setMatchdays(mData) }
+        if (mData) { 
+            mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); 
+            setMatchdays(mData) 
+            
+            // Si no hay jornada activa seleccionada, selecciona la primera por defecto
+            setActiveMatchdayId(prev => {
+                if (!prev && mData.length > 0) return mData[0].id;
+                if (prev && !mData.find(d => d.id === prev)) return mData[0].id; // Por si se borra la jornada activa
+                return prev;
+            })
+        }
         
         const fetchedUsers = uData || []
         setUsers(fetchedUsers)
@@ -77,7 +88,9 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 start += size;
             }
             setPageChunks(chunks)
-            setCurrentPage(0)
+            // SOLUCIÓN: Solo actualizar la página si la actual queda fuera de rango al cargar.
+            // Esto evita que te regrese a la página 1 al marcar un ganador.
+            setCurrentPage(prev => Math.min(prev, Math.max(0, chunks.length - 1)))
         }
     }
     
@@ -89,12 +102,33 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
     const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
     const totalPages = pageChunks.length;
+    
+    // Obtenemos la jornada que está actualmente seleccionada en el menú
+    const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
     return (
-        <div className="w-full">
-            {matchdays.map(day => (
-                <div key={day.id} className="relative group w-full mb-8 border-y border-white/5">
-                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40">
+        <div className="w-full flex flex-col items-center">
+            {/* NUEVO: Menú horizontal de Jornadas */}
+            <div className="w-full flex justify-center flex-wrap gap-3 p-6 border-b border-white/5 bg-slate-900/20">
+                {matchdays.map(day => (
+                    <button
+                        key={day.id}
+                        onClick={() => setActiveMatchdayId(day.id)}
+                        className={`px-5 py-2.5 text-[11px] font-black italic uppercase tracking-wider transition-all rounded-lg border shadow-sm ${
+                            activeMatchdayId === day.id
+                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
+                                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
+                        }`}
+                    >
+                        {day.name}
+                    </button>
+                ))}
+            </div>
+
+            {/* Renderizado de la jornada individual */}
+            {activeMatchday && (
+                <div className="relative group w-full mb-8">
+                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
@@ -103,10 +137,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                 </div>
                             )}
                         </div>
-                        <div className="flex justify-center"><h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">{day.name}</h3></div>
+                        <div className="flex justify-center">
+                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">
+                                {activeMatchday.name}
+                            </h3>
+                        </div>
                         <div className="flex justify-end gap-4">
-                            <button onClick={()=>toggleVisible(day.id, day.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_visible ? 'bg-green-600 border-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{day.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
-                            <button onClick={()=>toggleLock(day.id, day.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border ${day.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>{day.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
+                            <button onClick={()=>toggleVisible(activeMatchday.id, activeMatchday.is_visible)} className={`px-6 py-2 text-xs font-black rounded-full border ${activeMatchday.is_visible ? 'bg-green-600 border-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{activeMatchday.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
+                            <button onClick={()=>toggleLock(activeMatchday.id, activeMatchday.is_locked)} className={`px-6 py-2 text-xs font-black rounded-full border ${activeMatchday.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>{activeMatchday.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
                         </div>
                     </div>
 
@@ -120,7 +158,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
                                                 <div className="flex flex-col items-center justify-center gap-1.5">
                                                     <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
-                                                        {/* Fix 1: Eliminar imagen rota */}
                                                         {u.username.charAt(0).toUpperCase()}
                                                         <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
                                                     </div>
@@ -131,7 +168,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {day.matches?.map((m: any) => (
+                                    {activeMatchday.matches?.map((m: any) => (
                                         <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                                             <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
                                                 <div className="flex items-center justify-center gap-2">
@@ -179,7 +216,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                         </div>
                     )}
                 </div>
-            ))}
+            )}
         </div>
     )
 }
@@ -190,8 +227,8 @@ function RankingView() {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
 
-    // Fix 4: Reducido a 15 para que quepa mejor verticalmente
-    const USERS_PER_PAGE_RANKING = 15; 
+    // SOLUCIÓN: Cambiado a 10 para hacer exactamente 5 páginas con 50 usuarios
+    const USERS_PER_PAGE_RANKING = 10; 
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -233,11 +270,9 @@ function RankingView() {
                         <td className="w-8 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">
                             {startIdx + idx + 1}
                         </td>
-                        {/* Fix 3: Fuente más delgada (font-medium), más pequeña y más espaciada (tracking-widest) */}
                         <td className="w-[180px] max-w-[180px] px-4 py-1.5">
                             <div className="flex items-center gap-3">
                                 <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md flex items-center justify-center bg-slate-800 text-slate-400 font-bold text-sm">
-                                     {/* Fix 1: Inicial si no hay foto en el ranking */}
                                     {user.username.charAt(0).toUpperCase()}
                                     <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
                                 </div>
@@ -261,7 +296,6 @@ function RankingView() {
     )
 
     return (
-        // Fix 4: py-8 en vez de py-12 para ahorrar espacio vertical
         <div className="w-full flex flex-col items-center py-8 px-6">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center mb-6"><span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span></h2>
             
@@ -278,7 +312,6 @@ function RankingView() {
                 )}
             </div>
 
-            {/* Fix 2: max-w-2xl para que la tabla sea menos ancha */}
             <div className={`w-full transition-all duration-700 ease-in-out max-w-2xl`}>
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <TableContent data={paginatedUsers} startIdx={currentPage * USERS_PER_PAGE_RANKING} isFull={showFull} />
