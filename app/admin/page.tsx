@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
+// --- COMPONENTE PRINCIPAL ---
 export default function AdminDashboard() {
   const router = useRouter()
   const [tab, setTab] = useState<'kings' | 'queens' | 'ranking'>('kings')
@@ -22,56 +23,66 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
         
         {/* HEADER UNIFICADO: Ligas - LOGO - Ranking/Salir */}
-        <div className="flex justify-between items-center border-b border-white/5 bg-black/40 px-10 h-28">
+        <header className="w-full h-32 flex justify-between items-center px-12 bg-black border-b border-white/5 shadow-2xl relative z-50">
             
             {/* Lado Izquierdo: Ligas */}
-            <div className="flex items-center gap-8 flex-1 justify-end pr-12">
-                <TabBtn label="KINGS LEAGUE" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
-                <TabBtn label="QUEENS LEAGUE" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
+            <div className="flex gap-10 flex-1 justify-end pr-16">
+                <TabBtn label="KINGS" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
+                <TabBtn label="QUEENS" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
             </div>
 
-            {/* Centro: Logo Muertazos */}
-            <div className="flex-shrink-0 flex items-center justify-center relative">
-                <div className="relative w-24 h-24 drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:scale-105 transition-transform duration-500">
-                    <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" priority />
+            {/* Centro: Logo Grande (Sustituye al del layout) */}
+            <div className="flex-shrink-0 flex justify-center items-center">
+                <div className="relative w-56 h-20 hover:scale-105 transition-transform duration-500 cursor-pointer">
+                    <Image 
+                      src="/Muertazos.png" 
+                      alt="Muertazos Logo" 
+                      fill 
+                      className="object-contain"
+                      priority 
+                    />
                 </div>
             </div>
 
             {/* Lado Derecho: Ranking y Salir */}
-            <div className="flex items-center gap-8 flex-1 pl-12">
-                <TabBtn label="RANKING GENERAL" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
+            <div className="flex gap-10 flex-1 pl-16 items-center">
+                <TabBtn label="RANKING" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
+                
                 <button 
                     onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                    className="ml-auto bg-red-600/10 text-red-500 border border-red-500/20 px-5 py-2 rounded-full font-black hover:bg-red-600 hover:text-white transition-all text-[10px] uppercase italic tracking-widest"
+                    className="ml-auto bg-red-600/10 text-red-500 border border-red-500/20 px-6 py-2 rounded-full font-black hover:bg-red-600 hover:text-white transition-all text-[10px] uppercase italic tracking-widest"
                 >
                     SALIR
                 </button>
             </div>
-        </div>
+        </header>
 
-        <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+        {/* Contenido según pestaña */}
+        <div className="w-full">
             {tab === 'ranking' ? <RankingView /> : <CompetitionAdmin key={tab} competitionKey={tab} />}
         </div>
     </div>
   )
 }
 
+// --- BOTONES DEL HEADER ---
 function TabBtn({label, active, onClick, activeColor}: any) {
     return (
         <button 
             onClick={onClick} 
-            style={{ color: active ? activeColor : '#334155' }} 
-            className={`relative py-2 font-black italic tracking-[0.15em] transition-all duration-300 uppercase text-[12px] hover:text-white ${active ? 'scale-110' : 'scale-100'}`}
+            style={{ color: active ? activeColor : '#475569' }} 
+            className={`relative py-2 font-black italic tracking-widest transition-all duration-300 uppercase text-[13px] hover:text-white ${active ? 'scale-110' : ''}`}
         >
             {label}
             <span 
-                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[2px] rounded-full transition-all duration-500 ${active ? 'w-full opacity-100' : 'w-0 opacity-0'}`} 
-                style={{backgroundColor: activeColor, boxShadow: `0 0 15px ${activeColor}`}}
+                className={`absolute -bottom-2 left-0 h-[3px] rounded-full transition-all duration-300 ${active ? 'w-full opacity-100' : 'w-0 opacity-0'}`} 
+                style={{backgroundColor: activeColor, boxShadow: `0 0 12px ${activeColor}`}}
             />
         </button>
     )
 }
 
+// --- VISTA DE PREDICCIONES (KINGS/QUEENS) ---
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
@@ -92,10 +103,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         if (mData) { 
             mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); 
             setMatchdays(mData) 
-            setActiveMatchdayId(prev => {
-                if (!prev && mData.length > 0) return mData[0].id;
-                return prev;
-            })
+            setActiveMatchdayId(prev => prev || (mData.length > 0 ? mData[0].id : null))
         }
         
         const fetchedUsers = uData || []
@@ -103,7 +111,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setAllPreds(pData || [])
 
         if (fetchedUsers.length > 0) {
-            const targetPerPage = 12; // Usuarios por página en el administrador
+            const targetPerPage = 12;
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
             const base = Math.floor(fetchedUsers.length / pages);
             const remainder = fetchedUsers.length % pages;
@@ -114,6 +122,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 start += size;
             }
             setPageChunks(chunks)
+            // No reseteamos currentPage aquí para mantener la posición al actualizar
         }
     }
     
@@ -126,13 +135,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
     const totalPages = pageChunks.length;
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
-
     const formatDayName = (name: string) => name.replace(/jornada\s*/i, 'J');
 
     return (
         <div className="w-full flex flex-col items-center">
             
-            {/* Selector de Jornadas Minimalista J1, J2, J3... */}
+            {/* Menú de Jornadas Minimalista (J1, J2...) */}
             <div className="w-full flex justify-center gap-10 p-8">
                 {matchdays.map(day => (
                     <button
@@ -156,7 +164,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
             {activeMatchday && (
                 <div className="w-full mb-12">
-                    {/* Barra de control de la jornada */}
                     <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-white/[0.02] border-y border-white/5">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
@@ -167,24 +174,20 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                 </div>
                             )}
                         </div>
-                        <div className="text-center">
-                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter drop-shadow-lg">
-                                {activeMatchday.name}
-                            </h3>
-                        </div>
+                        <div className="text-center font-black italic text-2xl" style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }}>{activeMatchday.name.toUpperCase()}</div>
                         <div className="flex justify-end gap-3">
                             <button onClick={()=>toggleVisible(activeMatchday.id, activeMatchday.is_visible)} className={`px-5 py-1.5 text-[10px] font-black rounded-full border transition-all ${activeMatchday.is_visible ? 'bg-green-600/20 border-green-500 text-green-500' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>{activeMatchday.is_visible ? 'PÚBLICO' : 'OCULTO'}</button>
                             <button onClick={()=>toggleLock(activeMatchday.id, activeMatchday.is_locked)} className={`px-5 py-1.5 text-[10px] font-black rounded-full border transition-all ${activeMatchday.is_locked ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-blue-600/20 border-blue-500 text-blue-400'}`}>{activeMatchday.is_locked ? 'BLOQUEADO' : 'ABIERTO'}</button>
                         </div>
                     </div>
 
-                    <div className="w-full overflow-hidden mt-6">
+                    <div className="w-full overflow-x-auto mt-6">
                         <table className="w-full border-collapse table-fixed text-center">
                             <thead>
                                 <tr className="text-[10px] text-slate-600 font-black uppercase tracking-widest border-b border-white/5">
                                     <th className="w-[160px] p-4">EQUIPOS</th>
                                     {paginatedUsers.map(u => (
-                                        <th key={u.id} className="py-4 px-1 border-l border-white/5 font-black">
+                                        <th key={u.id} className="py-4 px-1 border-l border-white/5">
                                             <div className="flex flex-col items-center gap-2">
                                                 <div className="relative w-11 h-11 rounded-full overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center text-slate-500 text-base">
                                                     {u.username.charAt(0).toUpperCase()}
@@ -198,7 +201,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             </thead>
                             <tbody>
                                 {activeMatchday.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-white/5 group hover:bg-white/[0.01]">
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.01]">
                                         <td className="py-2 bg-black/20">
                                             <div className="flex items-center justify-center gap-1">
                                                 <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
@@ -243,6 +246,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     )
 }
 
+// --- VISTA DE RANKING ---
 function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
