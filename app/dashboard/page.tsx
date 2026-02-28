@@ -104,16 +104,18 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
       
-      {/* HEADER ESTILO CORPORATIVO */}
+      {/* HEADER ACTUALIZADO */}
       <header className="w-full h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
-        <div className="flex gap-12 flex-1 items-center">
+        <div className="flex gap-20 flex-1 items-center">
             <button 
                 onClick={() => { setLeague('kings'); setIsEditing(false); }}
-                className={`text-lg font-black italic tracking-widest transition-all ${league === 'kings' ? 'text-[#ffd300] scale-110' : 'text-slate-600 hover:text-slate-400'}`}
+                style={{ borderBottom: league === 'kings' ? `3px solid #ffd300` : '3px solid transparent' }}
+                className={`h-full pt-2 text-xl font-black italic tracking-widest transition-all ${league === 'kings' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
             >KINGS</button>
             <button 
                 onClick={() => { setLeague('queens'); setIsEditing(false); }}
-                className={`text-lg font-black italic tracking-widest transition-all ${league === 'queens' ? 'text-[#01d6c3] scale-110' : 'text-slate-600 hover:text-slate-400'}`}
+                style={{ borderBottom: league === 'queens' ? `3px solid #01d6c3` : '3px solid transparent' }}
+                className={`h-full pt-2 text-xl font-black italic tracking-widest transition-all ${league === 'queens' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
             >QUEENS</button>
         </div>
 
@@ -122,7 +124,18 @@ export default function UserDashboard() {
         </div>
 
         <div className="flex-1 flex justify-end items-center gap-6">
-            <span className="text-[10px] font-black italic text-slate-500 uppercase tracking-widest">{user.username}</span>
+            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
+                 <Image 
+                    src={`/usuarios/${user.username}.jpg`} 
+                    alt={user.username} 
+                    fill 
+                    className="object-cover"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-bold -z-10 uppercase text-xs">
+                    {user.username.charAt(0)}
+                </div>
+            </div>
             <button 
                 onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
                 className="text-[9px] font-black text-red-500 border border-red-500/20 px-4 py-2 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
@@ -130,7 +143,6 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-2xl mx-auto pt-10 pb-20 px-4">
         <div className="bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
             {matchdays.length === 0 ? (
@@ -166,20 +178,26 @@ export default function UserDashboard() {
                         {matchdays[currentDayIndex].matches.map((match: any) => {
                             const isLocked = matchdays[currentDayIndex].is_locked
                             const myPick = predictions[match.id]
+                            const anyPick = myPick !== undefined;
+
                             return (
-                                <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-4 rounded-2xl border border-slate-800/50 hover:border-slate-700 transition-colors">
+                                <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-800/50">
                                     <TeamButton 
                                         team={match.home} 
                                         league={league}
                                         isSelected={myPick === match.home_team_id}
+                                        anyPickInMatch={anyPick}
                                         onClick={() => handlePredict(match.id, match.home_team_id)}
                                         disabled={(hasSavedInDB && !isEditing) || isLocked}
                                     />
-                                    <span className="text-[10px] font-black text-slate-800 italic tracking-tighter">VS</span>
+                                    
+                                    <span className="text-2xl font-black text-slate-800 italic tracking-tighter mx-4">VS</span>
+                                    
                                     <TeamButton 
                                         team={match.away} 
                                         league={league}
                                         isSelected={myPick === match.away_team_id}
+                                        anyPickInMatch={anyPick}
                                         onClick={() => handlePredict(match.id, match.away_team_id)}
                                         disabled={(hasSavedInDB && !isEditing) || isLocked}
                                     />
@@ -215,24 +233,33 @@ export default function UserDashboard() {
   )
 }
 
-function TeamButton({ team, league, isSelected, onClick, disabled }: any) {
+function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
     const activeBg = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]';
     
+    // Si NO hay selección en el partido -> Color normal (grayscale-0, opacity-100)
+    // Si HAY selección y este ES el elegido -> Color brillante + Fondo
+    // Si HAY selección y este NO ES el elegido -> Grisáceo
+    let appearanceClass = "grayscale-0 opacity-100";
+    if (anyPickInMatch) {
+        if (isSelected) {
+            appearanceClass = `${activeBg} scale-110 shadow-xl shadow-black/50 grayscale-0 opacity-100`;
+        } else {
+            appearanceClass = "grayscale opacity-20";
+        }
+    }
+
     return (
         <button 
             onClick={onClick}
             disabled={disabled}
             className={`
-                flex flex-col items-center w-24 p-3 rounded-2xl transition-all duration-500
-                ${isSelected 
-                    ? `${activeBg} text-slate-950 scale-110 shadow-lg shadow-black/50` 
-                    : 'text-slate-500 opacity-30 grayscale hover:opacity-100 hover:grayscale-0'
-                } 
-                ${disabled && !isSelected ? 'opacity-5 pointer-events-none' : ''}
+                relative flex items-center justify-center w-28 h-28 rounded-2xl transition-all duration-500
+                ${appearanceClass}
+                ${!disabled && !isSelected ? 'hover:scale-105' : ''}
             `}
         >
-            <div className="relative w-14 h-14 mb-2">
+            <div className="relative w-20 h-20">
                 <Image 
                     src={`/logos/${folder}/${team.logo_file}`} 
                     alt={team.name} 
@@ -240,9 +267,6 @@ function TeamButton({ team, league, isSelected, onClick, disabled }: any) {
                     className="object-contain"
                 />
             </div>
-            <span className="text-[8px] font-black text-center uppercase tracking-tighter leading-none">
-                {team.name}
-            </span>
         </button>
     )
 }
