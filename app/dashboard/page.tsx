@@ -104,7 +104,7 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
       
-      {/* HEADER */}
+      {/* HEADER ACTUALIZADO */}
       <header className="w-full h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
         <div className="flex gap-20 flex-1 items-center">
             <button 
@@ -143,49 +143,45 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto pt-6 pb-10 px-4">
-        {/* Reducimos p-6 a p-4 para compactar el contenedor */}
-        <div className="bg-slate-900/40 rounded-3xl p-4 border border-slate-800 shadow-2xl backdrop-blur-sm">
+      <main className="max-w-2xl mx-auto pt-10 pb-20 px-4">
+        <div className="bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
             {matchdays.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64">
                     <p className="text-slate-600 font-black italic tracking-widest animate-pulse">PROXIMAMENTE...</p>
                 </div>
             ) : (
                 <>
-                    {/* Compactamos el selector de jornada con mb-4 y p-3 */}
-                    <div className="flex justify-between items-center mb-4 bg-slate-950/50 p-3 rounded-2xl border border-slate-800">
+                    <div className="flex justify-between items-center mb-8 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
                         <button 
                             disabled={currentDayIndex === 0} 
                             onClick={() => { setCurrentDayIndex(i => i-1); setIsEditing(false); }} 
                             style={{ color: activeColor, borderColor: activeColor + '40' }}
-                            className="w-10 h-8 flex items-center justify-center border rounded-lg disabled:opacity-5 font-black text-lg hover:bg-white/5 transition-colors"
+                            className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"
                         > ← </button>
                         
                         <div className="text-center">
-                            <h2 className="text-xl font-black italic uppercase tracking-tighter" style={{ color: activeColor }}>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter" style={{ color: activeColor }}>
                                 {matchdays[currentDayIndex].name}
                             </h2>
-                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">{matchdays[currentDayIndex].date_label}</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">{matchdays[currentDayIndex].date_label}</p>
                         </div>
 
                         <button 
                             disabled={currentDayIndex === matchdays.length - 1} 
                             onClick={() => { setCurrentDayIndex(i => i+1); setIsEditing(false); }} 
                             style={{ color: activeColor, borderColor: activeColor + '40' }}
-                            className="w-10 h-8 flex items-center justify-center border rounded-lg disabled:opacity-5 font-black text-lg hover:bg-white/5 transition-colors"
+                            className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"
                         > → </button>
                     </div>
 
-                    {/* space-y-4 a space-y-2 para pegar más las filas */}
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         {matchdays[currentDayIndex].matches.map((match: any) => {
                             const isLocked = matchdays[currentDayIndex].is_locked
                             const myPick = predictions[match.id]
                             const anyPick = myPick !== undefined;
 
                             return (
-                                // Reducimos p-4 a py-2 px-4 para hacer la fila más delgada
-                                <div key={match.id} className="flex justify-center items-center bg-slate-950/20 py-2 px-4 rounded-xl border border-slate-800/30">
+                                <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-800/50">
                                     <TeamButton 
                                         team={match.home} 
                                         league={league}
@@ -195,8 +191,7 @@ export default function UserDashboard() {
                                         disabled={(hasSavedInDB && !isEditing) || isLocked}
                                     />
                                     
-                                    {/* VS más grande y blanco, con mx-8 para separarlo un poco de los escudos pegados */}
-                                    <span className="text-3xl font-black text-white italic tracking-tighter mx-8 opacity-90">VS</span>
+                                    <span className="text-2xl font-black text-slate-800 italic tracking-tighter mx-4">VS</span>
                                     
                                     <TeamButton 
                                         team={match.away} 
@@ -211,22 +206,21 @@ export default function UserDashboard() {
                         })}
                     </div>
 
-                    {/* Compactamos margen superior mt-10 a mt-6 */}
-                    <div className="mt-6 flex justify-center">
+                    <div className="mt-10 flex justify-center">
                         {matchdays[currentDayIndex].is_locked ? (
-                            <div className="bg-red-950/20 border border-red-900/50 text-red-500 px-10 py-3 rounded-xl font-black italic tracking-widest text-xs">
+                            <div className="bg-red-950/20 border border-red-900/50 text-red-500 px-10 py-4 rounded-2xl font-black italic tracking-widest text-sm">
                                 JORNADA CERRADA
                             </div>
                         ) : (
                             hasSavedInDB && !isEditing ? (
                                 <button 
                                     onClick={() => setIsEditing(true)} 
-                                    className="bg-white text-slate-950 px-10 py-3 rounded-xl font-black italic uppercase text-xs hover:bg-slate-200 transition-all shadow-lg"
+                                    className="bg-white text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm hover:bg-slate-200 transition-all shadow-lg"
                                 >Editar predicción</button>
                             ) : (
                                 <button 
                                     onClick={savePredictions} 
-                                    className={`${btnColor} text-slate-950 px-10 py-3 rounded-xl font-black italic uppercase text-xs hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,0,0,0.4)]`}
+                                    className={`${btnColor} text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,0,0,0.4)]`}
                                 >Confirmar Jornada</button>
                             )
                         )}
@@ -243,14 +237,15 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
     const folder = league === 'kings' ? 'Kings' : 'Queens';
     const activeBg = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]';
     
+    // Si NO hay selección en el partido -> Color normal (grayscale-0, opacity-100)
+    // Si HAY selección y este ES el elegido -> Color brillante + Fondo
+    // Si HAY selección y este NO ES el elegido -> Grisáceo
     let appearanceClass = "grayscale-0 opacity-100";
     if (anyPickInMatch) {
         if (isSelected) {
-            // Brillo y color al estar seleccionado
-            appearanceClass = `${activeBg} scale-105 shadow-lg shadow-black/50 grayscale-0 opacity-100`;
+            appearanceClass = `${activeBg} scale-110 shadow-xl shadow-black/50 grayscale-0 opacity-100`;
         } else {
-            // Apagado al no ser elegido
-            appearanceClass = "grayscale opacity-10";
+            appearanceClass = "grayscale opacity-20";
         }
     }
 
@@ -258,22 +253,18 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
         <button 
             onClick={onClick}
             disabled={disabled}
-            // Ajustamos w y h de 28 a 16 para que el cuadro sea casi del tamaño del escudo
-            // Reducimos rounded a rounded-xl
             className={`
-                relative flex items-center justify-center w-16 h-16 rounded-xl transition-all duration-300
+                relative flex items-center justify-center w-28 h-28 rounded-2xl transition-all duration-500
                 ${appearanceClass}
-                ${!disabled && !isSelected ? 'hover:scale-105 hover:bg-white/5' : ''}
-                ${disabled ? 'cursor-default' : 'cursor-pointer'}
+                ${!disabled && !isSelected ? 'hover:scale-105' : ''}
             `}
         >
-            {/* Ajustamos tamaño de imagen de 20 a 14, ocupando casi todo el cuadro de 16 */}
-            <div className="relative w-14 h-14">
+            <div className="relative w-20 h-20">
                 <Image 
                     src={`/logos/${folder}/${team.logo_file}`} 
                     alt={team.name} 
                     fill 
-                    className="object-contain p-0.5" // Pequeño padding para que no toque el borde del cuadro de color
+                    className="object-contain"
                 />
             </div>
         </button>
