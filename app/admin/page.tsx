@@ -20,10 +20,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
-            {/* HEADER ESTILO LAYOUT ORIGINAL PERSONALIZADO */}
             <header className="w-full flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-12 h-24 sticky top-0 z-50">
-                
-                {/* Izquierda: Ligas */}
                 <div className="flex gap-20 flex-1 justify-end pr-16">
                     <TabBtn 
                         label="KINGS" 
@@ -39,7 +36,6 @@ export default function AdminDashboard() {
                     />
                 </div>
 
-                {/* Centro: Logo */}
                 <div className="flex-shrink-0 flex justify-center items-center">
                     <div className="relative w-48 h-16 hover:scale-105 transition-transform duration-500 cursor-pointer">
                         <Image
@@ -52,7 +48,6 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Derecha: Ranking y Salir */}
                 <div className="flex gap-20 flex-1 pl-16 items-center">
                     <TabBtn 
                         label="RANKING" 
@@ -73,7 +68,6 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            {/* Contenido Principal */}
             <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
                 {tab === 'ranking' ? (
                     <RankingView />
@@ -93,7 +87,6 @@ function TabBtn({ label, active, onClick, activeColor }: any) {
                 color: active ? activeColor : '#475569',
                 borderBottom: active ? `4px solid ${activeColor}` : '4px solid transparent'
             }}
-            // Cambiamos text-sm por text-xl para hacer las letras más grandes
             className="h-24 px-6 font-black italic tracking-tighter transition-all uppercase text-xl hover:text-white"
         >
             {label}
@@ -152,9 +145,39 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     
     useEffect(() => { load() }, [competitionKey])
 
-    const toggleVisible = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_visible: !val }).eq('id', id); load() }
-    const toggleLock = async (id: number, val: boolean) => { await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); load() }
-    const setWinner = async (matchId: number, teamId: number | null) => { await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); load() }
+    // --- MEJORA AQUÍ: Lógica de exclusividad de visibilidad ---
+    const toggleVisible = async (id: number, currentVal: boolean) => {
+        if (!id) return;
+        
+        const newVal = !currentVal;
+
+        // Si vamos a poner UNA jornada como PÚBLICA, primero ponemos TODAS las de esta liga como OCULTAS
+        if (newVal === true) {
+            await supabase
+                .from('matchdays')
+                .update({ is_visible: false })
+                .eq('competition_key', competitionKey);
+        }
+
+        // Ahora actualizamos la jornada específica
+        await supabase
+            .from('matchdays')
+            .update({ is_visible: newVal })
+            .eq('id', id);
+
+        load();
+    }
+
+    const toggleLock = async (id: number, val: boolean) => {
+        if (!id) return;
+        await supabase.from('matchdays').update({ is_locked: !val }).eq('id', id); 
+        load();
+    }
+
+    const setWinner = async (matchId: number, teamId: number | null) => {
+        await supabase.from('matches').update({ winner_team_id: teamId }).eq('id', matchId); 
+        load();
+    }
 
     const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
     const totalPages = pageChunks.length;
@@ -162,20 +185,17 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Redujimos el padding de p-6 a py-2 px-6 y gap-3 a gap-2 para hacerlo más delgado y pegado */}
             <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
                         onClick={() => setActiveMatchdayId(day.id)}
-                        // Redujimos el padding px-5 py-2.5 a px-3 py-1 para hacerlo más sutil y a raz
                         className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
                             activeMatchdayId === day.id
                                 ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
                                 : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
                         }`}
                     >
-                        {/* Transformamos "Jornada 1" a "J1" de manera dinámica */}
                         {day.name.replace(/Jornada\s*/i, 'J')}
                     </button>
                 ))}
