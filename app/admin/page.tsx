@@ -21,16 +21,14 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full font-sans">
         
-        {/* HEADER ESTILO LAYOUT ORIGINAL PERO PERSONALIZADO */}
+        {/* HEADER */}
         <header className="w-full flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-12 h-24 sticky top-0 z-50">
             
-            {/* Izquierda: Ligas más grandes y separadas */}
             <div className="flex gap-20 flex-1 justify-end pr-16">
                 <TabBtn label="KINGS" active={tab==='kings'} onClick={()=>setTab('kings')} activeColor="#ffd300" />
                 <TabBtn label="QUEENS" active={tab==='queens'} onClick={()=>setTab('queens')} activeColor="#01d6c3" />
             </div>
 
-            {/* Centro: Logo (Estilo layout 48x16) */}
             <div className="flex-shrink-0 flex justify-center items-center">
                 <div className="relative w-48 h-16 hover:scale-105 transition-transform duration-500 cursor-pointer">
                     <Image 
@@ -43,7 +41,6 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* Derecha: Ranking y Salir */}
             <div className="flex gap-20 flex-1 pl-16 items-center">
                 <TabBtn label="RANKING" active={tab==='ranking'} onClick={()=>setTab('ranking')} activeColor="#FFFFFF" />
                 
@@ -105,7 +102,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         setAllPreds(pData || [])
 
         if (uData && uData.length > 0) {
-            const targetPerPage = 12;
+            const targetPerPage = 10; // MODIFICADO: 10 por página
             const pages = Math.ceil(uData.length / targetPerPage);
             let chunks = []; 
             for(let i=0; i<pages; i++) {
@@ -127,8 +124,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     return (
         <div className="w-full flex flex-col items-center">
             
-            {/* SECTOR JORNADAS COMPACTO AL RAS */}
-            <div className="w-full flex justify-center gap-6 py-2 bg-black/60 border-b border-white/5">
+            {/* SECTOR JORNADAS COMPACTO AL RAS (MODIFICADO A BG-SLATE-950) */}
+            <div className="w-full flex justify-center gap-6 py-2 bg-slate-950 border-b border-white/5 shadow-md">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
@@ -148,13 +145,14 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             </div>
 
             {activeMatchday && (
-                <div className="w-full">
+                <div className="w-full max-w-7xl mx-auto">
                     <div className="w-full px-10 py-3 grid grid-cols-3 items-center bg-white/[0.01] border-b border-white/5">
                         <div className="flex gap-2">
                             {pageChunks.length > 1 && (
                                 <>
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="w-8 h-8 rounded border border-white/10 disabled:opacity-20 hover:bg-white/5">◀</button>
-                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(p => p + 1)} className="w-8 h-8 rounded border border-white/10 disabled:opacity-20 hover:bg-white/5">▶</button>
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="w-8 h-8 rounded border border-white/10 disabled:opacity-20 hover:bg-white/5 font-bold">◀</button>
+                                    <span className="flex items-center text-xs font-bold text-slate-500 px-2">PÁG {currentPage + 1} DE {pageChunks.length}</span>
+                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(p => p + 1)} className="w-8 h-8 rounded border border-white/10 disabled:opacity-20 hover:bg-white/5 font-bold">▶</button>
                                 </>
                             )}
                         </div>
@@ -172,18 +170,19 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                     </div>
 
                     <div className="w-full overflow-x-auto">
-                        <table className="w-full border-collapse table-fixed text-center">
+                        <table className="w-full border-collapse table-fixed text-center mt-2">
                             <thead>
                                 <tr className="text-[9px] text-slate-500 font-black uppercase tracking-widest border-b border-white/5">
-                                    <th className="w-[140px] p-4 bg-black/20">PARTIDO</th>
+                                    <th className="w-[140px] p-4 bg-slate-900/40 rounded-tl-xl">PARTIDO</th>
                                     {paginatedUsers.map(u => (
                                         <th key={u.id} className="py-4 border-l border-white/5">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="relative w-10 h-10 rounded-full border border-white/10 bg-slate-900 overflow-hidden">
+                                            <div className="flex flex-col items-center gap-2">
+                                                {/* MODIFICADO: Imagen más grande y nombre blanco */}
+                                                <div className="relative w-12 h-12 rounded-full border-2 border-slate-700 bg-slate-900 overflow-hidden shadow-lg">
                                                     <Image src={`/usuarios/${u.username}.jpg`} alt="" fill className="object-cover" onError={(e:any) => e.target.style.display='none'} />
-                                                    <span className="flex items-center justify-center h-full text-[10px] uppercase">{u.username[0]}</span>
+                                                    <span className="flex items-center justify-center h-full text-[12px] font-black uppercase">{u.username[0]}</span>
                                                 </div>
-                                                <span className="truncate w-16 opacity-60 italic">{u.username}</span>
+                                                <span className="truncate w-[72px] text-white font-bold italic text-[11px] leading-tight drop-shadow-md">{u.username}</span>
                                             </div>
                                         </th>
                                     ))}
@@ -192,10 +191,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             <tbody>
                                 {activeMatchday.matches?.map((m: any) => (
                                     <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                        <td className="py-2 bg-black/30">
-                                            <div className="flex items-center justify-center gap-1">
+                                        <td className="py-2 bg-slate-900/20">
+                                            <div className="flex items-center justify-center gap-2">
                                                 <TeamBtn team={m.home} isWinner={m.winner_team_id === m.home_team_id} folder={folder} size={getLogoSize(m.home?.logo_file)} onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} />
-                                                <span className="text-[8px] font-black text-slate-700 italic">VS</span>
+                                                <span className="text-[8px] font-black text-slate-600 italic">VS</span>
                                                 <TeamBtn team={m.away} isWinner={m.winner_team_id === m.away_team_id} folder={folder} size={getLogoSize(m.away?.logo_file)} onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} />
                                             </div>
                                         </td>
@@ -205,10 +204,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                             return (
                                                 <td key={u.id} className="p-1 border-l border-white/5">
                                                     {pred?.predicted_team?.logo_file ? (
-                                                        <div className={`flex justify-center transition-all duration-500 ${m.winner_team_id ? (isHit ? 'scale-110 drop-shadow-[0_0_10px_rgba(255,211,0,0.4)]' : 'grayscale opacity-10 scale-75') : ''}`}>
+                                                        <div className={`flex justify-center transition-all duration-500 ${m.winner_team_id ? (isHit ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,211,0,0.6)]' : 'grayscale opacity-10 scale-75') : ''}`}>
                                                             <Image src={`/logos/${folder}/${pred.predicted_team.logo_file}`} width={getLogoSize(pred.predicted_team.logo_file)} height={getLogoSize(pred.predicted_team.logo_file)} alt="p" />
                                                         </div>
-                                                    ) : <span className="text-slate-800">-</span>}
+                                                    ) : <span className="text-slate-800 font-bold">-</span>}
                                                 </td>
                                             )
                                         })}
@@ -224,10 +223,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function TeamBtn({team, isWinner, folder, size, onClick}: any) {
-    if (!team) return <div className="w-12 h-12" />
+    if (!team) return <div className="w-14 h-14" />
     return (
-        <button onClick={onClick} className={`w-14 h-14 flex items-center justify-center rounded-lg transition-all ${isWinner ? 'bg-white/10 scale-110' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}>
-            <Image src={`/logos/${folder}/${team.logo_file}`} width={size} height={size} alt="t" />
+        // MODIFICADO: Eliminado el bg-white/10, ahora solo quita el grayscale, aumenta escala y añade un drop-shadow intenso.
+        <button 
+            onClick={onClick} 
+            className={`relative w-14 h-14 flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer 
+            ${isWinner ? 'scale-110 opacity-100 grayscale-0 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] z-10' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}
+        >
+            <Image src={`/logos/${folder}/${team.logo_file}`} width={size} height={size} alt="t" className="object-contain" />
         </button>
     )
 }
@@ -235,6 +239,10 @@ function TeamBtn({team, isWinner, folder, size, onClick}: any) {
 function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [loading, setLoading] = useState(true)
+    
+    // MODIFICADO: Paginación para Ranking
+    const [currentPage, setCurrentPage] = useState(0)
+    const itemsPerPage = 10
 
     useEffect(() => {
         const fetchRanking = async () => {
@@ -260,28 +268,51 @@ function RankingView() {
         fetchRanking()
     }, [])
 
-    if (loading) return <div className="p-20 text-center animate-pulse italic text-slate-500">CARGANDO TABLA...</div>
+    if (loading) return <div className="p-20 text-center animate-pulse italic text-slate-500 font-bold tracking-widest">CARGANDO TABLA...</div>
+
+    const totalPages = Math.ceil(rankingData.users.length / itemsPerPage)
+    const paginatedRanking = rankingData.users.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
     return (
         <div className="w-full flex flex-col items-center py-10 px-6">
             <h2 className="text-3xl font-black italic mb-8 tracking-tighter uppercase">RANKING <span className="text-[#FFD300]">OFICIAL</span></h2>
-            <div className="w-full max-w-2xl bg-black border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+            
+            {/* Controles de Paginación del Ranking */}
+            {totalPages > 1 && (
+                <div className="flex gap-4 items-center mb-4">
+                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900 border border-slate-700 disabled:opacity-30 hover:bg-slate-800 transition-colors font-bold">◀</button>
+                    <span className="text-xs font-bold text-slate-500 tracking-widest">PÁGINA {currentPage + 1} DE {totalPages}</span>
+                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900 border border-slate-700 disabled:opacity-30 hover:bg-slate-800 transition-colors font-bold">▶</button>
+                </div>
+            )}
+
+            <div className="w-full max-w-2xl bg-slate-950/80 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-sm">
                 <table className="w-full text-left">
-                    <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-white/10">
                         <tr>
-                            <th className="px-6 py-4 w-20 text-center">POS</th>
+                            <th className="px-6 py-4 w-24 text-center">POS</th>
                             <th className="px-6 py-4">USUARIO</th>
                             <th className="px-6 py-4 text-right w-32">PUNTOS</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rankingData.users.map((u, i) => (
-                            <tr key={i} className="border-b border-white/[0.02] hover:bg-white/[0.01]">
-                                <td className="px-6 py-4 text-center font-black italic text-slate-500">#{i+1}</td>
-                                <td className="px-6 py-4 font-bold uppercase tracking-wider text-sm">{u.username}</td>
-                                <td className="px-6 py-4 text-right font-black text-[#FFD300] text-lg">{u.total}</td>
-                            </tr>
-                        ))}
+                        {paginatedRanking.map((u, i) => {
+                            const globalPos = (currentPage * itemsPerPage) + i + 1;
+                            return (
+                                <tr key={i} className="border-b border-white/[0.02] hover:bg-white/[0.03] transition-colors">
+                                    <td className="px-6 py-4 text-center font-black italic text-slate-500 text-lg">#{globalPos}</td>
+                                    <td className="px-6 py-4 font-bold uppercase tracking-wider text-sm">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative w-8 h-8 rounded-full border border-slate-700 overflow-hidden bg-slate-900">
+                                                <Image src={`/usuarios/${u.username}.jpg`} alt="" fill className="object-cover" onError={(e:any) => e.target.style.display='none'} />
+                                            </div>
+                                            <span className="text-white drop-shadow-sm">{u.username}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-black text-[#FFD300] text-xl drop-shadow-[0_0_5px_rgba(255,211,0,0.3)]">{u.total}</td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>
