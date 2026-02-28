@@ -93,7 +93,8 @@ function TabBtn({ label, active, onClick, activeColor }: any) {
                 color: active ? activeColor : '#475569',
                 borderBottom: active ? `4px solid ${activeColor}` : '4px solid transparent'
             }}
-            className="h-24 px-6 font-black italic tracking-tighter transition-all uppercase text-sm hover:text-white"
+            // Cambiamos text-sm por text-xl para hacer las letras más grandes
+            className="h-24 px-6 font-black italic tracking-tighter transition-all uppercase text-xl hover:text-white"
         >
             {label}
         </button>
@@ -161,18 +162,21 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
     return (
         <div className="w-full flex flex-col items-center">
-            <div className="w-full flex justify-center flex-wrap gap-3 p-6 border-b border-white/5 bg-slate-900/20">
+            {/* Redujimos el padding de p-6 a py-2 px-6 y gap-3 a gap-2 para hacerlo más delgado y pegado */}
+            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
                         onClick={() => setActiveMatchdayId(day.id)}
-                        className={`px-5 py-2.5 text-[11px] font-black italic uppercase tracking-wider transition-all rounded-lg border shadow-sm ${
+                        // Redujimos el padding px-5 py-2.5 a px-3 py-1 para hacerlo más sutil y a raz
+                        className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
                             activeMatchdayId === day.id
                                 ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
                                 : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
                         }`}
                     >
-                        {day.name}
+                        {/* Transformamos "Jornada 1" a "J1" de manera dinámica */}
+                        {day.name.replace(/Jornada\s*/i, 'J')}
                     </button>
                 ))}
             </div>
