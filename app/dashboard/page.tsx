@@ -181,7 +181,7 @@ export default function UserDashboard() {
                             const anyPick = myPick !== undefined;
 
                             return (
-                                <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-800/50">
+                                <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-800/50 hover:border-slate-700 transition-colors">
                                     <TeamButton 
                                         team={match.home} 
                                         league={league}
@@ -191,7 +191,8 @@ export default function UserDashboard() {
                                         disabled={(hasSavedInDB && !isEditing) || isLocked}
                                     />
                                     
-                                    <span className="text-2xl font-black text-slate-800 italic tracking-tighter mx-4">VS</span>
+                                    {/* VS cambiado a blanco y ligeramente más grande */}
+                                    <span className="text-3xl font-black text-white italic tracking-tighter mx-4">VS</span>
                                     
                                     <TeamButton 
                                         team={match.away} 
@@ -235,17 +236,16 @@ export default function UserDashboard() {
 
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
-    const activeBg = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]';
     
-    // Si NO hay selección en el partido -> Color normal (grayscale-0, opacity-100)
-    // Si HAY selección y este ES el elegido -> Color brillante + Fondo
-    // Si HAY selección y este NO ES el elegido -> Grisáceo
-    let appearanceClass = "grayscale-0 opacity-100";
+    // Si NO hay selección en el partido -> Color normal, sin escalar
+    // Si HAY selección y ES el elegido -> Color normal, brilla y crece
+    // Si HAY selección y NO ES el elegido -> Grisáceo, sin brillo y se achica un poco
+    let appearanceClass = "grayscale-0 opacity-100 scale-100";
     if (anyPickInMatch) {
         if (isSelected) {
-            appearanceClass = `${activeBg} scale-110 shadow-xl shadow-black/50 grayscale-0 opacity-100`;
+            appearanceClass = "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10";
         } else {
-            appearanceClass = "grayscale opacity-20";
+            appearanceClass = "grayscale opacity-30 scale-90";
         }
     }
 
@@ -254,12 +254,13 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
             onClick={onClick}
             disabled={disabled}
             className={`
-                relative flex items-center justify-center w-28 h-28 rounded-2xl transition-all duration-500
+                relative flex items-center justify-center transition-all duration-500 bg-transparent
                 ${appearanceClass}
-                ${!disabled && !isSelected ? 'hover:scale-105' : ''}
+                ${!disabled && !isSelected ? 'hover:scale-105 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]' : ''}
             `}
         >
-            <div className="relative w-20 h-20">
+            {/* Escudo mucho más grande (w-28 h-28) */}
+            <div className="relative w-28 h-28">
                 <Image 
                     src={`/logos/${folder}/${team.logo_file}`} 
                     alt={team.name} 
