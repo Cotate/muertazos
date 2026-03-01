@@ -145,13 +145,11 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     
     useEffect(() => { load() }, [competitionKey])
 
-    // --- MEJORA AQUÍ: Lógica de exclusividad de visibilidad ---
     const toggleVisible = async (id: number, currentVal: boolean) => {
         if (!id) return;
         
         const newVal = !currentVal;
 
-        // Si vamos a poner UNA jornada como PÚBLICA, primero ponemos TODAS las de esta liga como OCULTAS
         if (newVal === true) {
             await supabase
                 .from('matchdays')
@@ -159,7 +157,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 .eq('competition_key', competitionKey);
         }
 
-        // Ahora actualizamos la jornada específica
         await supabase
             .from('matchdays')
             .update({ is_visible: newVal })
@@ -320,7 +317,13 @@ function RankingView() {
                 })
                 return { username: u.username, total, dayBreakdown }
             })
-            userScores?.sort((a, b) => b.total - a.total)
+            
+            // Ordenamiento: Puntos (desc) -> Alfabético (asc)
+            userScores?.sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return a.username.localeCompare(b.username);
+            });
+            
             setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
         }
         fetchRanking()
@@ -354,32 +357,38 @@ function RankingView() {
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="w-full text-left border-collapse table-auto">
                         <tbody>
-                            {paginatedUsers.map((user, idx) => (
-                                <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                                    <td className="w-8 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-xs text-slate-600 group-hover:text-slate-400">
-                                        {(currentPage * USERS_PER_PAGE_RANKING) + idx + 1}
-                                    </td>
-                                    <td className="w-[180px] max-w-[180px] px-4 py-1.5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 shadow-md flex items-center justify-center bg-slate-800 text-slate-400 font-bold text-sm">
-                                                {user.username.charAt(0).toUpperCase()}
-                                                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
-                                            </div>
-                                            <span className="text-slate-300 font-medium uppercase text-sm tracking-widest group-hover:text-white truncate block">
-                                                {user.username}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    {showFull && rankingData.days.map(day => (
-                                        <td key={day.id} className={`px-1 py-1.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
-                                            <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
+                            {paginatedUsers.map((user, idx) => {
+                                const globalIdx = (currentPage * USERS_PER_PAGE_RANKING) + idx;
+                                const isFirst = globalIdx === 0;
+
+                                return (
+                                    <tr key={idx} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5 border-l-4 border-l-[#FFD300]' : ''}`}>
+                                        <td className={`w-8 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-xs ${isFirst ? 'text-[#FFD300]' : 'text-slate-600 group-hover:text-slate-400'}`}>
+                                            {globalIdx + 1}
                                         </td>
-                                    ))}
-                                    <td className="w-12 px-2 py-1.5 text-center bg-[#FFD300]/5 border-l border-white/10 font-black text-[#FFD300] text-sm italic">
-                                        {user.total}
-                                    </td>
-                                </tr>
-                            ))}
+                                        <td className="w-[180px] max-w-[180px] px-4 py-1.5">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-sm border ${isFirst ? 'border-[#FFD300] shadow-[#FFD300]/20' : 'border-white/10 text-slate-400'}`}>
+                                                    {user.username.charAt(0).toUpperCase()}
+                                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="32px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                </div>
+                                                <span className={`font-medium uppercase text-sm tracking-widest truncate block ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 group-hover:text-white'}`}>
+                                                    {isFirst && <span className="mr-1">👑</span>}
+                                                    {user.username}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        {showFull && rankingData.days.map(day => (
+                                            <td key={day.id} className={`px-1 py-1.5 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                                <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
+                                            </td>
+                                        ))}
+                                        <td className={`w-12 px-2 py-1.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                            {user.total}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
