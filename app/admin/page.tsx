@@ -321,7 +321,12 @@ function RankingView() {
                 return { username: u.username, total, dayBreakdown }
             })
             
-            userScores?.sort((a, b) => b.total - a.total)
+            // CORRECCIÓN: Ordenar por total desc, y luego por nombre asc
+            userScores?.sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return a.username.localeCompare(b.username);
+            });
+            
             setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
         }
         fetchRanking()
@@ -334,85 +339,74 @@ function RankingView() {
 
     return (
         <div className="w-full flex flex-col items-center py-8 px-6">
-            {/* Contenedor de Título y Controles pegados a las orillas */}
-            <div className="w-full flex items-center justify-between mb-10 px-4">
+            {/* Header con controles pegados a las orillas */}
+            <div className="w-full flex items-center justify-between mb-8 px-2 md:px-10">
                 <div className="flex-1 flex justify-start">
                     <button 
                         onClick={() => setShowFull(!showFull)} 
-                        className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.25em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                        className={`px-6 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
                     >
                         {showFull ? '← VOLVER' : 'VER DESGLOSE JORNADAS'}
                     </button>
                 </div>
 
-                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
                 
                 <div className="flex-1 flex justify-end">
                     {totalPages > 1 && (
-                        <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[46px] shadow-lg">
-                            <button 
-                                disabled={currentPage === 0} 
-                                onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-7 h-full text-sm font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ◀
-                            </button>
-                            <button 
-                                disabled={currentPage === totalPages - 1} 
-                                onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-7 h-full text-sm font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ▶
-                            </button>
+                        <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[38px] shadow-lg">
+                            <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                            <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 h-full text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Tabla con ancho máximo controlado */}
-            <div className="w-full max-w-3xl">
+            <div className="w-full max-w-2xl">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="w-full text-left border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((user, idx) => {
-                                const globalPosition = (currentPage * USERS_PER_PAGE_RANKING) + idx + 1;
-                                const isFirst = globalPosition === 1;
+                                const globalPos = (currentPage * USERS_PER_PAGE_RANKING) + idx + 1;
+                                const isFirst = globalPos === 1;
 
                                 return (
-                                    <tr key={idx} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
-                                        {/* Columna de Posición / Corona */}
-                                        <td className="w-12 px-2 py-2.5 text-center border-r border-white/5 font-black italic text-sm">
+                                    <tr key={user.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
+                                        <td className="w-10 px-2 py-2 text-center border-r border-white/5 font-black italic text-xs">
                                             {isFirst ? (
-                                                <span className="text-xl drop-shadow-[0_0_8px_rgba(255,211,0,0.5)]">👑</span>
+                                                <span className="text-lg drop-shadow-[0_0_5px_rgba(255,211,0,0.4)]">👑</span>
                                             ) : (
-                                                <span className="text-slate-600 group-hover:text-slate-400">{globalPosition}</span>
+                                                <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
                                             )}
                                         </td>
-
-                                        {/* Usuario */}
-                                        <td className="w-[200px] max-w-[200px] px-5 py-2.5">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`relative w-9 h-9 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-sm ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
+                                        <td className="w-[180px] max-w-[180px] px-4 py-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-sm ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
-                                                    <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill sizes="36px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                    {/* key={user.username} fuerza el re-render de la imagen al cambiar de página */}
+                                                    <Image 
+                                                        key={user.username}
+                                                        src={`/usuarios/${user.username}.jpg`} 
+                                                        alt={user.username} 
+                                                        fill 
+                                                        sizes="32px" 
+                                                        className="object-cover z-10" 
+                                                        onError={(e) => e.currentTarget.style.display = 'none'} 
+                                                    />
                                                 </div>
                                                 <span className={`uppercase text-sm tracking-widest truncate block ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {user.username}
                                                 </span>
                                             </div>
                                         </td>
-
-                                        {/* Desglose por jornadas */}
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-2.5 text-center border-l border-white/5 text-[11px] font-mono w-10 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-2 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-
-                                        {/* Puntos Totales */}
-                                        <td className={`w-16 px-2 py-2.5 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-12 px-2 py-2 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {user.total}
                                         </td>
                                     </tr>
