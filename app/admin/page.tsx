@@ -404,7 +404,7 @@ function RankingView() {
                                         </td>
                                         
                                         {/* Columna más estrecha y con menos padding vertical */}
-                                        <td className="w-[130px] px-2 py-1">
+                                        <td className="w-[90px] px-2 py-1">
                                             <div className="flex items-center gap-2">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
