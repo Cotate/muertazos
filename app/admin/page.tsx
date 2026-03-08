@@ -384,7 +384,6 @@ function RankingView() {
                 </div>
             </div>
 
-            {/* AQUÍ ESTÁ EL AJUSTE: w-fit para que no crezca más allá del contenido y mx-auto para centrarlo */}
             <div className="w-fit mx-auto">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="border-collapse table-auto">
@@ -395,43 +394,43 @@ function RankingView() {
 
                                 return (
                                     <tr key={user.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
-                                        <td className="w-12 px-4 py-2 text-center border-r border-white/5 font-black italic text-xs">
+                                        <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[10px]">
                                             {isFirst ? (
-                                                <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span>
+                                                <span className="text-lg drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
                                                 <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
                                             )}
                                         </td>
                                         
-                                        {/* Columna Nombre: Ajustada al texto */}
-                                        <td className="px-6 py-2 min-w-[160px]">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
+                                        {/* Columna Nombre: Compacta con py-1 y px-2 */}
+                                        <td className="w-[130px] px-2 py-1 border-r border-white/5">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
                                                     <Image 
                                                         key={`${currentPage}-${user.username}`}
                                                         src={`/usuarios/${user.username}.jpg`} 
                                                         alt={user.username} 
                                                         fill 
-                                                        sizes="32px" 
+                                                        sizes="28px" 
                                                         className="object-cover z-10" 
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-xs tracking-[0.1em] font-black ${isFirst ? 'text-[#FFD300]' : 'text-slate-300 group-hover:text-white'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {user.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-3 py-2 text-center border-l border-white/5 text-[10px] font-mono w-10 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        {/* Columna Puntos: Ajustada al texto */}
-                                        <td className={`w-20 px-6 py-2 text-center border-l border-white/10 font-black text-lg italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        {/* Columna Puntos: Compacta con py-1 y px-2 */}
+                                        <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {user.total}
                                         </td>
                                     </tr>
