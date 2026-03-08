@@ -290,11 +290,60 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 }
 
 function RankingView() {
-    // ... (manten toda tu lógica de estado y useEffect igual)
+    const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
+    const [showFull, setShowFull] = useState(false) // <--- Esta es la línea que faltaba
+    const [loading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(0) 
+
+    useEffect(() => {
+        const fetchRanking = async () => {
+            const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
+            if (!lockedDays || lockedDays.length === 0) { setRankingData({users: [], days: []}); setLoading(false); return }
+            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
+            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
+            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
+            
+            const userScores = appUsers?.map(u => {
+                let total = 0; const dayBreakdown: any = {}
+                lockedDays.forEach(day => {
+                    const matchesInDay = matches?.filter(m => m.matchday_id === day.id) || []
+                    let dayHits = 0
+                    matchesInDay.forEach(m => {
+                        const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
+                        if (userPred && userPred.predicted_team_id === m.winner_team_id) dayHits++
+                    })
+                    dayBreakdown[day.id] = dayHits; total += dayHits
+                })
+                return { username: u.username, total, dayBreakdown }
+            })
+            
+            userScores?.sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return a.username.localeCompare(b.username);
+            });
+            
+            setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
+        }
+        fetchRanking()
+    }, [])
+
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
+
+    const allUsers = rankingData.users;
+    const totalUsers = allUsers.length;
+    
+    const pageChunks: number[][] = [];
+    for (let i = 0; i < totalUsers; i += 15) {
+        pageChunks.push([i, Math.min(i + 15, totalUsers)]);
+    }
+
+    const totalPages = pageChunks.length || 1;
+    const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+    const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
+    const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-6">
-            
             <div className="w-full flex items-center justify-between mb-4 px-4 md:px-12">
                 <div className="flex-1 flex justify-start">
                     <button 
@@ -316,9 +365,7 @@ function RankingView() {
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
                                 className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ◀
-                            </button>
+                            >◀</button>
                             <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">
                                 PAG {safeCurrentPage + 1}
                             </div>
@@ -326,9 +373,7 @@ function RankingView() {
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
                                 className={`px-5 h-full text-xs font-black transition-colors border-l border-white/10 ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ▶
-                            </button>
+                            >▶</button>
                         </div>
                     )}
                 </div>
@@ -336,15 +381,14 @@ function RankingView() {
 
             <div className="w-full max-w-4xl">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-                    {/* CAMBIO CLAVE: table-fixed y colgroup */}
                     <table className="w-full text-left border-collapse table-fixed">
                         <colgroup>
-                            <col className="w-12" /> {/* Columna corona/posicion */}
-                            <col className="w-48" /> {/* Columna NOMBRES (Ajusta este valor si lo quieres más ancho o estrecho) */}
+                            <col className="w-12" />
+                            <col className="w-48" /> 
                             {showFull && rankingData.days.map(day => (
                                 <col key={day.id} className="w-10" />
                             ))}
-                            <col className="w-20" /> {/* Columna Total */}
+                            <col className="w-20" />
                         </colgroup>
                         <tbody>
                             {paginatedUsers.map((user, idx) => {
@@ -354,11 +398,7 @@ function RankingView() {
                                 return (
                                     <tr key={user.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
                                         <td className="px-1 py-1 text-center border-r border-white/5 font-black italic text-xs">
-                                            {isFirst ? (
-                                                <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span>
-                                            ) : (
-                                                <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
-                                            )}
+                                            {isFirst ? <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span> : <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>}
                                         </td>
                                         
                                         <td className="px-4 py-2 overflow-hidden">
@@ -366,7 +406,6 @@ function RankingView() {
                                                 <div className={`relative w-8 h-8 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
                                                     <Image 
-                                                        key={`${currentPage}-${user.username}`}
                                                         src={`/usuarios/${user.username}.jpg`} 
                                                         alt={user.username} 
                                                         fill 
