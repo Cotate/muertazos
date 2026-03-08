@@ -291,7 +291,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
 function RankingView() {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
-    const [showFull, setShowFull] = useState(false) // <--- Esta es la línea que faltaba
+    const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
 
@@ -329,6 +329,7 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
+    // LÓGICA DE PAGINACIÓN DE 15 ESTRICTOS
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
     
@@ -344,6 +345,7 @@ function RankingView() {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-6">
+            
             <div className="w-full flex items-center justify-between mb-4 px-4 md:px-12">
                 <div className="flex-1 flex justify-start">
                     <button 
@@ -365,7 +367,9 @@ function RankingView() {
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
                                 className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >◀</button>
+                            >
+                                ◀
+                            </button>
                             <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">
                                 PAG {safeCurrentPage + 1}
                             </div>
@@ -373,7 +377,9 @@ function RankingView() {
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
                                 className={`px-5 h-full text-xs font-black transition-colors border-l border-white/10 ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >▶</button>
+                            >
+                                ▶
+                            </button>
                         </div>
                     )}
                 </div>
@@ -381,15 +387,7 @@ function RankingView() {
 
             <div className="w-full max-w-4xl">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-                    <table className="w-full text-left border-collapse table-fixed">
-                        <colgroup>
-                            <col className="w-12" />
-                            <col className="w-48" /> 
-                            {showFull && rankingData.days.map(day => (
-                                <col key={day.id} className="w-10" />
-                            ))}
-                            <col className="w-20" />
-                        </colgroup>
+                    <table className="w-full text-left border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((user, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
@@ -397,35 +395,41 @@ function RankingView() {
 
                                 return (
                                     <tr key={user.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
-                                        <td className="px-1 py-1 text-center border-r border-white/5 font-black italic text-xs">
-                                            {isFirst ? <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span> : <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>}
+                                        <td className="w-10 px-1 py-1 text-center border-r border-white/5 font-black italic text-xs">
+                                            {isFirst ? (
+                                                <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span>
+                                            ) : (
+                                                <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
+                                            )}
                                         </td>
                                         
-                                        <td className="px-4 py-2 overflow-hidden">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
+                                        {/* Columna más estrecha y con menos padding vertical */}
+                                        <td className="w-[90px] px-2 py-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
                                                     <Image 
+                                                        key={`${currentPage}-${user.username}`}
                                                         src={`/usuarios/${user.username}.jpg`} 
                                                         alt={user.username} 
                                                         fill 
-                                                        sizes="32px" 
+                                                        sizes="28px" 
                                                         className="object-cover z-10" 
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-xs tracking-widest truncate ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-xs tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {user.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-                                        <td className={`px-2 py-1 text-center border-l border-white/10 font-black text-lg italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {user.total}
                                         </td>
                                     </tr>
