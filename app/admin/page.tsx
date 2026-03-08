@@ -115,8 +115,15 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); 
             setMatchdays(mData) 
             setActiveMatchdayId(prev => {
-                if (!prev && mData.length > 0) return mData[0].id;
-                if (prev && !mData.find(d => d.id === prev)) return mData[0].id;
+                // Buscamos si hay alguna jornada pública
+                const publicDay = mData.find(d => d.is_visible === true);
+                
+                // Si no hay prev, iniciamos en la pública (o en la primera si no hay pública)
+                if (!prev) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null);
+                
+                // Si hay prev pero no pertenece a esta liga (cambio de tab), buscamos la pública
+                if (prev && !mData.find(d => d.id === prev)) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null);
+                
                 return prev;
             })
         }
@@ -145,13 +152,11 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     
     useEffect(() => { load() }, [competitionKey])
 
-    // --- MEJORA AQUÍ: Lógica de exclusividad de visibilidad ---
     const toggleVisible = async (id: number, currentVal: boolean) => {
         if (!id) return;
         
         const newVal = !currentVal;
 
-        // Si vamos a poner UNA jornada como PÚBLICA, primero ponemos TODAS las de esta liga como OCULTAS
         if (newVal === true) {
             await supabase
                 .from('matchdays')
@@ -159,7 +164,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 .eq('competition_key', competitionKey);
         }
 
-        // Ahora actualizamos la jornada específica
         await supabase
             .from('matchdays')
             .update({ is_visible: newVal })
@@ -332,22 +336,32 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    const getPaginatedUsers = () => {
-        const all = rankingData.users;
-        if (currentPage === 0) return all.slice(0, 15);
-        if (currentPage === 1) return all.slice(15, 30);
-        if (currentPage === 2) return all.slice(30, 50);
-        return [];
-    };
+    // LÓGICA DE PAGINACIÓN DINÁMICA (Asegurando mínimo 15 por página)
+    const allUsers = rankingData.users;
+    const totalUsers = allUsers.length;
+    
+    let calcTotalPages = Math.floor(totalUsers / 15);
+    if (calcTotalPages === 0) calcTotalPages = 1;
+    
+    const baseSize = Math.floor(totalUsers / calcTotalPages);
+    const remainder = totalUsers % calcTotalPages;
+    
+    const pageChunks: number[][] = [];
+    let startIdx = 0;
+    for (let i = 0; i < calcTotalPages; i++) {
+        let size = baseSize + (i < remainder ? 1 : 0);
+        pageChunks.push([startIdx, startIdx + size]);
+        startIdx += size;
+    }
 
-    const paginatedUsers = getPaginatedUsers();
-    const totalPages = 3; 
+    const safeCurrentPage = Math.min(currentPage, Math.max(0, calcTotalPages - 1));
+    const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
+    const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
+    const totalPages = pageChunks.length;
 
     return (
-        /* Reducido py-8 a py-2 para ganar espacio arriba y abajo */
         <div className="w-full flex flex-col items-center py-2 px-6">
             
-            {/* Reducido mb-10 a mb-4 y el h-[46px] a h-[38px] para hacerlo más delgado */}
             <div className="w-full flex items-center justify-between mb-4 px-4 md:px-12">
                 <div className="flex-1 flex justify-start">
                     <button 
@@ -358,31 +372,32 @@ function RankingView() {
                     </button>
                 </div>
 
-                {/* Reducido text-4xl a text-2xl */}
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
                 
                 <div className="flex-1 flex justify-end">
-                    <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[38px] shadow-lg">
-                        <button 
-                            disabled={currentPage === 0} 
-                            onClick={() => setCurrentPage(prev => prev - 1)} 
-                            className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                        >
-                            ◀
-                        </button>
-                        <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">
-                            PAG {currentPage + 1}
+                    {totalPages > 1 && (
+                        <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[38px] shadow-lg">
+                            <button 
+                                disabled={safeCurrentPage === 0} 
+                                onClick={() => setCurrentPage(prev => prev - 1)} 
+                                className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ◀
+                            </button>
+                            <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">
+                                PAG {safeCurrentPage + 1}
+                            </div>
+                            <button 
+                                disabled={safeCurrentPage === totalPages - 1} 
+                                onClick={() => setCurrentPage(prev => prev + 1)} 
+                                className={`px-5 h-full text-xs font-black transition-colors border-l border-white/10 ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ▶
+                            </button>
                         </div>
-                        <button 
-                            disabled={currentPage === totalPages - 1} 
-                            onClick={() => setCurrentPage(prev => prev + 1)} 
-                            className={`px-5 h-full text-xs font-black transition-colors border-l border-white/10 ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                        >
-                            ▶
-                        </button>
-                    </div>
+                    )}
                 </div>
             </div>
 
@@ -391,10 +406,8 @@ function RankingView() {
                     <table className="w-full text-left border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((user, idx) => {
-                                let globalPos = idx + 1;
-                                if (currentPage === 1) globalPos = idx + 16;
-                                if (currentPage === 2) globalPos = idx + 31;
-                                
+                                // Calculamos la posición global matemáticamente usando el inicio del chunk actual
+                                const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
 
                                 return (
@@ -406,8 +419,10 @@ function RankingView() {
                                                 <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
                                             )}
                                         </td>
-                                        <td className="w-[220px] px-6 py-2">
-                                            <div className="flex items-center gap-4">
+                                        
+                                        {/* Ancho reducido en esta columna (w-[160px] px-3) */}
+                                        <td className="w-[160px] px-3 py-2">
+                                            <div className="flex items-center gap-3">
                                                 <div className={`relative w-9 h-9 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-base ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
                                                     <Image 
@@ -420,11 +435,12 @@ function RankingView() {
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-sm tracking-[0.15em] truncate block ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-sm tracking-[0.15em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {user.username}
                                                 </span>
                                             </div>
                                         </td>
+
                                         {showFull && rankingData.days.map(day => (
                                             <td key={day.id} className={`px-1 py-2 text-center border-l border-white/5 text-[11px] font-mono w-10 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
