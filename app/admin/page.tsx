@@ -115,15 +115,9 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); 
             setMatchdays(mData) 
             setActiveMatchdayId(prev => {
-                // Buscamos si hay alguna jornada pública
                 const publicDay = mData.find(d => d.is_visible === true);
-                
-                // Si no hay prev, iniciamos en la pública (o en la primera si no hay pública)
                 if (!prev) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null);
-                
-                // Si hay prev pero no pertenece a esta liga (cambio de tab), buscamos la pública
                 if (prev && !mData.find(d => d.id === prev)) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null);
-                
                 return prev;
             })
         }
@@ -154,7 +148,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
     const toggleVisible = async (id: number, currentVal: boolean) => {
         if (!id) return;
-        
         const newVal = !currentVal;
 
         if (newVal === true) {
@@ -336,28 +329,19 @@ function RankingView() {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    // LÓGICA DE PAGINACIÓN DINÁMICA (Asegurando mínimo 15 por página)
+    // LÓGICA DE PAGINACIÓN DE 15 ESTRICTOS
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
     
-    let calcTotalPages = Math.floor(totalUsers / 15);
-    if (calcTotalPages === 0) calcTotalPages = 1;
-    
-    const baseSize = Math.floor(totalUsers / calcTotalPages);
-    const remainder = totalUsers % calcTotalPages;
-    
     const pageChunks: number[][] = [];
-    let startIdx = 0;
-    for (let i = 0; i < calcTotalPages; i++) {
-        let size = baseSize + (i < remainder ? 1 : 0);
-        pageChunks.push([startIdx, startIdx + size]);
-        startIdx += size;
+    for (let i = 0; i < totalUsers; i += 15) {
+        pageChunks.push([i, Math.min(i + 15, totalUsers)]);
     }
 
-    const safeCurrentPage = Math.min(currentPage, Math.max(0, calcTotalPages - 1));
+    const totalPages = pageChunks.length || 1;
+    const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
     const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
     const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
-    const totalPages = pageChunks.length;
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-6">
@@ -406,47 +390,46 @@ function RankingView() {
                     <table className="w-full text-left border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((user, idx) => {
-                                // Calculamos la posición global matemáticamente usando el inicio del chunk actual
                                 const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
 
                                 return (
                                     <tr key={user.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''}`}>
-                                        <td className="w-14 px-2 py-2 text-center border-r border-white/5 font-black italic text-sm">
+                                        <td className="w-10 px-1 py-1 text-center border-r border-white/5 font-black italic text-xs">
                                             {isFirst ? (
-                                                <span className="text-2xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span>
+                                                <span className="text-xl drop-shadow-[0_0_10px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
                                                 <span className="text-slate-600 group-hover:text-slate-400">{globalPos}</span>
                                             )}
                                         </td>
                                         
-                                        {/* Ancho reducido en esta columna (w-[160px] px-3) */}
-                                        <td className="w-[160px] px-3 py-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`relative w-9 h-9 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-base ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
+                                        {/* Columna más estrecha y con menos padding vertical */}
+                                        <td className="w-[130px] px-2 py-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-xs ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
                                                     {user.username.charAt(0).toUpperCase()}
                                                     <Image 
                                                         key={`${currentPage}-${user.username}`}
                                                         src={`/usuarios/${user.username}.jpg`} 
                                                         alt={user.username} 
                                                         fill 
-                                                        sizes="40px" 
+                                                        sizes="28px" 
                                                         className="object-cover z-10" 
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-sm tracking-[0.15em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-xs tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {user.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-2 text-center border-l border-white/5 text-[11px] font-mono w-10 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={user.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{user.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-                                        <td className={`w-20 px-4 py-2 text-center border-l border-white/10 font-black text-lg italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {user.total}
                                         </td>
                                     </tr>
