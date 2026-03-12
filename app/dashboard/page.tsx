@@ -34,6 +34,7 @@ export default function UserDashboard() {
   }, [user, league])
 
   const loadData = async () => {
+    // Traemos las jornadas y sus partidos
     const { data: mDays } = await supabase
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
@@ -42,12 +43,21 @@ export default function UserDashboard() {
       .order('display_order')
 
     if (mDays) {
-      const sortedDays = mDays.map(day => ({
-        ...day,
-        matches: day.matches.sort((a: any, b: any) => a.id - b.id)
-      }))
+      // ORDENAMIENTO MANUAL REFORZADO
+      const sortedDays = mDays.map(day => {
+        const sortedMatches = [...(day.matches || [])].sort((a: any, b: any) => {
+          // Priorizamos match_order (el que configuraste en SQL)
+          const orderA = a.match_order !== null && a.match_order !== undefined ? a.match_order : a.id;
+          const orderB = b.match_order !== null && b.match_order !== undefined ? b.match_order : b.id;
+          return orderA - orderB;
+        });
+        
+        return { ...day, matches: sortedMatches };
+      });
+
       setMatchdays(sortedDays)
 
+      // Cargar predicciones del usuario
       const { data: preds } = await supabase
         .from('predictions')
         .select('*')
@@ -57,6 +67,7 @@ export default function UserDashboard() {
       preds?.forEach((p: any) => predMap[p.match_id] = p.predicted_team_id)
       setPredictions(predMap)
 
+      // Verificar si la jornada actual ya tiene predicciones guardadas
       const currentMatchesIds = sortedDays[currentDayIndex]?.matches.map((m:any) => m.id) || []
       const alreadyHasPreds = preds?.some((p:any) => currentMatchesIds.includes(p.match_id))
       setHasSavedInDB(!!alreadyHasPreds)
@@ -104,7 +115,6 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
       
-      {/* HEADER ACTUALIZADO */}
       <header className="w-full h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
         <div className="flex gap-20 flex-1 items-center">
             <button 
@@ -191,7 +201,6 @@ export default function UserDashboard() {
                                         disabled={(hasSavedInDB && !isEditing) || isLocked}
                                     />
                                     
-                                    {/* VS cambiado a blanco y ligeramente más grande */}
                                     <span className="text-3xl font-black text-white italic tracking-tighter mx-4">VS</span>
                                     
                                     <TeamButton 
@@ -237,9 +246,6 @@ export default function UserDashboard() {
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
     
-    // Si NO hay selección en el partido -> Color normal, sin escalar
-    // Si HAY selección y ES el elegido -> Color normal, brilla y crece
-    // Si HAY selección y NO ES el elegido -> Grisáceo, sin brillo y se achica un poco
     let appearanceClass = "grayscale-0 opacity-100 scale-100";
     if (anyPickInMatch) {
         if (isSelected) {
@@ -259,7 +265,6 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
                 ${!disabled && !isSelected ? 'hover:scale-105 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]' : ''}
             `}
         >
-            {/* Escudo mucho más grande (w-28 h-28) */}
             <div className="relative w-28 h-28">
                 <Image 
                     src={`/logos/${folder}/${team.logo_file}`} 
