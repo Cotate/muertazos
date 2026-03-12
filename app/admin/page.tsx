@@ -112,7 +112,17 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
         
         if (mData) { 
-            mData.forEach(day => { if(day.matches) day.matches.sort((a: any, b: any) => a.id - b.id) }); 
+            mData.forEach(day => { 
+                if(day.matches) {
+                    // ORDENACIÓN POR match_order APLICADA AQUÍ
+                    day.matches.sort((a: any, b: any) => {
+                        if (a.match_order !== b.match_order) {
+                            return (a.match_order ?? 99) - (b.match_order ?? 99);
+                        }
+                        return a.id - b.id;
+                    });
+                }
+            }); 
             setMatchdays(mData) 
             setActiveMatchdayId(prev => {
                 const publicDay = mData.find(d => d.is_visible === true);
@@ -402,7 +412,6 @@ function RankingView() {
                                             )}
                                         </td>
                                         
-                                        {/* Columna Nombre: Compacta con py-1 y px-2 */}
                                         <td className="w-[130px] px-2 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-2">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : 'border-white/10 text-slate-400'}`}>
@@ -429,7 +438,6 @@ function RankingView() {
                                             </td>
                                         ))}
                                         
-                                        {/* Columna Puntos: Compacta con py-1 y px-2 */}
                                         <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {user.total}
                                         </td>
