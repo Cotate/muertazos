@@ -285,18 +285,16 @@ export default function UserDashboard() {
                       <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
                   </div>
                   <div className="text-right">
-                      {/* Estilo Usuario (antes jornada): Blanco, bold, uppercase, pequeño */}
                       <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">
                           {user.username}
                       </div>
-                      {/* Estilo Jornada (antes usuario): Color activo, black, italic, grande */}
                       <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
                           {matchdays[currentDayIndex]?.name}
                       </div>
                   </div>
               </div>
 
-              {/* Lista de Picks con redondeos restaurados */}
+              {/* Lista de Picks */}
               <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
                   {matchdays[currentDayIndex]?.matches.map((match: any) => {
                       const pickId = predictions[match.id]
@@ -306,25 +304,25 @@ export default function UserDashboard() {
 
                       return (
                           <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
-                                  {/* Home Shield */}
-                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-16 h-16 object-contain relative z-10" />
+                                  {/* Home Shield - Tamaño aumentado (w-24 h-24) e img casi al ras (w-22 h-22) */}
+                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
                                   </div>
 
-                                  <div className="text-2xl font-black italic text-[#1e293b]">VS</div>
+                                  <div className="text-2xl font-black italic text-white">VS</div>
 
-                                  {/* Away Shield */}
-                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-16 h-16 object-contain relative z-10" />
+                                  {/* Away Shield - Tamaño aumentado */}
+                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
                                   </div>
                           </div>
                       );
                   })}
               </div>
 
-              {/* Footer Final */}
-              <div className="mt-8 text-center">
-                  <div className="text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic">
+              {/* Footer Final - Reducido margen superior y ajustado al ras */}
+              <div className="mt-4 text-center">
+                  <div className="text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic leading-tight">
                       muertazos.vercel.app
                   </div>
               </div>
