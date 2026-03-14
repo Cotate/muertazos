@@ -108,38 +108,39 @@ export default function UserDashboard() {
 
 const handleSharePicks = async () => {
     if (!shareTicketRef.current) return;
-    
     setIsGenerating(true);
 
     try {
-      // Pequeña pausa para asegurar que el DOM esté listo
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Damos un respiro al navegador
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const canvas = await html2canvas(shareTicketRef.current, {
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false, // Cambiado a false para evitar problemas de seguridad
         scale: 2,
         backgroundColor: '#0a0a0a',
-        logging: true, // Esto ayuda a ver errores en consola
-        width: 450,
-        height: shareTicketRef.current.offsetHeight
+        logging: false,
+        // Limpiamos estilos incompatibles durante la clonación
+        onclone: (clonedDoc) => {
+          const ticket = clonedDoc.querySelector('[data-share-ticket="true"]');
+          if (ticket) {
+            // Forzamos a que no use funciones de color raras en el clon
+            (ticket as HTMLElement).style.color = '#ffffff';
+          }
+        }
       });
       
       const image = canvas.toDataURL('image/png', 1.0);
-      
-      // Crear un link oculto y simular click
       const link = document.createElement('a');
-      link.style.display = 'none';
       link.href = image;
-      link.download = `Picks_${user.username}_${league}.png`;
-      
+      link.download = `Picks_${user.username}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
     } catch (error: any) {
-      console.error('Error al generar la imagen:', error);
-      alert('Error al generar la imagen: ' + error.message);
+      console.error('Error:', error);
+      alert('Hubo un problema al crear la imagen. Intenta de nuevo.');
     } finally {
       setIsGenerating(false);
     }
@@ -289,22 +290,28 @@ const handleSharePicks = async () => {
       {/* --- TICKET OCULTO PARA COMPARTIR --- */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
-          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-8 text-white font-sans border border-slate-800 rounded-3xl shadow-2xl">
-              <div className="flex items-center gap-5 border-b border-slate-800 pb-5 mb-5">
-                  <div className="relative w-28 h-10 shrink-0">
-                      <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+          <div 
+            ref={shareTicketRef} 
+            data-share-ticket="true"
+            className="w-[400px] bg-[#0a0a0a] p-8 font-sans border border-[#1e293b] rounded-[32px]"
+          >
+              {/* Header */}
+              <div className="flex items-center gap-4 border-b border-[#1e293b] pb-5 mb-5">
+                  <div className="relative w-24 h-8">
+                      <img src="/Muertazos.png" alt="Logo" className="object-contain" />
                   </div>
                   <div className="flex-grow">
-                      <div style={{ color: activeColor }} className="font-black italic uppercase text-xs tracking-widest">
+                      <div style={{ color: activeColor }} className="font-bold uppercase text-[10px] tracking-[0.2em]">
                           PICKS DE {user.username}
                       </div>
-                      <div className="text-xl font-bold uppercase tracking-tight text-white mt-0.5">
+                      <div className="text-lg font-black uppercase tracking-tight text-white">
                           {matchdays[currentDayIndex]?.name}
                       </div>
                   </div>
               </div>
 
-              <div className="space-y-3 bg-black/50 p-4 rounded-xl border border-white/5 relative">
+              {/* Contenedor de Picks */}
+              <div className="space-y-3 bg-[#000000] p-4 rounded-2xl border border-[#ffffff10]">
                   {matchdays[currentDayIndex]?.matches.map((match: any) => {
                       const pickId = predictions[match.id]
                       const isHomePredicted = pickId === match.home_team_id;
@@ -312,45 +319,42 @@ const handleSharePicks = async () => {
                       const folder = league === 'kings' ? 'Kings' : 'Queens';
 
                       return (
-                          <div key={match.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl p-3 border border-white/5 relative overflow-hidden">
-                              <div className="flex flex-col items-center flex-1 text-center">
-                                  <div className={`relative w-16 h-16 rounded-lg flex items-center justify-center p-1 transition-all ${isHomePredicted ? 'scale-110' : 'opacity-40 grayscale'}`}>
+                          <div key={match.id} className="flex items-center justify-between bg-[#0f172a] rounded-xl p-3 border border-[#ffffff05]">
+                              {/* Local */}
+                              <div className="flex flex-col items-center flex-1">
+                                  <div className={`relative w-14 h-14 flex items-center justify-center ${isHomePredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
                                       {isHomePredicted && (
-                                        <div 
-                                          className="absolute inset-0 rounded-lg border-2 border-dashed" 
-                                          style={{ boxShadow: `0 0 15px ${activeColor}40`, borderColor: `${activeColor}50` }} 
-                                        ></div>
+                                        <div className="absolute inset-0 rounded-lg border border-dashed" style={{ borderColor: activeColor }}></div>
                                       )}
-                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="H" className="object-contain w-14 h-14 relative z-10" />
+                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-10 h-10 object-contain relative z-10" />
                                   </div>
-                                  <span className={`text-[10px] mt-1 uppercase font-bold tracking-tight truncate w-full ${isHomePredicted ? 'text-white' : 'text-slate-500'}`}>{match.home.name}</span>
+                                  <span className={`text-[9px] mt-1 font-bold uppercase ${isHomePredicted ? 'text-white' : 'text-[#475569]'}`}>{match.home.name}</span>
                               </div>
 
-                              <div className="text-xl font-black italic text-slate-700 shrink-0 px-2">VS</div>
+                              <div className="text-sm font-black italic text-[#1e293b] px-2">VS</div>
 
-                              <div className="flex flex-col items-center flex-1 text-center">
-                                  <div className={`relative w-16 h-16 rounded-lg flex items-center justify-center p-1 transition-all ${isAwayPredicted ? 'scale-110' : 'opacity-40 grayscale'}`}>
+                              {/* Visitante */}
+                              <div className="flex flex-col items-center flex-1">
+                                  <div className={`relative w-14 h-14 flex items-center justify-center ${isAwayPredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
                                       {isAwayPredicted && (
-                                        <div 
-                                          className="absolute inset-0 rounded-lg border-2 border-dashed" 
-                                          style={{ boxShadow: `0 0 15px ${activeColor}40`, borderColor: `${activeColor}50` }} 
-                                        ></div>
+                                        <div className="absolute inset-0 rounded-lg border border-dashed" style={{ borderColor: activeColor }}></div>
                                       )}
-                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="A" className="object-contain w-14 h-14 relative z-10" />
+                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-10 h-10 object-contain relative z-10" />
                                   </div>
-                                  <span className={`text-[10px] mt-1 uppercase font-bold tracking-tight truncate w-full ${isAwayPredicted ? 'text-white' : 'text-slate-500'}`}>{match.away.name}</span>
+                                  <span className={`text-[9px] mt-1 font-bold uppercase ${isAwayPredicted ? 'text-white' : 'text-[#475569]'}`}>{match.away.name}</span>
                               </div>
                           </div>
                       );
                   })}
               </div>
-              <div className="text-center text-[10px] text-slate-700 mt-5 pt-3 border-t border-slate-800 font-bold uppercase tracking-[0.3em] italic">
-                  muertazos.com
+
+              {/* Branding Footer */}
+              <div className="text-center text-[9px] text-[#334155] mt-6 font-bold uppercase tracking-[0.4em] italic">
+                  MUERTAZOS.COM
               </div>
           </div>
         )}
       </div>
-    </div>
   )
 }
 
