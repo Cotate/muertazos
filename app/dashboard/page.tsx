@@ -274,18 +274,29 @@ export default function UserDashboard() {
         </div>
       </main>
 
-      {/* --- TICKET OCULTO PARA COMPARTIR (CUADRADO Y ACTUALIZADO) --- */}
+      {/* --- TICKET OCULTO PARA COMPARTIR --- */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
-              {/* Logo Centrado Arriba */}
-              <div className="flex justify-center mb-8">
-                  <div className="relative w-40 h-12">
+              
+              {/* Header: Logo Izquierda | Usuario y Jornada Derecha */}
+              <div className="flex justify-between items-center mb-8">
+                  <div className="relative w-36 h-10">
                       <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+                  </div>
+                  <div className="text-right">
+                      {/* Estilo Usuario (antes jornada): Blanco, bold, uppercase, pequeño */}
+                      <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">
+                          {user.username}
+                      </div>
+                      {/* Estilo Jornada (antes usuario): Color activo, black, italic, grande */}
+                      <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
+                          {matchdays[currentDayIndex]?.name}
+                      </div>
                   </div>
               </div>
 
-              {/* Lista de Picks sin nombres */}
+              {/* Lista de Picks con redondeos restaurados */}
               <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
                   {matchdays[currentDayIndex]?.matches.map((match: any) => {
                       const pickId = predictions[match.id]
@@ -294,22 +305,16 @@ export default function UserDashboard() {
                       const folder = league === 'kings' ? 'Kings' : 'Queens';
 
                       return (
-                          <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05]">
+                          <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
                                   {/* Home Shield */}
-                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isHomePredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
-                                      {isHomePredicted && (
-                                        <div className="absolute inset-0 border-2 border-dashed" style={{ borderColor: activeColor }}></div>
-                                      )}
+                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
                                       <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-16 h-16 object-contain relative z-10" />
                                   </div>
 
                                   <div className="text-2xl font-black italic text-[#1e293b]">VS</div>
 
                                   {/* Away Shield */}
-                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isAwayPredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
-                                      {isAwayPredicted && (
-                                        <div className="absolute inset-0 border-2 border-dashed" style={{ borderColor: activeColor }}></div>
-                                      )}
+                                  <div className={`relative w-20 h-20 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
                                       <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-16 h-16 object-contain relative z-10" />
                                   </div>
                           </div>
@@ -317,17 +322,9 @@ export default function UserDashboard() {
                   })}
               </div>
 
-              {/* Footer con Usuario, Jornada y Web */}
-              <div className="mt-8 pt-6 border-t border-[#1e293b]">
-                  <div className="flex justify-between items-end mb-4">
-                      <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter">
-                          {user.username}
-                      </div>
-                      <div className="text-white font-bold uppercase text-xs tracking-widest opacity-60">
-                          {matchdays[currentDayIndex]?.name}
-                      </div>
-                  </div>
-                  <div className="text-center text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic">
+              {/* Footer Final */}
+              <div className="mt-8 text-center">
+                  <div className="text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic">
                       muertazos.vercel.app
                   </div>
               </div>
