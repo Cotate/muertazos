@@ -106,23 +106,40 @@ export default function UserDashboard() {
     loadData() 
   }
 
-  const handleSharePicks = async () => {
+const handleSharePicks = async () => {
     if (!shareTicketRef.current) return;
+    
     setIsGenerating(true);
+
     try {
+      // Pequeña pausa para asegurar que el DOM esté listo
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const canvas = await html2canvas(shareTicketRef.current, {
         useCORS: true,
+        allowTaint: true,
         scale: 2,
-        backgroundColor: '#0a0a0a'
+        backgroundColor: '#0a0a0a',
+        logging: true, // Esto ayuda a ver errores en consola
+        width: 450,
+        height: shareTicketRef.current.offsetHeight
       });
       
-      const image = canvas.toDataURL('image/png');
+      const image = canvas.toDataURL('image/png', 1.0);
+      
+      // Crear un link oculto y simular click
       const link = document.createElement('a');
+      link.style.display = 'none';
       link.href = image;
-      link.download = `Muertazos_Picks_${user.username}.png`;
+      link.download = `Picks_${user.username}_${league}.png`;
+      
+      document.body.appendChild(link);
       link.click();
-    } catch (error) {
-      console.error('Error al generar la imagen', error);
+      document.body.removeChild(link);
+
+    } catch (error: any) {
+      console.error('Error al generar la imagen:', error);
+      alert('Error al generar la imagen: ' + error.message);
     } finally {
       setIsGenerating(false);
     }
