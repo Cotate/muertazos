@@ -15,7 +15,6 @@ export default function UserDashboard() {
   const [isEditing, setIsEditing] = useState(false)
   const [hasSavedInDB, setHasSavedInDB] = useState(false)
   
-  // Referencia y estado para generar la imagen
   const shareTicketRef = useRef<HTMLDivElement>(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -106,28 +105,17 @@ export default function UserDashboard() {
     loadData() 
   }
 
-const handleSharePicks = async () => {
+  const handleSharePicks = async () => {
     if (!shareTicketRef.current) return;
     setIsGenerating(true);
 
     try {
-      // Damos un respiro al navegador
-      await new Promise(resolve => setTimeout(resolve, 300));
-
+      await new Promise(resolve => setTimeout(resolve, 400));
       const canvas = await html2canvas(shareTicketRef.current, {
         useCORS: true,
-        allowTaint: false, // Cambiado a false para evitar problemas de seguridad
         scale: 2,
         backgroundColor: '#0a0a0a',
-        logging: false,
-        // Limpiamos estilos incompatibles durante la clonación
-        onclone: (clonedDoc) => {
-          const ticket = clonedDoc.querySelector('[data-share-ticket="true"]');
-          if (ticket) {
-            // Forzamos a que no use funciones de color raras en el clon
-            (ticket as HTMLElement).style.color = '#ffffff';
-          }
-        }
+        logging: false
       });
       
       const image = canvas.toDataURL('image/png', 1.0);
@@ -137,10 +125,9 @@ const handleSharePicks = async () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
     } catch (error: any) {
       console.error('Error:', error);
-      alert('Hubo un problema al crear la imagen. Intenta de nuevo.');
+      alert('Error al generar la imagen.');
     } finally {
       setIsGenerating(false);
     }
@@ -263,13 +250,13 @@ const handleSharePicks = async () => {
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <button 
                                         onClick={() => setIsEditing(true)} 
-                                        className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase text-sm hover:bg-slate-200 transition-all shadow-lg"
+                                        className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase text-sm"
                                     >Editar predicción</button>
                                     
                                     <button 
                                         onClick={handleSharePicks} 
                                         disabled={isGenerating}
-                                        className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(33,139,68,0.4)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm flex items-center justify-center gap-2"
                                     >
                                         {isGenerating ? 'GENERANDO...' : 'COMPARTIR PICKS'}
                                     </button>
@@ -277,7 +264,7 @@ const handleSharePicks = async () => {
                             ) : (
                                 <button 
                                     onClick={savePredictions} 
-                                    className={`${btnColor} text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,0,0,0.4)]`}
+                                    className={`${btnColor} text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm`}
                                 >Confirmar Jornada</button>
                             )
                         )}
@@ -287,15 +274,9 @@ const handleSharePicks = async () => {
         </div>
       </main>
 
-      {/* --- TICKET OCULTO PARA COMPARTIR --- */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
-          <div 
-            ref={shareTicketRef} 
-            data-share-ticket="true"
-            className="w-[400px] bg-[#0a0a0a] p-8 font-sans border border-[#1e293b] rounded-[32px]"
-          >
-              {/* Header */}
+          <div ref={shareTicketRef} className="w-[400px] bg-[#0a0a0a] p-8 font-sans border border-[#1e293b] rounded-[32px]">
               <div className="flex items-center gap-4 border-b border-[#1e293b] pb-5 mb-5">
                   <div className="relative w-24 h-8">
                       <img src="/Muertazos.png" alt="Logo" className="object-contain" />
@@ -310,7 +291,6 @@ const handleSharePicks = async () => {
                   </div>
               </div>
 
-              {/* Contenedor de Picks */}
               <div className="space-y-3 bg-[#000000] p-4 rounded-2xl border border-[#ffffff10]">
                   {matchdays[currentDayIndex]?.matches.map((match: any) => {
                       const pickId = predictions[match.id]
@@ -320,7 +300,6 @@ const handleSharePicks = async () => {
 
                       return (
                           <div key={match.id} className="flex items-center justify-between bg-[#0f172a] rounded-xl p-3 border border-[#ffffff05]">
-                              {/* Local */}
                               <div className="flex flex-col items-center flex-1">
                                   <div className={`relative w-14 h-14 flex items-center justify-center ${isHomePredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
                                       {isHomePredicted && (
@@ -330,10 +309,7 @@ const handleSharePicks = async () => {
                                   </div>
                                   <span className={`text-[9px] mt-1 font-bold uppercase ${isHomePredicted ? 'text-white' : 'text-[#475569]'}`}>{match.home.name}</span>
                               </div>
-
                               <div className="text-sm font-black italic text-[#1e293b] px-2">VS</div>
-
-                              {/* Visitante */}
                               <div className="flex flex-col items-center flex-1">
                                   <div className={`relative w-14 h-14 flex items-center justify-center ${isAwayPredicted ? 'opacity-100' : 'opacity-20 grayscale'}`}>
                                       {isAwayPredicted && (
@@ -347,14 +323,13 @@ const handleSharePicks = async () => {
                       );
                   })}
               </div>
-
-              {/* Branding Footer */}
               <div className="text-center text-[9px] text-[#334155] mt-6 font-bold uppercase tracking-[0.4em] italic">
                   MUERTAZOS.COM
               </div>
           </div>
         )}
       </div>
+    </div>
   )
 }
 
