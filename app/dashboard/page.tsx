@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import html2canvas from 'html2canvas'
 
 export default function UserDashboard() {
   const router = useRouter()
@@ -13,6 +14,10 @@ export default function UserDashboard() {
   const [predictions, setPredictions] = useState<Record<number, number>>({})
   const [isEditing, setIsEditing] = useState(false)
   const [hasSavedInDB, setHasSavedInDB] = useState(false)
+  
+  // Referencia y estado para generar la imagen
+  const shareTicketRef = useRef<HTMLDivElement>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('muertazos_user')
@@ -105,6 +110,29 @@ export default function UserDashboard() {
     setIsEditing(false)
     setHasSavedInDB(true)
     loadData() 
+  }
+
+  // Función para generar y descargar la imagen de compartir
+  const handleSharePicks = async () => {
+    if (!shareTicketRef.current) return;
+    setIsGenerating(true);
+    try {
+      const canvas = await html2canvas(shareTicketRef.current, {
+        useCORS: true,
+        scale: 2, // Mayor calidad
+        backgroundColor: '#0a0a0a' // Forzar fondo oscuro de Muertazos
+      });
+      
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `Muertazos_Picks_${user.username}_${matchdays[currentDayIndex].name}.png`;
+      link.click();
+    } catch (error) {
+      console.error('Error al generar la imagen', error);
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   if (!user) return null
@@ -223,10 +251,21 @@ export default function UserDashboard() {
                             </div>
                         ) : (
                             hasSavedInDB && !isEditing ? (
-                                <button 
-                                    onClick={() => setIsEditing(true)} 
-                                    className="bg-white text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm hover:bg-slate-200 transition-all shadow-lg"
-                                >Editar predicción</button>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <button 
+                                        onClick={() => setIsEditing(true)} 
+                                        className="bg-white text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm hover:bg-slate-200 transition-all shadow-lg"
+                                    >Editar predicción</button>
+                                    
+                                    {/* NUEVO BOTÓN DE COMPARTIR */}
+                                    <button 
+                                        onClick={handleSharePicks} 
+                                        disabled={isGenerating}
+                                        className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(33,139,68,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                                    >
+                                        {isGenerating ? 'GENERANDO...' : 'COMPARTIR PICKS'}
+                                    </button>
+                                </div>
                             ) : (
                                 <button 
                                     onClick={savePredictions} 
@@ -239,6 +278,74 @@ export default function UserDashboard() {
             )}
         </div>
       </main>
+
+      {/* --- CONTENEDOR OCULTO PARA EL TICKET (HTML2CANVAS) --- */}
+      {/* Está posicionado fuera de la pantalla para que el usuario no lo vea, pero html2canvas sí puede capturarlo */}
+      <div className="absolute top-[-9999px] left-[-9999px] overflow-hidden">
+        {matchdays.length > 0 && (
+          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-8 text-white font-sans border border-slate-800 rounded-3xl shadow-2xl">
+              
+              {/* Header con Logo y User Info */}
+              <div className="flex items-center gap-5 border-b border-slate-800 pb-5 mb-5">
+                  <div className="relative w-28 h-10 shrink-0">
+                      {/* Usamos img estándar para evitar problemas de Next/Image en html2canvas */}
+                      <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+                  </div>
+                  <div className="flex-grow">
+                      <div style={{ color: activeColor }} className="font-black italic uppercase text-sm tracking-widest">
+                          PICKS DE {user.username}
+                      </div>
+                      <div className="text-xl font-bold uppercase tracking-tight text-white mt-0.5">
+                          {matchdays[currentDayIndex]?.name}
+                      </div>
+                  </div>
+              </div>
+
+              {/* Lista de Picks */}
+              <div className="space-y-3 bg-black/50 p-4 rounded-xl border border-white/5 relative">
+                  {matchdays[currentDayIndex]?.matches.map((match: any) => {
+                      const pickId = predictions[match.id]
+                      const isHomePredicted = pickId === match.home_team_id;
+                      const isAwayPredicted = pickId === match.away_team_id;
+                      const folder = league === 'kings' ? 'Kings' : 'Queens';
+
+                      return (
+                          <div key={match.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl p-3 border border-white/5 relative overflow-hidden">
+                              
+                              {/* Equipo Local Slot */}
+                              <div className="flex flex-col items-center flex-1 text-center">
+                                  <div className={`relative w-16 h-16 rounded-lg flex items-center justify-center p-1 transition-all ${isHomePredicted ? 'scale-110' : 'opacity-40 grayscale'}`}>
+                                      {isHomePredicted && <div style={{ boxShadow: `0 0 15px ${activeColor}40` }} className="absolute inset-0 rounded-lg border-2 border-dashed" style={{ borderColor: `${activeColor}50` }} ></div>}
+                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="H" className="object-contain w-14 h-14 relative z-10" />
+                                  </div>
+                                  <span className={`text-[10px] mt-1 uppercase font-bold tracking-tight truncate w-full ${isHomePredicted ? 'text-white' : 'text-slate-500'}`}>{match.home.name}</span>
+                              </div>
+
+                              {/* Separador VS */}
+                              <div className="text-xl font-black italic text-slate-700 shrink-0 px-2">VS</div>
+
+                              {/* Equipo Visitante Slot */}
+                              <div className="flex flex-col items-center flex-1 text-center">
+                                  <div className={`relative w-16 h-16 rounded-lg flex items-center justify-center p-1 transition-all ${isAwayPredicted ? 'scale-110' : 'opacity-40 grayscale'}`}>
+                                      {isAwayPredicted && <div style={{ boxShadow: `0 0 15px ${activeColor}40` }} className="absolute inset-0 rounded-lg border-2 border-dashed" style={{ borderColor: `${activeColor}50` }} ></div>}
+                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="A" className="object-contain w-14 h-14 relative z-10" />
+                                  </div>
+                                  <span className={`text-[10px] mt-1 uppercase font-bold tracking-tight truncate w-full ${isAwayPredicted ? 'text-white' : 'text-slate-500'}`}>{match.away.name}</span>
+                              </div>
+                          </div>
+                      );
+                  })}
+              </div>
+
+              {/* Footer con URL o Branding */}
+              <div className="text-center text-xs text-slate-700 mt-5 pt-3 border-t border-slate-800 font-bold uppercase tracking-widest italic">
+                  muertazos.com
+              </div>
+          </div>
+        )}
+      </div>
+      {/* --------------------------------------------------- */}
+
     </div>
   )
 }
