@@ -9,7 +9,7 @@ export default function UserDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
-  const [view, setView] = useState<'picks' | 'ranking'>('picks') // Nuevo: Control de vista
+  const [view, setView] = useState<'picks' | 'ranking'>('picks')
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
   const [predictions, setPredictions] = useState<Record<number, number>>({})
@@ -140,34 +140,33 @@ export default function UserDashboard() {
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
+    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       
-      <header className="w-full h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
-        <div className="flex gap-10 flex-1 items-center">
+      <header className="w-full h-20 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
+        <div className="flex gap-10 flex-1 items-center h-full">
             <button 
                 onClick={() => { setLeague('kings'); setView('picks'); }}
                 style={{ borderBottom: league === 'kings' && view === 'picks' ? `3px solid #ffd300` : '3px solid transparent' }}
-                className={`h-full pt-2 text-xl font-black italic tracking-widest transition-all ${league === 'kings' && view === 'picks' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-xl font-black italic tracking-widest transition-all ${league === 'kings' && view === 'picks' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
             >KINGS</button>
             <button 
                 onClick={() => { setLeague('queens'); setView('picks'); }}
                 style={{ borderBottom: league === 'queens' && view === 'picks' ? `3px solid #01d6c3` : '3px solid transparent' }}
-                className={`h-full pt-2 text-xl font-black italic tracking-widest transition-all ${league === 'queens' && view === 'picks' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-xl font-black italic tracking-widest transition-all ${league === 'queens' && view === 'picks' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
             >QUEENS</button>
-            {/* Botón de Ranking */}
             <button 
                 onClick={() => setView('ranking')}
                 style={{ borderBottom: view === 'ranking' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full pt-2 text-xl font-black italic tracking-widest transition-all ${view === 'ranking' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-xl font-black italic tracking-widest transition-all ${view === 'ranking' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
             >RANKING</button>
         </div>
 
-        <div className="relative w-40 h-14 flex-shrink-0">
+        <div className="relative w-32 h-10 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
         <div className="flex-1 flex justify-end items-center gap-6">
-            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
                  <Image 
                     src={`/usuarios/${user.username}.jpg`} 
                     alt={user.username} 
@@ -175,18 +174,16 @@ export default function UserDashboard() {
                     className="object-cover"
                     onError={(e) => e.currentTarget.style.display = 'none'}
                 />
-                <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-bold -z-10 uppercase text-xs">
-                    {user.username.charAt(0)}
-                </div>
             </div>
             <button 
                 onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="text-[9px] font-black text-red-500 border border-red-500/20 px-4 py-2 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
+                className="text-[9px] font-black text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
             >SALIR</button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto pt-10 pb-20 px-4">
+      {/* Main ajustado para eliminar scroll vertical excesivo */}
+      <main className="max-w-5xl mx-auto pt-4 pb-4 px-4">
         {view === 'picks' ? (
             <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
@@ -281,12 +278,11 @@ export default function UserDashboard() {
                 )}
             </div>
         ) : (
-            /* Vista de Ranking */
             <RankingView user={user} />
         )}
       </main>
 
-      {/* --- TICKET OCULTO PARA COMPARTIR (Se mantiene igual) --- */}
+      {/* Ticket oculto */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
@@ -324,11 +320,6 @@ export default function UserDashboard() {
                       );
                   })}
               </div>
-              <div className="mt-4 text-center">
-                  <div className="text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic leading-tight">
-                      muertazos.com
-                  </div>
-              </div>
           </div>
         )}
       </div>
@@ -349,7 +340,6 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
     )
 }
 
-// COMPONENTE DE RANKING ADAPTADO PARA USUARIOS
 function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
@@ -393,6 +383,7 @@ function RankingView({ user }: { user: any }) {
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
     
+    // Mostramos 15 usuarios por página para asegurar que quepa sin scroll
     const pageChunks: number[][] = [];
     for (let i = 0; i < totalUsers; i += 15) {
         pageChunks.push([i, Math.min(i + 15, totalUsers)]);
@@ -404,18 +395,19 @@ function RankingView({ user }: { user: any }) {
     const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
 
     return (
-        <div className="w-full flex flex-col items-center py-2 px-6">
-            <div className="w-full flex items-center justify-between mb-4 px-4 md:px-12">
+        <div className="w-full flex flex-col items-center py-1">
+            {/* Header de la tabla con margen reducido */}
+            <div className="w-full flex items-center justify-between mb-2 px-4 md:px-8">
                 <div className="flex-1 flex justify-start">
                     <button 
                         onClick={() => setShowFull(!showFull)} 
-                        className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                        className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
                     >
                         {showFull ? '← VOLVER' : 'DESGLOSE'}
                     </button>
                 </div>
 
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
                 
@@ -425,12 +417,12 @@ function RankingView({ user }: { user: any }) {
                             <button 
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             > ◀ </button>
                             <button 
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             > ▶ </button>
                         </div>
                     )}
@@ -456,46 +448,46 @@ function RankingView({ user }: { user: any }) {
                             {paginatedUsers.map((u, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
-                                // HIGHLIGHT: Comprobamos si es el usuario logueado
                                 const isMe = u.username === user.username;
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[10px]">
+                                        {/* Celda de posición más compacta */}
+                                        <td className="w-10 px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
                                             {isFirst ? (
-                                                <span className="text-lg drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
+                                                <span className="text-base drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
                                                 <span className={`${isMe ? 'text-white' : 'text-slate-600 group-hover:text-slate-400'}`}>{globalPos}</span>
                                             )}
                                         </td>
                                         
-                                        <td className="w-[130px] px-2 py-1 border-r border-white/5">
+                                        <td className="w-[120px] px-2 py-0.5 border-r border-white/5">
                                             <div className="flex items-center gap-2">
-                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
+                                                <div className={`relative w-6 h-6 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[9px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
                                                     {u.username.charAt(0).toUpperCase()}
                                                     <Image 
                                                         key={`${currentPage}-${u.username}`}
                                                         src={`/usuarios/${u.username}.jpg`} 
                                                         alt={u.username} 
                                                         fill 
-                                                        sizes="28px" 
+                                                        sizes="24px" 
                                                         className="object-cover z-10" 
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-[10px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-[9px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-0.5 text-center border-l border-white/5 text-[9px] font-mono w-7 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-14 px-2 py-0.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
