@@ -360,7 +360,6 @@ function RankingView({ user }: { user: any }) {
         const fetchRanking = async () => {
             const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
             if (!lockedDays || lockedDays.length === 0) { setRankingData({users: [], days: []}); setLoading(false); return }
-            
             const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
             const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
             const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
@@ -389,15 +388,14 @@ function RankingView({ user }: { user: any }) {
         fetchRanking()
     }, [])
 
-    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Cargando clasificación...</div>
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
-    const itemsPerPage = 15;
     
     const pageChunks: number[][] = [];
-    for (let i = 0; i < totalUsers; i += itemsPerPage) {
-        pageChunks.push([i, Math.min(i + itemsPerPage, totalUsers)]);
+    for (let i = 0; i < totalUsers; i += 15) {
+        pageChunks.push([i, Math.min(i + 15, totalUsers)]);
     }
 
     const totalPages = pageChunks.length || 1;
@@ -406,78 +404,98 @@ function RankingView({ user }: { user: any }) {
     const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
 
     return (
-        <div className="w-full flex flex-col items-center">
-            <div className="w-full flex items-center justify-between mb-6">
-                <button 
-                    onClick={() => setShowFull(!showFull)} 
-                    className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20 hover:border-white'}`}
-                >
-                    {showFull ? '← GENERAL' : 'DESGLOSE'}
-                </button>
+        <div className="w-full flex flex-col items-center py-2 px-6">
+            <div className="w-full flex items-center justify-between mb-4 px-4 md:px-12">
+                <div className="flex-1 flex justify-start">
+                    <button 
+                        onClick={() => setShowFull(!showFull)} 
+                        className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                    >
+                        {showFull ? '← VOLVER' : 'DESGLOSE'}
+                    </button>
+                </div>
 
-                <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+                </h2>
+                
+                <div className="flex-1 flex justify-end">
                     {totalPages > 1 && (
                         <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                             <button 
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-4 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-white'}`}
+                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             > ◀ </button>
                             <button 
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-4 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-white'}`}
+                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             > ▶ </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="w-full overflow-x-auto">
-                <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/5 shadow-2xl overflow-hidden min-w-[350px]">
-                    <table className="w-full border-collapse">
+            <div className="w-fit mx-auto">
+                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+                    <table className="border-collapse table-auto">
                         <thead>
-                            <tr className="bg-black/40 text-slate-500 text-[9px] font-black uppercase tracking-widest italic border-b border-white/5">
-                                <th className="px-4 py-3 text-center w-12">#</th>
-                                <th className="px-4 py-3 text-left">USUARIO</th>
+                            <tr className="bg-black/40 text-slate-500 text-[8px] font-black uppercase tracking-widest border-b border-white/10">
+                                <th className="px-2 py-2 border-r border-white/5">#</th>
+                                <th className="px-4 py-2 text-left border-r border-white/5">USUARIO</th>
                                 {showFull && rankingData.days.map(day => (
-                                    <th key={day.id} className="px-2 py-3 text-center text-[8px] w-10">
-                                        {day.name.replace('JORNADA', 'J')}
+                                    <th key={day.id} className="px-1 py-2 w-8 border-l border-white/5">
+                                        {day.name.includes('JORNADA') ? day.name.replace('JORNADA ', 'J') : day.name.substring(0,2)}
                                     </th>
                                 ))}
-                                <th className="px-4 py-3 text-center w-16">PTS</th>
+                                <th className="px-4 py-2">PTS</th>
                             </tr>
                         </thead>
                         <tbody>
                             {paginatedUsers.map((u, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
-                                const isCurrentUser = u.username === user.username;
                                 const isFirst = globalPos === 1;
+                                // HIGHLIGHT: Comprobamos si es el usuario logueado
+                                const isMe = u.username === user.username;
 
                                 return (
-                                    <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isCurrentUser ? 'bg-white/10' : ''}`}>
-                                        <td className="px-4 py-3 text-center border-r border-white/5 font-black italic text-xs">
-                                            {isFirst ? "👑" : globalPos}
+                                    <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
+                                        <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[10px]">
+                                            {isFirst ? (
+                                                <span className="text-lg drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
+                                            ) : (
+                                                <span className={`${isMe ? 'text-white' : 'text-slate-600 group-hover:text-slate-400'}`}>{globalPos}</span>
+                                            )}
                                         </td>
-                                        <td className="px-4 py-3 border-r border-white/5">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden border ${isCurrentUser ? 'border-white' : 'border-white/10'} bg-slate-800 flex items-center justify-center font-bold text-xs`}>
+                                        
+                                        <td className="w-[130px] px-2 py-1 border-r border-white/5">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
                                                     {u.username.charAt(0).toUpperCase()}
-                                                    <Image src={`/usuarios/${u.username}.jpg`} alt="" fill className="object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                    <Image 
+                                                        key={`${currentPage}-${u.username}`}
+                                                        src={`/usuarios/${u.username}.jpg`} 
+                                                        alt={u.username} 
+                                                        fill 
+                                                        sizes="28px" 
+                                                        className="object-cover z-10" 
+                                                        onError={(e) => e.currentTarget.style.display = 'none'} 
+                                                    />
                                                 </div>
-                                                <span className={`uppercase text-[11px] tracking-wider truncate ${isCurrentUser ? 'text-white font-black' : 'text-slate-400 group-hover:text-white'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
+
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className="px-1 py-3 text-center border-l border-white/5 text-[10px] font-mono">
-                                                <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-600'}>
-                                                    {u.dayBreakdown[day.id] || 0}
-                                                </span>
+                                            <td key={day.id} className={`px-1 py-1 text-center border-l border-white/5 text-[10px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                                <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-                                        <td className={`px-4 py-3 text-center border-l border-white/10 font-black text-lg italic ${isFirst ? 'text-[#FFD300]' : 'text-white'}`}>
+                                        
+                                        <td className={`w-16 px-2 py-1 text-center border-l border-white/10 font-black text-base italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
