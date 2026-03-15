@@ -323,7 +323,7 @@ export default function UserDashboard() {
               {/* Footer Final - Reducido margen superior y ajustado al ras */}
               <div className="mt-4 text-center">
                   <div className="text-[10px] text-[#334155] font-bold uppercase tracking-[0.3em] italic leading-tight">
-                      muertazos.vercel.app
+                      muertazos.com
                   </div>
               </div>
           </div>
