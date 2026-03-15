@@ -114,7 +114,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         if (mData) { 
             mData.forEach(day => { 
                 if(day.matches) {
-                    // ORDENACIÓN POR match_order APLICADA AQUÍ
                     day.matches.sort((a: any, b: any) => {
                         if (a.match_order !== b.match_order) {
                             return (a.match_order ?? 99) - (b.match_order ?? 99);
@@ -371,21 +370,18 @@ function RankingView() {
                 
                 <div className="flex-1 flex justify-end">
                     {totalPages > 1 && (
-                        <div className="flex items-center bg-slate-900/60 rounded-full border border-white/10 overflow-hidden h-[38px] shadow-lg">
+                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                             <button 
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-5 h-full text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             >
                                 ◀
                             </button>
-                            <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">
-                                PAG {safeCurrentPage + 1}
-                            </div>
                             <button 
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-5 h-full text-xs font-black transition-colors border-l border-white/10 ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                             >
                                 ▶
                             </button>
