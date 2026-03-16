@@ -456,9 +456,6 @@ function RankingView() {
     )
 }
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase'; // Asegúrate de tener configurado tu cliente supabase
-
 function SimulatorView() {
     const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings');
     const [matchdays, setMatchdays] = useState<any[]>([]);
