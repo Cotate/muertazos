@@ -474,14 +474,11 @@ function SimulatorView() {
         return 'bg-transparent';
     };
 
-    // Carga de datos desde Supabase
     useEffect(() => {
         const load = async () => {
-            // 1. Obtener equipos
             const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
             if (tData) setTeams(tData);
 
-            // 2. Obtener jornadas y partidos con sus resultados vinculados
             const { data: mData } = await supabase
                 .from('matchdays')
                 .select(`
@@ -499,7 +496,6 @@ function SimulatorView() {
                 const loadedScores: any = {};
                 mData.forEach(day => {
                     day.matches?.forEach((m: any) => {
-                        // Si existe un resultado en la DB, cargarlo al estado
                         if (m.match_results && m.match_results.length > 0) {
                             const res = m.match_results[0];
                             loadedScores[m.id] = {
@@ -520,21 +516,42 @@ function SimulatorView() {
         load();
     }, [compKey]);
 
-    // Función para actualizar en Supabase
-    const updateScore = async (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
+    // 1. Ahora esta función SOLO actualiza el estado local (no la BD)
+    const handleScoreChange = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
         if (value !== '' && !/^\d+$/.test(value)) return;
         
-        const newScores = { ...scores, [matchId]: { ...(scores[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value } };
-        setScores(newScores);
+        setScores(prevScores => ({
+            ...prevScores,
+            [matchId]: { ...(prevScores[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value }
+        }));
+    };
 
-        // Upsert a la base de datos
+    // 2. Nueva función para GUARDAR en Supabase
+    const saveScore = async (matchId: number) => {
+        const currentScore = scores[matchId];
+        if (!currentScore) return;
+
         await supabase.from('match_results').upsert({
             match_id: matchId,
-            home_goals: parseInt(newScores[matchId].hg) || 0,
-            away_goals: parseInt(newScores[matchId].ag) || 0,
-            home_penalties: newScores[matchId].hp !== '' ? parseInt(newScores[matchId].hp) : null,
-            away_penalties: newScores[matchId].ap !== '' ? parseInt(newScores[matchId].ap) : null
+            home_goals: parseInt(currentScore.hg) || 0,
+            away_goals: parseInt(currentScore.ag) || 0,
+            home_penalties: currentScore.hp !== '' ? parseInt(currentScore.hp) : null,
+            away_penalties: currentScore.ap !== '' ? parseInt(currentScore.ap) : null
         }, { onConflict: 'match_id' });
+        
+        alert('Marcador guardado');
+    };
+
+    // 3. Nueva función para BORRAR de Supabase y del estado local
+    const deleteScore = async (matchId: number) => {
+        await supabase.from('match_results').delete().eq('match_id', matchId);
+        
+        setScores(prevScores => ({
+            ...prevScores,
+            [matchId]: { hg: '', ag: '', hp: '', ap: '' }
+        }));
+
+        alert('Marcador borrado');
     };
 
     const standings = teams.map(team => {
@@ -587,19 +604,28 @@ function SimulatorView() {
                                     <div className="w-full flex items-center justify-between gap-2">
                                         <div className="flex flex-col items-center flex-1">{m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}</div>
                                         <div className="flex items-center gap-3">
-                                            <input type="text" value={s.hg} onChange={(e) => updateScore(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            {/* Aquí cambié el updateScore a handleScoreChange */}
+                                            <input type="text" value={s.hg} onChange={(e) => handleScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                             <span className="text-sm font-black text-slate-600 italic">VS</span>
-                                            <input type="text" value={s.ag} onChange={(e) => updateScore(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            <input type="text" value={s.ag} onChange={(e) => handleScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                         </div>
                                         <div className="flex flex-col items-center flex-1">{m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}</div>
                                     </div>
                                     {isTie && (
                                         <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5">
                                             <span className="text-[10px] font-black italic text-slate-500 uppercase">Penales</span>
-                                            <input type="text" value={s.hp} onChange={(e) => updateScore(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
-                                            <input type="text" value={s.ap} onChange={(e) => updateScore(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            {/* Aquí cambié el updateScore a handleScoreChange */}
+                                            <input type="text" value={s.hp} onChange={(e) => handleScoreChange(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            <input type="text" value={s.ap} onChange={(e) => handleScoreChange(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
                                         </div>
                                     )}
+
+                                    {/* 4. Botones de Guardar y Borrar añadidos aquí */}
+                                    <div className="flex justify-center gap-3 w-full pt-2">
+                                        <button onClick={() => saveScore(m.id)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-colors">Guardar</button>
+                                        <button onClick={() => deleteScore(m.id)} className="bg-rose-700 hover:bg-rose-600 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-colors">Borrar</button>
+                                    </div>
+
                                 </div>
                             )
                         })}
@@ -637,7 +663,6 @@ function SimulatorView() {
                             </tbody>
                         </table>
                     </div>
-                    {/* Leyenda de colores */}
                     <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
                         <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
                         <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
