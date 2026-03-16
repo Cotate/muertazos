@@ -142,37 +142,40 @@ const [view, setView] = useState<'picks' | 'ranking' | 'simulator'>('picks')
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       
-      <header className="w-full h-20 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 sticky top-0 z-50">
-        <div className="flex gap-10 flex-1 items-center h-full">
+<header className="w-full h-16 md:h-20 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-3 md:px-8 sticky top-0 z-50">
+        
+        {/* 1. NAVEGACIÓN: Reducimos el gap y el tamaño de fuente en móviles, y forzamos a que no se divida en dos líneas */}
+        <div className="flex gap-3 md:gap-10 flex-1 items-center h-full overflow-x-auto [&::-webkit-scrollbar]:hidden">
             <button 
                 onClick={() => { setLeague('kings'); setView('picks'); }}
                 style={{ borderBottom: league === 'kings' && view === 'picks' ? `3px solid #ffd300` : '3px solid transparent' }}
-                className={`h-full text-xl font-black italic tracking-widest transition-all ${league === 'kings' && view === 'picks' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${league === 'kings' && view === 'picks' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
             >KINGS</button>
             <button 
                 onClick={() => { setLeague('queens'); setView('picks'); }}
                 style={{ borderBottom: league === 'queens' && view === 'picks' ? `3px solid #01d6c3` : '3px solid transparent' }}
-                className={`h-full text-xl font-black italic tracking-widest transition-all ${league === 'queens' && view === 'picks' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${league === 'queens' && view === 'picks' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
             >QUEENS</button>
             <button 
                 onClick={() => setView('ranking')}
                 style={{ borderBottom: view === 'ranking' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full text-xl font-black italic tracking-widest transition-all ${view === 'ranking' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${view === 'ranking' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
             >RANKING</button>
-            {/* NUEVO BOTÓN PARA EL SIMULADOR */}
             <button 
                 onClick={() => setView('simulator')}
                 style={{ borderBottom: view === 'simulator' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full text-xl font-black italic tracking-widest transition-all ${view === 'simulator' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
+                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${view === 'simulator' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
             >SIMULADOR</button>
         </div>
 
-        <div className="relative w-32 h-10 flex-shrink-0">
+        {/* 2. LOGO: Lo ocultamos en celulares pequeños para dar espacio, y lo mostramos en tablets/PCs */}
+        <div className="hidden lg:block relative w-32 h-10 flex-shrink-0 mx-2">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
-        <div className="flex-1 flex justify-end items-center gap-6">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
+        {/* 3. PERFIL Y SALIR: Reducimos ligeramente el tamaño de la foto y márgenes en móviles */}
+        <div className="flex-none lg:flex-1 flex justify-end items-center gap-2 md:gap-6 pl-2">
+            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl flex-shrink-0">
                  <Image 
                     src={`/usuarios/${user.username}.jpg`} 
                     alt={user.username} 
@@ -183,7 +186,7 @@ const [view, setView] = useState<'picks' | 'ranking' | 'simulator'>('picks')
             </div>
             <button 
                 onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="text-[9px] font-black text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
+                className="text-[8px] md:text-[9px] font-black text-red-500 border border-red-500/20 px-2 py-1 md:px-4 md:py-1.5 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
             >SALIR</button>
         </div>
       </header>
