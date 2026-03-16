@@ -548,7 +548,18 @@ function SimulatorView() {
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Botones de Competición y Jornadas permanecen igual... */}
+            <div className="flex justify-center gap-4 py-4">
+                <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Kings</button>
+                <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Queens</button>
+            </div>
+
+            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
+                {matchdays.map(day => (
+                    <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
+                        {day.name}
+                    </button>
+                ))}
+            </div>
             
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
                 <div className="flex-1">
@@ -585,7 +596,44 @@ function SimulatorView() {
                         })}
                     </div>
                 </div>
-                {/* Tabla de clasificación permanece igual... */}
+                <div className="w-full xl:w-[450px]">
+                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
+                        <table className="w-full text-center text-sm">
+                            <thead>
+                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+                                    <th className="py-2 w-8">#</th>
+                                    <th className="py-2 text-left pl-2">Equipo</th>
+                                    <th className="py-2 w-8">V</th>
+                                    <th className="py-2 w-8">D</th>
+                                    <th className="py-2 w-8">DG</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {standings.map((t, idx) => (
+                                    <tr key={t.id} className="border-b border-white/5">
+                                        <td className="relative py-2 font-black">
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
+                                            {idx + 1}
+                                        </td>
+                                        <td className="py-2 pl-2 text-left flex items-center gap-2">
+                                            <Image src={`/logos/${folder}/${t.logo_file}`} width={24} height={24} alt={t.name} />
+                                            <span className="text-[11px] font-bold uppercase">{t.name}</span>
+                                        </td>
+                                        <td className="py-2 font-black text-green-400">{t.w}</td>
+                                        <td className="py-2 font-black text-red-400">{t.l}</td>
+                                        <td className="py-2 font-black text-white">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    {/* Leyenda de colores */}
+                    <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500"></div> 7º - 10º Play-in</div>
+                    </div>
+                </div>
             </div>
         </div>
     )
