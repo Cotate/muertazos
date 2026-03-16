@@ -478,50 +478,58 @@ function SimulatorView() {
 // 1. CARGA DE DATOS
 useEffect(() => {
     const load = async () => {
+        // 1. Cargar equipos
         const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
         if (tData) setTeams(tData);
 
-        // ATENCIÓN AQUÍ: He añadido explícitamente la tabla match_results a la consulta
-        // y un console.log para ver los datos crudos.
-        const { data: mData, error } = await supabase
+        // 2. Cargar jornadas y partidos (SIN anidar match_results para evitar el bloqueo de Supabase)
+        const { data: mData, error: mError } = await supabase
             .from('matchdays')
             .select(`
                 *, 
                 matches (
                     *, 
                     home:home_team_id(*), 
-                    away:away_team_id(*),
-                    match_results (*)
+                    away:away_team_id(*)
                 )
             `)
             .eq('competition_key', compKey)
             .order('display_order');
 
-        if (error) {
-            console.error("Error cargando Supabase:", error);
-        }
+        if (mError) console.error("Error jornadas:", mError);
 
-        console.log("Datos crudos de Supabase:", mData); // <--- REVISA ESTO EN LA CONSOLA (F12)
+        // 3. LA MAGIA: Cargar los resultados directamente desde su propia tabla
+        const { data: rData, error: rError } = await supabase
+            .from('match_results')
+            .select('*');
+
+        if (rError) console.error("Error leyendo match_results:", rError);
+        
+        // Debug para ti: esto te mostrará si los datos llegan o si algo los bloquea
+        console.log("Resultados traídos de la BD:", rData);
 
         if (mData) {
             const loadedScores: any = {};
-            mData.forEach(day => {
-                day.matches?.forEach((m: any) => {
-                    // Verificación más robusta
-                    if (m.match_results && Array.isArray(m.match_results) && m.match_results.length > 0) {
-                        const res = m.match_results[0];
-                        loadedScores[m.id] = {
-                            hg: res.home_goals != null ? String(res.home_goals) : '',
-                            ag: res.away_goals != null ? String(res.away_goals) : '',
-                            hp: res.home_penalties != null ? String(res.home_penalties) : '',
-                            ap: res.away_penalties != null ? String(res.away_penalties) : ''
-                        };
-                    }
+            
+            // 4. Llenamos el objeto loadedScores con los datos de rData
+            if (rData) {
+                rData.forEach((res: any) => {
+                    loadedScores[res.match_id] = {
+                        hg: res.home_goals != null ? String(res.home_goals) : '',
+                        ag: res.away_goals != null ? String(res.away_goals) : '',
+                        hp: res.home_penalties != null ? String(res.home_penalties) : '',
+                        ap: res.away_penalties != null ? String(res.away_penalties) : ''
+                    };
                 });
-                day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+            }
+
+            // 5. Ordenamos los partidos
+            mData.forEach(day => {
+                if (day.matches) {
+                    day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+                }
             });
 
-            console.log("Scores procesados:", loadedScores); // <--- SI ESTO ESTÁ VACÍO PERO HAY DATOS EN DB, ES LA RELACIÓN.
             setScores(loadedScores);
             setMatchdays(mData);
             if (!activeMatchdayId && mData.length > 0) {
@@ -530,7 +538,7 @@ useEffect(() => {
         }
     };
     load();
-}, [compKey]);
+}, [compKey]); // Quité activeMatchdayId de las dependencias si no está en tu original
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
