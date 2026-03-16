@@ -552,7 +552,7 @@ function SimulatorView() {
 
         if (!error) {
             const newScores = { ...scores };
-            matchIds.forEach(id => delete newScores[id]);
+            matchIds.forEach((id: number) => delete newScores[id]);
             setScores(newScores);
             alert("Resultados eliminados.");
         }
