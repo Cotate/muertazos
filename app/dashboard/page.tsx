@@ -404,7 +404,7 @@ function RankingView({ user }: { user: any }) {
                 {/* Botones de control igual que antes */}
             </div>
 
-            <div className="w-fit mx-auto min-h-[500px]">
+            <div className="w-fit mx-auto min-h-[250px]">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="border-collapse table-auto w-full">
                         <tbody>
