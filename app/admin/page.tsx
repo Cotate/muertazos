@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default function AdminDashboard() {
     const router = useRouter()
