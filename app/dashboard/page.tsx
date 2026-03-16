@@ -349,18 +349,61 @@ function RankingView({ user }: { user: any }) {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0) 
 
-    // ... (el useEffect se mantiene igual)
+    useEffect(() => {
+        const fetchRanking = async () => {
+            const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
+            if (!lockedDays || lockedDays.length === 0) { setRankingData({users: [], days: []}); setLoading(false); return }
+            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
+            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
+            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
+            
+            const userScores = appUsers?.map(u => {
+                let total = 0; const dayBreakdown: any = {}
+                lockedDays.forEach(day => {
+                    const matchesInDay = matches?.filter(m => m.matchday_id === day.id) || []
+                    let dayHits = 0
+                    matchesInDay.forEach(m => {
+                        const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
+                        if (userPred && userPred.predicted_team_id === m.winner_team_id) dayHits++
+                    })
+                    dayBreakdown[day.id] = dayHits; total += dayHits
+                })
+                return { username: u.username, total, dayBreakdown }
+            })
+            
+            userScores?.sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return a.username.localeCompare(b.username);
+            });
+            
+            setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
+        }
+        fetchRanking()
+    }, [])
 
-    // ... (lógica de paginación se mantiene igual)
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
+
+    // --- AQUÍ ESTABA EL FALLO: FALTABA ESTA LÓGICA DE CÁLCULO ---
+    const allUsers = rankingData.users;
+    const totalUsers = allUsers.length;
+    
+    const pageChunks: number[][] = [];
+    for (let i = 0; i < totalUsers; i += 15) {
+        pageChunks.push([i, Math.min(i + 15, totalUsers)]);
+    }
+
+    const totalPages = pageChunks.length || 1;
+    const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+    const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
+    const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
+    // -----------------------------------------------------------
 
     return (
         <div className="w-full flex flex-col items-center py-6 px-2">
-            
             <div className="w-full flex items-center justify-between mb-6 px-4 md:px-8">
-                {/* ... (botones y título se mantienen igual) ... */}
+                {/* Botones de control igual que antes */}
             </div>
 
-            {/* Contenedor con altura mínima forzada para expandir verticalmente */}
             <div className="w-fit mx-auto min-h-[500px]">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="border-collapse table-auto w-full">
@@ -371,7 +414,6 @@ function RankingView({ user }: { user: any }) {
                                 const isMe = u.username === user.username;
 
                                 return (
-                                    // Aumenté py-0.5 a py-2 para mayor altura
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
                                         <td className="w-10 px-2 py-2 text-center border-r border-white/5 font-black italic text-[12px]">
                                             {isFirst ? (
