@@ -474,7 +474,7 @@ function SimulatorView() {
         return 'bg-transparent';
     };
 
-    // 1. CARGA DE DATOS (Mantenemos tu lógica que ya funciona)
+    // 1. CARGA DE DATOS
     useEffect(() => {
         const load = async () => {
             const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
@@ -492,7 +492,6 @@ function SimulatorView() {
                 const loadedScores: any = {};
                 if (rData) {
                     rData.forEach((res: any) => {
-                        // Determinamos el ganador de penales basándonos en los goles de penales guardados
                         let pWinner = null;
                         if (res.home_goals === res.away_goals) {
                             if (res.home_penalties > res.away_penalties) pWinner = mData.flatMap(d => d.matches).find(m => m.id === res.match_id)?.home_team_id;
@@ -516,16 +515,57 @@ function SimulatorView() {
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
-    // 2. ACTUALIZAR ESTADO LOCAL
+    // 2. FUNCIONES DE ACCIÓN (ESTO ES LO QUE TE FALTABA DENTRO)
+    const saveActiveMatchday = async () => {
+        if (!activeMatchday) return;
+
+        const resultsToUpsert = activeMatchday.matches
+            .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
+            .map((m: any) => {
+                const s = scores[m.id];
+                const isTie = s.hg === s.ag;
+                return {
+                    match_id: m.id,
+                    home_goals: parseInt(s.hg),
+                    away_goals: parseInt(s.ag),
+                    home_penalties: isTie ? (s.penaltyWinnerId === m.home_team_id ? 1 : 0) : null,
+                    away_penalties: isTie ? (s.penaltyWinnerId === m.away_team_id ? 1 : 0) : null,
+                };
+            });
+
+        if (resultsToUpsert.length === 0) return alert("No hay marcadores completos.");
+
+        const pendingPenalties = resultsToUpsert.some(r => r.home_goals === r.away_goals && r.home_penalties === 0 && r.away_penalties === 0);
+        if (pendingPenalties) return alert("Por favor, selecciona al ganador de los penales haciendo clic en su escudo.");
+
+        const { error } = await supabase.from('match_results').upsert(resultsToUpsert, { onConflict: 'match_id' });
+        if (error) alert("Error al guardar: " + error.message);
+        else alert(`¡Jornada ${activeMatchday.name} guardada!`);
+    };
+
+    const deleteActiveMatchday = async () => {
+        if (!activeMatchday) return;
+        if (!confirm(`¿Borrar todos los resultados de la ${activeMatchday.name}?`)) return;
+
+        const matchIds: number[] = activeMatchday.matches.map((m: any) => m.id);
+        const { error } = await supabase.from('match_results').delete().in('match_id', matchIds);
+
+        if (error) alert("Error al borrar: " + error.message);
+        else {
+            const newScores = { ...scores };
+            matchIds.forEach((id: number) => delete newScores[id]);
+            setScores(newScores);
+            alert("Resultados eliminados.");
+        }
+    };
+
     const handleLocalScoreChange = (matchId: number, field: 'hg' | 'ag', value: string) => {
         if (value !== '' && !/^\d+$/.test(value)) return;
         setScores(prev => {
             const current = prev[matchId] || { hg: '', ag: '', penaltyWinnerId: null };
-            // Si cambian los goles y ya no es empate, reseteamos el ganador de penales
             const newHg = field === 'hg' ? value : current.hg;
             const newAg = field === 'ag' ? value : current.ag;
             const pWinner = newHg === newAg ? current.penaltyWinnerId : null;
-            
             return { ...prev, [matchId]: { ...current, [field]: value, penaltyWinnerId: pWinner } };
         });
     };
@@ -537,16 +577,14 @@ function SimulatorView() {
         }));
     };
 
-    // 3. CLASIFICACIÓN (Añadido GF, GC y Lógica de Penales)
+    // 3. CLASIFICACIÓN
     const standings = teams.map(team => {
         let w = 0, l = 0, gf = 0, gc = 0;
         matchdays.forEach(md => {
             md.matches?.forEach((m: any) => {
                 const s = scores[m.id];
                 if (!s || s.hg === '' || s.ag === '') return;
-                
                 const hG = parseInt(s.hg), aG = parseInt(s.ag);
-                
                 if (m.home_team_id === team.id) {
                     gf += hG; gc += aG;
                     if (hG > aG || (hG === aG && s.penaltyWinnerId === m.home_team_id)) w++; else l++;
@@ -590,7 +628,6 @@ function SimulatorView() {
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null };
                             const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
-                            
                             return (
                                 <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
                                     <div className="w-full flex items-center justify-between gap-2">
@@ -620,16 +657,16 @@ function SimulatorView() {
                                             )}
                                         </div>
                                     </div>
-                                    {isTie && <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest animate-pulse">Selecciona ganador de penales</span>}
+                                    {isTie && <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest animate-pulse text-center">Selecciona ganador de penales <br/> clic en el escudo</span>}
                                 </div>
                             )
                         })}
                     </div>
                 </div>
 
-                {/* Clasificación con GF y GC */}
+                {/* Clasificación */}
                 <div className="w-full xl:w-[480px]">
-                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
                         <table className="w-full text-center text-sm">
                             <thead>
                                 <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
@@ -637,14 +674,14 @@ function SimulatorView() {
                                     <th className="py-3 text-left pl-2">Equipo</th>
                                     <th className="py-3 w-8">V</th>
                                     <th className="py-3 w-8">D</th>
-                                    <th className="py-3 w-8 text-slate-200">GF</th>
-                                    <th className="py-3 w-8 text-slate-200">GC</th>
-                                    <th className="py-3 w-10 bg-white/5 text-white">DG</th>
+                                    <th className="py-3 w-8">GF</th>
+                                    <th className="py-3 w-8">GC</th>
+                                    <th className="py-3 w-10">DG</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {standings.map((t, idx) => (
-                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                                         <td className="relative py-2.5 font-black text-xs">
                                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
                                             {idx + 1}
@@ -657,7 +694,7 @@ function SimulatorView() {
                                         <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
                                         <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
                                         <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                                        <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                                        <td className="py-2.5 font-black text-white text-xs">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -666,5 +703,5 @@ function SimulatorView() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
