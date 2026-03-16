@@ -474,6 +474,7 @@ function SimulatorView() {
         return 'bg-transparent';
     };
 
+    // 1. CARGA DE DATOS
     useEffect(() => {
         const load = async () => {
             const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
@@ -481,14 +482,7 @@ function SimulatorView() {
 
             const { data: mData } = await supabase
                 .from('matchdays')
-                .select(`
-                    *, 
-                    matches(*, 
-                        home:home_team_id(*), 
-                        away:away_team_id(*),
-                        match_results(*)
-                    )
-                `)
+                .select(`*, matches(*, home:home_team_id(*), away:away_team_id(*), match_results(*))`)
                 .eq('competition_key', compKey)
                 .order('display_order');
 
@@ -516,74 +510,85 @@ function SimulatorView() {
         load();
     }, [compKey]);
 
-    // 1. Ahora esta función SOLO actualiza el estado local (no la BD)
-    const handleScoreChange = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
+    const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
+
+    // 2. ACTUALIZAR ESTADO LOCAL (Inputs)
+    const handleLocalScoreChange = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
         if (value !== '' && !/^\d+$/.test(value)) return;
-        
-        setScores(prevScores => ({
-            ...prevScores,
-            [matchId]: { ...(prevScores[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value }
+        setScores(prev => ({
+            ...prev,
+            [matchId]: { ...(prev[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value }
         }));
     };
 
-    // 2. Nueva función para GUARDAR en Supabase
-    const saveScore = async (matchId: number) => {
-        const currentScore = scores[matchId];
-        if (!currentScore) return;
+    // 3. GUARDAR TODA LA JORNADA
+    const saveActiveMatchday = async () => {
+        if (!activeMatchday) return;
 
-        await supabase.from('match_results').upsert({
-            match_id: matchId,
-            home_goals: parseInt(currentScore.hg) || 0,
-            away_goals: parseInt(currentScore.ag) || 0,
-            home_penalties: currentScore.hp !== '' ? parseInt(currentScore.hp) : null,
-            away_penalties: currentScore.ap !== '' ? parseInt(currentScore.ap) : null
-        }, { onConflict: 'match_id' });
-        
-        alert('Marcador guardado');
+        const resultsToUpsert = activeMatchday.matches
+            .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
+            .map((m: any) => ({
+                match_id: m.id,
+                home_goals: parseInt(scores[m.id].hg),
+                away_goals: parseInt(scores[m.id].ag),
+                home_penalties: scores[m.id].hp !== '' ? parseInt(scores[m.id].hp) : null,
+                away_penalties: scores[m.id].ap !== '' ? parseInt(scores[m.id].ap) : null,
+            }));
+
+        if (resultsToUpsert.length === 0) return alert("No hay marcadores completos para guardar.");
+
+        const { error } = await supabase.from('match_results').upsert(resultsToUpsert, { onConflict: 'match_id' });
+
+        if (error) alert("Error al guardar jornada: " + error.message);
+        else alert(`¡Jornada ${activeMatchday.name} guardada correctamente!`);
     };
 
-    // 3. Nueva función para BORRAR de Supabase y del estado local
-    const deleteScore = async (matchId: number) => {
-        await supabase.from('match_results').delete().eq('match_id', matchId);
-        
-        setScores(prevScores => ({
-            ...prevScores,
-            [matchId]: { hg: '', ag: '', hp: '', ap: '' }
-        }));
+    // 4. BORRAR TODA LA JORNADA
+    const deleteActiveMatchday = async () => {
+        if (!activeMatchday || !confirm(`¿Borrar todos los resultados de la ${activeMatchday.name}?`)) return;
 
-        alert('Marcador borrado');
+        const matchIds = activeMatchday.matches.map((m: any) => m.id);
+        const { error } = await supabase.from('match_results').delete().in('match_id', matchIds);
+
+        if (!error) {
+            const newScores = { ...scores };
+            matchIds.forEach(id => delete newScores[id]);
+            setScores(newScores);
+            alert("Resultados eliminados.");
+        }
     };
 
+    // Lógica de Clasificación
     const standings = teams.map(team => {
         let w = 0, l = 0, gf = 0, gc = 0;
         matchdays.forEach(md => {
             md.matches?.forEach((m: any) => {
                 const s = scores[m.id];
                 if (!s || s.hg === '' || s.ag === '') return;
-                const homeG = parseInt(s.hg), awayG = parseInt(s.ag);
+                const hG = parseInt(s.hg), aG = parseInt(s.ag);
+                const hP = parseInt(s.hp || '0'), aP = parseInt(s.ap || '0');
+                
                 if (m.home_team_id === team.id) {
-                    gf += homeG; gc += awayG;
-                    if (homeG > awayG) w++; else if (homeG < awayG) l++;
-                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.hp) > parseInt(s.ap)) w++; else if (s.hp !== '' && s.ap !== '') l++;
+                    gf += hG; gc += aG;
+                    if (hG > aG || (hG === aG && hP > aP)) w++; else l++;
                 } else if (m.away_team_id === team.id) {
-                    gf += awayG; gc += homeG;
-                    if (awayG > homeG) w++; else if (awayG < homeG) l++;
-                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.ap) > parseInt(s.hp)) w++; else if (s.hp !== '' && s.ap !== '') l++;
+                    gf += aG; gc += hG;
+                    if (aG > hG || (aG === hG && aP > hP)) w++; else l++;
                 }
             });
         });
         return { ...team, w, l, gf, gc, dg: gf - gc };
-    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf);
-
-    const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
+    }).sort((a, b) => b.w - a.w || b.dg - a.dg || b.gf - a.gf);
 
     return (
         <div className="w-full flex flex-col items-center">
+            {/* Nav Competición */}
             <div className="flex justify-center gap-4 py-4">
                 <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Kings</button>
                 <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Queens</button>
             </div>
 
+            {/* Nav Jornadas */}
             <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
                 {matchdays.map(day => (
                     <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
@@ -594,7 +599,15 @@ function SimulatorView() {
 
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
                 <div className="flex-1">
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-6 text-center">{activeMatchday?.name}</h3>
+                    {/* Cabecera de Jornada con Botones Globales */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
+                        <div className="flex gap-2">
+                            <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar Jornada</button>
+                            <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar Jornada</button>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', hp: '', ap: '' }
@@ -604,34 +617,26 @@ function SimulatorView() {
                                     <div className="w-full flex items-center justify-between gap-2">
                                         <div className="flex flex-col items-center flex-1">{m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}</div>
                                         <div className="flex items-center gap-3">
-                                            {/* Aquí cambié el updateScore a handleScoreChange */}
-                                            <input type="text" value={s.hg} onChange={(e) => handleScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                             <span className="text-sm font-black text-slate-600 italic">VS</span>
-                                            <input type="text" value={s.ag} onChange={(e) => handleScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                         </div>
                                         <div className="flex flex-col items-center flex-1">{m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}</div>
                                     </div>
                                     {isTie && (
                                         <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5">
                                             <span className="text-[10px] font-black italic text-slate-500 uppercase">Penales</span>
-                                            {/* Aquí cambié el updateScore a handleScoreChange */}
-                                            <input type="text" value={s.hp} onChange={(e) => handleScoreChange(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
-                                            <input type="text" value={s.ap} onChange={(e) => handleScoreChange(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            <input type="text" value={s.hp} onChange={(e) => handleLocalScoreChange(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            <input type="text" value={s.ap} onChange={(e) => handleLocalScoreChange(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
                                         </div>
                                     )}
-
-                                    {/* 4. Botones de Guardar y Borrar añadidos aquí */}
-                                    <div className="flex justify-center gap-3 w-full pt-2">
-                                        <button onClick={() => saveScore(m.id)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-colors">Guardar</button>
-                                        <button onClick={() => deleteScore(m.id)} className="bg-rose-700 hover:bg-rose-600 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-colors">Borrar</button>
-                                    </div>
-
                                 </div>
                             )
                         })}
                     </div>
                 </div>
 
+                {/* Clasificación */}
                 <div className="w-full xl:w-[450px]">
                     <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
                         <table className="w-full text-center text-sm">
@@ -662,11 +667,6 @@ function SimulatorView() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500"></div> 7º - 10º Play-in</div>
                     </div>
                 </div>
             </div>
