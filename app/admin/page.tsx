@@ -480,7 +480,6 @@ useEffect(() => {
         const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
         if (tData) setTeams(tData);
 
-        // Añadimos { count: 'exact' } solo para debugging interno si fuera necesario
         const { data: mData, error } = await supabase
             .from('matchdays')
             .select(`
@@ -492,20 +491,16 @@ useEffect(() => {
                 )
             `)
             .eq('competition_key', compKey)
-            .order('display_order');
-
-        if (error) {
-            console.error("Error cargando jornadas:", error);
-            return;
-        }
+            .order('display_order')
+            // ESTO FUERZA A SUPABASE A NO USAR CACHE DEL NAVEGADOR
+            .setHeader('Cache-Control', 'no-cache'); 
 
         if (mData) {
-            const loadedScores: Record<number, { hg: string, ag: string, hp: string, ap: string }> = {};
-            
+            const loadedScores: any = {};
             mData.forEach(day => {
                 day.matches?.forEach((m: any) => {
-                    // Verificamos si match_results existe y tiene contenido
-                    const res = m.match_results?.[0]; 
+                    // Importante: Acceder al índice [0] del array match_results
+                    const res = m.match_results?.[0];
                     if (res) {
                         loadedScores[m.id] = {
                             hg: res.home_goals !== null ? String(res.home_goals) : '',
@@ -518,17 +513,15 @@ useEffect(() => {
                 day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
             });
 
-            console.log("Marcadores cargados desde DB:", loadedScores); // Revisa esto en F12
             setScores(loadedScores);
             setMatchdays(mData);
-            
             if (!activeMatchdayId && mData.length > 0) {
                 setActiveMatchdayId(mData[0].id);
             }
         }
     };
     load();
-}, [compKey]); // Si usas el activeMatchdayId aquí podrías crear un bucle, déjalo así.
+}, [compKey]);
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
