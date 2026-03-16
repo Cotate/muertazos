@@ -283,14 +283,14 @@ const [view, setView] = useState<'picks' | 'ranking' | 'simulator'>('picks')
                     </>
                 )}
             </div>
-        ) : (
+        ) : view === 'ranking' ? (
             /* Vista de Ranking pasándole el usuario actual para diferenciarlo */
             <RankingView user={user} />
         ) : (
             /* Vista de Simulador */
             <SimulatorView />
         )}
-    </main>
+      </main>
 
       {/* Ticket oculto para compartir */}
       <div className="absolute top-[-9999px] left-[-9999px]">
