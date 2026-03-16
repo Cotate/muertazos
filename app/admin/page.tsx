@@ -461,6 +461,7 @@ function SimulatorView() {
     const [matchdays, setMatchdays] = useState<any[]>([]);
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null);
     const [teams, setTeams] = useState<any[]>([]);
+    // Cambiamos el estado para manejar penaltyWinnerId en lugar de hp/ap
     const [scores, setScores] = useState<Record<number, { hg: string, ag: string, penaltyWinnerId: number | null }>>({});
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens';
@@ -499,8 +500,8 @@ function SimulatorView() {
                         }
 
                         loadedScores[res.match_id] = {
-                            hg: res.home_goals != null ? String(res.home_goals) : '0',
-                            ag: res.away_goals != null ? String(res.away_goals) : '0',
+                            hg: res.home_goals != null ? String(res.home_goals) : '',
+                            ag: res.away_goals != null ? String(res.away_goals) : '',
                             penaltyWinnerId: pWinner
                         };
                     });
@@ -519,9 +520,10 @@ function SimulatorView() {
     const handleLocalScoreChange = (matchId: number, field: 'hg' | 'ag', value: string) => {
         if (value !== '' && !/^\d+$/.test(value)) return;
         setScores(prev => {
-            const current = prev[matchId] || { hg: '0', ag: '0', penaltyWinnerId: null };
+            const current = prev[matchId] || { hg: '', ag: '', penaltyWinnerId: null };
             const newHg = field === 'hg' ? value : current.hg;
             const newAg = field === 'ag' ? value : current.ag;
+            // Si deja de ser empate, reseteamos el ganador de penales
             const pWinner = newHg === newAg ? current.penaltyWinnerId : null;
             return { ...prev, [matchId]: { ...current, [field]: value, penaltyWinnerId: pWinner } };
         });
@@ -530,7 +532,7 @@ function SimulatorView() {
     const togglePenaltyWinner = (matchId: number, teamId: number) => {
         setScores(prev => ({
             ...prev,
-            [matchId]: { ...(prev[matchId] || { hg: '0', ag: '0', penaltyWinnerId: null }), penaltyWinnerId: teamId }
+            [matchId]: { ...(prev[matchId] || { hg: '', ag: '', penaltyWinnerId: null }), penaltyWinnerId: teamId }
         }));
     };
 
@@ -539,18 +541,22 @@ function SimulatorView() {
         if (!activeMatchday) return;
 
         const resultsToUpsert = activeMatchday.matches
+            .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
             .map((m: any) => {
-                const s = scores[m.id] || { hg: '0', ag: '0', penaltyWinnerId: null };
+                const s = scores[m.id];
                 const isTie = s.hg === s.ag;
                 return {
                     match_id: m.id,
-                    home_goals: parseInt(s.hg || '0'),
-                    away_goals: parseInt(s.ag || '0'),
+                    home_goals: parseInt(s.hg),
+                    away_goals: parseInt(s.ag),
                     home_penalties: isTie ? (s.penaltyWinnerId === m.home_team_id ? 1 : 0) : null,
                     away_penalties: isTie ? (s.penaltyWinnerId === m.away_team_id ? 1 : 0) : null,
                 };
             });
 
+        if (resultsToUpsert.length === 0) return alert("No hay marcadores para guardar.");
+
+        // Validar que si hay empate, se haya elegido un ganador
         const pendingPenalties = resultsToUpsert.some((r: any) => r.home_goals === r.away_goals && r.home_penalties === 0 && r.away_penalties === 0);
         if (pendingPenalties) return alert("Selecciona al ganador de los penales haciendo clic en su escudo.");
 
@@ -559,6 +565,7 @@ function SimulatorView() {
         else alert(`Jornada ${activeMatchday.name} guardada.`);
     };
 
+    // 4. BORRAR JORNADA
     const deleteActiveMatchday = async () => {
         if (!activeMatchday || !confirm("¿Borrar resultados?")) return;
         const matchIds = activeMatchday.matches.map((m: any) => m.id);
@@ -570,19 +577,20 @@ function SimulatorView() {
         }
     };
 
+    // 5. CLASIFICACIÓN (Incluye GF, GC y Lógica de Puntos)
     const standings = teams.map(team => {
         let w = 0, l = 0, gf = 0, gc = 0;
         matchdays.forEach(md => {
             md.matches?.forEach((m: any) => {
                 const s = scores[m.id];
-                if (!s) return;
-                const hG = parseInt(s.hg || '0'), aG = parseInt(s.ag || '0');
+                if (!s || s.hg === '' || s.ag === '') return;
+                const hG = parseInt(s.hg), aG = parseInt(s.ag);
                 if (m.home_team_id === team.id) {
                     gf += hG; gc += aG;
-                    if (hG > aG || (hG === aG && s.penaltyWinnerId === m.home_team_id)) w++; else if (hG < aG || (hG === aG && s.penaltyWinnerId === m.away_team_id)) l++;
+                    if (hG > aG || (hG === aG && s.penaltyWinnerId === m.home_team_id)) w++; else l++;
                 } else if (m.away_team_id === team.id) {
                     gf += aG; gc += hG;
-                    if (aG > hG || (aG === hG && s.penaltyWinnerId === m.away_team_id)) w++; else if (aG < hG || (aG === hG && s.penaltyWinnerId === m.home_team_id)) l++;
+                    if (aG > hG || (aG === hG && s.penaltyWinnerId === m.away_team_id)) w++; else l++;
                 }
             });
         });
@@ -616,27 +624,41 @@ function SimulatorView() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
-                    const s = scores[m.id] || { hg: '0', ag: '0', penaltyWinnerId: null };
-                    const isTie = s.hg === s.ag;
-                    return (
-                        <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
-                            <div className="w-full flex items-center justify-between gap-2">
-                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
-                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />
-                                </button>
-                                <div className="flex items-center gap-3">
-                                    <input type="text" value={s.hg} onFocus={(e) => e.target.value === '0' && handleLocalScoreChange(m.id, 'hg', '')} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
-                                    <span className="text-xs font-black text-slate-600 italic">VS</span>
-                                    <input type="text" value={s.ag} onFocus={(e) => e.target.value === '0' && handleLocalScoreChange(m.id, 'ag', '')} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                            const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null };
+                            const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
+                            return (
+                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+                                    <div className="w-full flex items-center justify-between gap-2">
+                                        <div className="flex flex-col items-center flex-1">
+                                            {m.home && (
+                                                <button 
+                                                    onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
+                                                    className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
+                                                >
+                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            <span className="text-xs font-black text-slate-600 italic">VS</span>
+                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                        </div>
+                                        <div className="flex flex-col items-center flex-1">
+                                            {m.away && (
+                                                <button 
+                                                    onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
+                                                    className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
+                                                >
+                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {isTie && <p className="text-[9px] font-black text-yellow-500 uppercase animate-pulse">Clic en el escudo del ganador</p>}
                                 </div>
-                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
-                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />
-                                </button>
-                            </div>
-                            {isTie && <p className="text-[9px] font-black text-yellow-500 uppercase animate-pulse">Clic en el escudo del ganador</p>}
-                        </div>
-                    );
-                })}
+                            );
+                        })}
                     </div>
                 </div>
 
