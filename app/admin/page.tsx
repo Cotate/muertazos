@@ -456,99 +456,97 @@ function RankingView() {
     )
 }
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase'; // Asegúrate de tener configurado tu cliente supabase
+
 function SimulatorView() {
-    const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings')
-    const [matchdays, setMatchdays] = useState<any[]>([])
-    const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
-    const [teams, setTeams] = useState<any[]>([])
-    
-    // Resultados por defecto para Jornadas 1, 2 y 3
-    const defaultScores: Record<number, { hg: string, ag: string, hp: string, ap: string }> = {
-        // Debes reemplazar los números '1', '2', etc., por los IDs reales de tus partidos de la base de datos
-        // Jornada 1
-        1: { hg: '12', ag: '4', hp: '', ap: '' },
-        2: { hg: '6', ag: '7', hp: '', ap: '' },
-        3: { hg: '5', ag: '4', hp: '', ap: '' },
-        4: { hg: '7', ag: '5', hp: '', ap: '' },
-        5: { hg: '7', ag: '0', hp: '', ap: '' },
-        6: { hg: '3', ag: '5', hp: '', ap: '' },
-        // Jornada 2
-        7: { hg: '7', ag: '3', hp: '', ap: '' },
-        8: { hg: '3', ag: '4', hp: '', ap: '' },
-        9: { hg: '3', ag: '7', hp: '', ap: '' },
-        10: { hg: '9', ag: '6', hp: '', ap: '' },
-        11: { hg: '4', ag: '2', hp: '', ap: '' },
-        12: { hg: '6', ag: '9', hp: '', ap: '' },
-        // Jornada 3
-        13: { hg: '6', ag: '3', hp: '', ap: '' },
-        14: { hg: '2', ag: '8', hp: '', ap: '' },
-        15: { hg: '6', ag: '9', hp: '', ap: '' },
-        16: { hg: '12', ag: '5', hp: '', ap: '' },
-        17: { hg: '6', ag: '7', hp: '', ap: '' },
-        18: { hg: '4', ag: '8', hp: '', ap: '' },
+    const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings');
+    const [matchdays, setMatchdays] = useState<any[]>([]);
+    const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null);
+    const [teams, setTeams] = useState<any[]>([]);
+    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp: string, ap: string }>>({});
+
+    const folder = compKey === 'kings' ? 'Kings' : 'Queens';
+    const isPio = (filename: string) => filename?.toLowerCase().includes('pio');
+    const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54;
+
+    const getRowColor = (idx: number) => {
+        if (idx === 0) return 'bg-yellow-500';
+        if (idx >= 1 && idx <= 5) return 'bg-blue-500';
+        if (idx >= 6 && idx <= 9) return 'bg-red-500';
+        return 'bg-transparent';
     };
 
-    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp: string, ap: string }>>(defaultScores)
-
-    const folder = compKey === 'kings' ? 'Kings' : 'Queens'
-    const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
-    const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
-
-    // Función para obtener el color de la fila según posición
-    const getRowColor = (idx: number) => {
-        if (idx === 0) return 'bg-yellow-500'; // 1er lugar (Semifinal)
-        if (idx >= 1 && idx <= 5) return 'bg-blue-500'; // 2 al 6 (Cuartos)
-        if (idx >= 6 && idx <= 9) return 'bg-red-500'; // 7 al 10 (Play-in)
-        return 'bg-transparent';
-    }
-
-    useEffect(() => {
-        const saved = localStorage.getItem('muertazos_simulator_scores')
-        if (saved) setScores(JSON.parse(saved))
-    }, [])
-
+    // Carga de datos desde Supabase
     useEffect(() => {
         const load = async () => {
-            const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey)
-            if (tData) setTeams(tData)
+            // 1. Obtener equipos
+            const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
+            if (tData) setTeams(tData);
 
-            const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', compKey).order('display_order')
+            // 2. Obtener jornadas y partidos con sus resultados vinculados
+            const { data: mData } = await supabase
+                .from('matchdays')
+                .select(`
+                    *, 
+                    matches(*, 
+                        home:home_team_id(*), 
+                        away:away_team_id(*),
+                        match_results(*)
+                    )
+                `)
+                .eq('competition_key', compKey)
+                .order('display_order');
+
             if (mData) {
+                const loadedScores: any = {};
                 mData.forEach(day => {
-                    if (day.matches) {
-                        day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
-                    }
-                })
-                setMatchdays(mData)
-                setActiveMatchdayId(mData.length > 0 ? mData[0].id : null)
+                    day.matches?.forEach((m: any) => {
+                        // Si existe un resultado en la DB, cargarlo al estado
+                        if (m.match_results && m.match_results.length > 0) {
+                            const res = m.match_results[0];
+                            loadedScores[m.id] = {
+                                hg: String(res.home_goals ?? ''),
+                                ag: String(res.away_goals ?? ''),
+                                hp: String(res.home_penalties ?? ''),
+                                ap: String(res.away_penalties ?? '')
+                            };
+                        }
+                    });
+                    day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+                });
+                setScores(loadedScores);
+                setMatchdays(mData);
+                setActiveMatchdayId(mData.length > 0 ? mData[0].id : null);
             }
-        }
-        load()
-    }, [compKey])
+        };
+        load();
+    }, [compKey]);
 
-    const updateScore = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
-        const newScores = { ...scores }
-        if (!newScores[matchId]) newScores[matchId] = { hg: '', ag: '', hp: '', ap: '' }
+    // Función para actualizar en Supabase
+    const updateScore = async (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
         if (value !== '' && !/^\d+$/.test(value)) return;
-        newScores[matchId][field] = value
-        setScores(newScores)
-        localStorage.setItem('muertazos_simulator_scores', JSON.stringify(newScores))
-    }
+        
+        const newScores = { ...scores, [matchId]: { ...(scores[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value } };
+        setScores(newScores);
 
-    const clearScores = () => {
-        if (confirm('¿Estás seguro de borrar todos los marcadores del simulador?')) {
-            setScores({})
-            localStorage.removeItem('muertazos_simulator_scores')
-        }
-    }
+        // Upsert a la base de datos
+        await supabase.from('match_results').upsert({
+            match_id: matchId,
+            home_goals: parseInt(newScores[matchId].hg) || 0,
+            away_goals: parseInt(newScores[matchId].ag) || 0,
+            home_penalties: newScores[matchId].hp !== '' ? parseInt(newScores[matchId].hp) : null,
+            away_penalties: newScores[matchId].ap !== '' ? parseInt(newScores[matchId].ap) : null
+        }, { onConflict: 'match_id' });
+    };
 
     const standings = teams.map(team => {
         let w = 0, l = 0, gf = 0, gc = 0;
         matchdays.forEach(md => {
             md.matches?.forEach((m: any) => {
-                const s = scores[m.id]
+                const s = scores[m.id];
                 if (!s || s.hg === '' || s.ag === '') return;
-                const homeG = parseInt(s.hg), awayG = parseInt(s.ag)
+                const homeG = parseInt(s.hg), awayG = parseInt(s.ag);
                 if (m.home_team_id === team.id) {
                     gf += homeG; gc += awayG;
                     if (homeG > awayG) w++; else if (homeG < awayG) l++;
@@ -558,10 +556,10 @@ function SimulatorView() {
                     if (awayG > homeG) w++; else if (awayG < homeG) l++;
                     else if (s.hp !== '' && s.ap !== '' && parseInt(s.ap) > parseInt(s.hp)) w++; else if (s.hp !== '' && s.ap !== '') l++;
                 }
-            })
-        })
-        return { ...team, w, l, gf, gc, dg: gf - gc }
-    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf)
+            });
+        });
+        return { ...team, w, l, gf, gc, dg: gf - gc };
+    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf);
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
