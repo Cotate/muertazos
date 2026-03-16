@@ -383,7 +383,6 @@ function RankingView({ user }: { user: any }) {
 
     if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    // --- AQUÍ ESTABA EL FALLO: FALTABA ESTA LÓGICA DE CÁLCULO ---
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
     
@@ -396,51 +395,91 @@ function RankingView({ user }: { user: any }) {
     const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
     const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
     const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
-    // -----------------------------------------------------------
 
     return (
-        <div className="w-full flex flex-col items-center py-6 px-2">
-            <div className="w-full flex items-center justify-between mb-6 px-4 md:px-8">
-                {/* Botones de control igual que antes */}
+        <div className="w-full flex flex-col items-center py-2 px-2">
+            
+            <div className="w-full flex items-center justify-between mb-4 px-4 md:px-8">
+                <div className="flex-1 flex justify-start">
+                    <button 
+                        onClick={() => setShowFull(!showFull)} 
+                        className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                    >
+                        {showFull ? '← VOLVER' : 'DESGLOSE'}
+                    </button>
+                </div>
+
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+                </h2>
+                
+                <div className="flex-1 flex justify-end">
+                    {totalPages > 1 && (
+                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                            <button 
+                                disabled={safeCurrentPage === 0} 
+                                onClick={() => setCurrentPage(prev => prev - 1)} 
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            > ◀ </button>
+                            <button 
+                                disabled={safeCurrentPage === totalPages - 1} 
+                                onClick={() => setCurrentPage(prev => prev + 1)} 
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            > ▶ </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="w-fit mx-auto min-h-[150px]">
+            <div className="w-fit mx-auto">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-                    <table className="border-collapse table-auto w-full">
+                    <table className="border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((u, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
+                                // DIFERENCIADOR: Verificamos si es el usuario logueado
                                 const isMe = u.username === user.username;
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="w-10 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-[12px]">
+                                        <td className="w-10 px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
                                             {isFirst ? (
-                                                <span className="text-xl">👑</span>
+                                                <span className="text-base drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
-                                                <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>
+                                                <span className={`${isMe ? 'text-white' : 'text-slate-600 group-hover:text-slate-400'}`}>{globalPos}</span>
                                             )}
                                         </td>
                                         
-                                        <td className="w-[120px] px-3 py-1.5 border-r border-white/5">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`relative w-8 h-8 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
-                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                        <td className="w-[120px] px-2 py-0.5 border-r border-white/5">
+                                            <div className="flex items-center gap-2">
+                                                {/* DIFERENCIADOR: Borde blanco en avatar si soy yo */}
+                                                <div className={`relative w-6 h-6 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
+                                                    {u.username.charAt(0).toUpperCase()}
+                                                    <Image 
+                                                        key={`${currentPage}-${u.username}`}
+                                                        src={`/usuarios/${u.username}.jpg`} 
+                                                        alt={u.username} 
+                                                        fill 
+                                                        sizes="28px" 
+                                                        className="object-cover z-10" 
+                                                        onError={(e) => e.currentTarget.style.display = 'none'} 
+                                                    />
                                                 </div>
-                                                <span className={`uppercase text-[11px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline' : 'text-slate-300'}`}>
+                                                {/* DIFERENCIADOR: Nombre en negrita y subrayado si soy yo */}
+                                                <span className={`uppercase text-[9px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-2 py-1.5 text-center border-l border-white/5 text-[11px] font-mono w-10 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-0.5 text-center border-l border-white/5 text-[9px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        <td className={`w-16 px-4 py-1.5 text-center border-l border-white/10 font-black text-lg italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-14 px-2 py-0.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
