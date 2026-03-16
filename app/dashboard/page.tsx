@@ -441,11 +441,12 @@ function RankingView({ user }: { user: any }) {
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="w-10 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-[11px]">
+                                        {/* Fila con py-1 para un equilibrio óptimo */}
+                                        <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[11px]">
                                             {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
                                         
-                                        <td className="w-[120px] px-3 py-1.5 border-r border-white/5">
+                                        <td className="w-[120px] px-3 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-3">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
                                                     <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
@@ -457,12 +458,12 @@ function RankingView({ user }: { user: any }) {
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-2 py-1.5 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-2 py-1 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        <td className={`w-16 px-4 py-1.5 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
