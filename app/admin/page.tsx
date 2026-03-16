@@ -456,6 +456,10 @@ function RankingView() {
     )
 }
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
+
 function SimulatorView() {
     const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings');
     const [matchdays, setMatchdays] = useState<any[]>([]);
@@ -474,6 +478,34 @@ function SimulatorView() {
         return 'bg-transparent';
     };
 
+    // --- Lógica para calcular la tabla de posiciones ---
+    const standings = teams.map(team => {
+        let w = 0, l = 0, gf = 0, gc = 0;
+        matchdays.forEach(md => {
+            md.matches?.forEach((m: any) => {
+                const s = scores[m.id];
+                if (!s || s.hg === '' || s.ag === '') return;
+                const homeG = parseInt(s.hg), awayG = parseInt(s.ag);
+                
+                if (m.home_team_id === team.id) {
+                    gf += homeG; gc += awayG;
+                    if (homeG > awayG) w++; 
+                    else if (homeG < awayG) l++;
+                    else if (s.hp_winner === 'home') w++; 
+                    else if (s.hp_winner === 'away') l++;
+                } else if (m.away_team_id === team.id) {
+                    gf += awayG; gc += homeG;
+                    if (awayG > homeG) w++; 
+                    else if (awayG < homeG) l++;
+                    else if (s.hp_winner === 'away') w++; 
+                    else if (s.hp_winner === 'home') l++;
+                }
+            });
+        });
+        return { ...team, w, l, gf, gc, dg: gf - gc };
+    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf);
+    // ---------------------------------------------------
+
     useEffect(() => {
         const load = async () => {
             const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
@@ -491,7 +523,6 @@ function SimulatorView() {
                     day.matches?.forEach((m: any) => {
                         if (m.match_results && m.match_results.length > 0) {
                             const res = m.match_results[0];
-                            // Lógica de checkbox: si hay penales registrados, determinamos el ganador
                             let hp_winner: 'home' | 'away' | null = null;
                             if (res.home_penalties !== null && res.away_penalties !== null) {
                                 hp_winner = res.home_penalties > res.away_penalties ? 'home' : 'away';
@@ -578,10 +609,10 @@ function SimulatorView() {
 
                                     {isTie && (
                                         <div className="flex gap-4 items-center">
-                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500">
+                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500 cursor-pointer">
                                                 <input type="checkbox" checked={s.hp_winner === 'home'} onChange={() => togglePenalties(m.id, 'home')} /> {m.home.name} gana
                                             </label>
-                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500">
+                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500 cursor-pointer">
                                                 <input type="checkbox" checked={s.hp_winner === 'away'} onChange={() => togglePenalties(m.id, 'away')} /> {m.away.name} gana
                                             </label>
                                         </div>
@@ -596,6 +627,7 @@ function SimulatorView() {
                         })}
                     </div>
                 </div>
+                
                 <div className="w-full xl:w-[450px]">
                     <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
                         <table className="w-full text-center text-sm">
@@ -626,12 +658,6 @@ function SimulatorView() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                    {/* Leyenda de colores */}
-                    <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500"></div> 7º - 10º Play-in</div>
                     </div>
                 </div>
             </div>
