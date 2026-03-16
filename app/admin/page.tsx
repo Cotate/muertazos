@@ -535,8 +535,8 @@ function SimulatorView() {
 
         if (resultsToUpsert.length === 0) return alert("No hay marcadores completos.");
 
-        const pendingPenalties = resultsToUpsert.some(r => r.home_goals === r.away_goals && r.home_penalties === 0 && r.away_penalties === 0);
-        if (pendingPenalties) return alert("Por favor, selecciona al ganador de los penales haciendo clic en su escudo.");
+const pendingPenalties = resultsToUpsert.some((r: any) => r.home_goals === r.away_goals && r.home_penalties === 0 && r.away_penalties === 0);
+if (pendingPenalties) return alert("Por favor, selecciona al ganador de los penales haciendo clic en su escudo.");
 
         const { error } = await supabase.from('match_results').upsert(resultsToUpsert, { onConflict: 'match_id' });
         if (error) alert("Error al guardar: " + error.message);
