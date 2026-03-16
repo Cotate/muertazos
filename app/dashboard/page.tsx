@@ -347,12 +347,13 @@ function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
-    const [currentPage, setCurrentPage] = useState(0) 
+    const [currentPage, setCurrentPage] = useState(0)
 
     useEffect(() => {
         const fetchRanking = async () => {
             const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
             if (!lockedDays || lockedDays.length === 0) { setRankingData({users: [], days: []}); setLoading(false); return }
+            
             const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
             const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
             const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
@@ -385,7 +386,6 @@ function RankingView({ user }: { user: any }) {
 
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
-    
     const pageChunks: number[][] = [];
     for (let i = 0; i < totalUsers; i += 15) {
         pageChunks.push([i, Math.min(i + 15, totalUsers)]);
@@ -398,7 +398,6 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
-            
             <div className="w-full flex items-center justify-between mb-4 px-4 md:px-8">
                 <div className="flex-1 flex justify-start">
                     <button 
@@ -438,48 +437,32 @@ function RankingView({ user }: { user: any }) {
                             {paginatedUsers.map((u, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
-                                // DIFERENCIADOR: Verificamos si es el usuario logueado
                                 const isMe = u.username === user.username;
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="w-10 px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
-                                            {isFirst ? (
-                                                <span className="text-base drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
-                                            ) : (
-                                                <span className={`${isMe ? 'text-white' : 'text-slate-600 group-hover:text-slate-400'}`}>{globalPos}</span>
-                                            )}
+                                        <td className="w-10 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-[11px]">
+                                            {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
                                         
-                                        <td className="w-[120px] px-2 py-0.5 border-r border-white/5">
-                                            <div className="flex items-center gap-2">
-                                                {/* DIFERENCIADOR: Borde blanco en avatar si soy yo */}
-                                                <div className={`relative w-6 h-6 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
-                                                    {u.username.charAt(0).toUpperCase()}
-                                                    <Image 
-                                                        key={`${currentPage}-${u.username}`}
-                                                        src={`/usuarios/${u.username}.jpg`} 
-                                                        alt={u.username} 
-                                                        fill 
-                                                        sizes="28px" 
-                                                        className="object-cover z-10" 
-                                                        onError={(e) => e.currentTarget.style.display = 'none'} 
-                                                    />
+                                        <td className="w-[120px] px-3 py-1.5 border-r border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
+                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
                                                 </div>
-                                                {/* DIFERENCIADOR: Nombre en negrita y subrayado si soy yo */}
-                                                <span className={`uppercase text-[9px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline' : 'text-slate-300'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-0.5 text-center border-l border-white/5 text-[9px] font-mono w-8 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-2 py-1.5 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        <td className={`w-14 px-2 py-0.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-16 px-4 py-1.5 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
