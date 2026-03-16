@@ -462,12 +462,45 @@ function SimulatorView() {
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
     const [teams, setTeams] = useState<any[]>([])
     
-    // scores: { matchId: { hg: goalsHome, ag: goalsAway, hp: pensHome, ap: pensAway } }
-    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp: string, ap: string }>>({})
+    // Resultados por defecto para Jornadas 1, 2 y 3
+    const defaultScores: Record<number, { hg: string, ag: string, hp: string, ap: string }> = {
+        // Debes reemplazar los números '1', '2', etc., por los IDs reales de tus partidos de la base de datos
+        // Jornada 1
+        1: { hg: '12', ag: '4', hp: '', ap: '' },
+        2: { hg: '6', ag: '7', hp: '', ap: '' },
+        3: { hg: '5', ag: '4', hp: '', ap: '' },
+        4: { hg: '7', ag: '5', hp: '', ap: '' },
+        5: { hg: '7', ag: '0', hp: '', ap: '' },
+        6: { hg: '3', ag: '5', hp: '', ap: '' },
+        // Jornada 2
+        7: { hg: '7', ag: '3', hp: '', ap: '' },
+        8: { hg: '3', ag: '4', hp: '', ap: '' },
+        9: { hg: '3', ag: '7', hp: '', ap: '' },
+        10: { hg: '9', ag: '6', hp: '', ap: '' },
+        11: { hg: '4', ag: '2', hp: '', ap: '' },
+        12: { hg: '6', ag: '9', hp: '', ap: '' },
+        // Jornada 3
+        13: { hg: '6', ag: '3', hp: '', ap: '' },
+        14: { hg: '2', ag: '8', hp: '', ap: '' },
+        15: { hg: '6', ag: '9', hp: '', ap: '' },
+        16: { hg: '12', ag: '5', hp: '', ap: '' },
+        17: { hg: '6', ag: '7', hp: '', ap: '' },
+        18: { hg: '4', ag: '8', hp: '', ap: '' },
+    };
+
+    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp: string, ap: string }>>(defaultScores)
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens'
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
     const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
+
+    // Función para obtener el color de la fila según posición
+    const getRowColor = (idx: number) => {
+        if (idx === 0) return 'bg-yellow-500'; // 1er lugar (Semifinal)
+        if (idx >= 1 && idx <= 5) return 'bg-blue-500'; // 2 al 6 (Cuartos)
+        if (idx >= 6 && idx <= 9) return 'bg-red-500'; // 7 al 10 (Play-in)
+        return 'bg-transparent';
+    }
 
     useEffect(() => {
         const saved = localStorage.getItem('muertazos_simulator_scores')
@@ -496,10 +529,7 @@ function SimulatorView() {
     const updateScore = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
         const newScores = { ...scores }
         if (!newScores[matchId]) newScores[matchId] = { hg: '', ag: '', hp: '', ap: '' }
-        
-        // Limitar a caracteres numéricos
         if (value !== '' && !/^\d+$/.test(value)) return;
-        
         newScores[matchId][field] = value
         setScores(newScores)
         localStorage.setItem('muertazos_simulator_scores', JSON.stringify(newScores))
@@ -512,115 +542,67 @@ function SimulatorView() {
         }
     }
 
-    // Cálculo de tabla
     const standings = teams.map(team => {
         let w = 0, l = 0, gf = 0, gc = 0;
-        
         matchdays.forEach(md => {
             md.matches?.forEach((m: any) => {
                 const s = scores[m.id]
                 if (!s || s.hg === '' || s.ag === '') return;
-                
-                const homeG = parseInt(s.hg)
-                const awayG = parseInt(s.ag)
-
+                const homeG = parseInt(s.hg), awayG = parseInt(s.ag)
                 if (m.home_team_id === team.id) {
                     gf += homeG; gc += awayG;
-                    if (homeG > awayG) w++;
-                    else if (homeG < awayG) l++;
-                    else {
-                        if (s.hp !== '' && s.ap !== '') {
-                            if (parseInt(s.hp) > parseInt(s.ap)) w++;
-                            else l++;
-                        }
-                    }
+                    if (homeG > awayG) w++; else if (homeG < awayG) l++;
+                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.hp) > parseInt(s.ap)) w++; else if (s.hp !== '' && s.ap !== '') l++;
                 } else if (m.away_team_id === team.id) {
                     gf += awayG; gc += homeG;
-                    if (awayG > homeG) w++;
-                    else if (awayG < homeG) l++;
-                    else {
-                        if (s.hp !== '' && s.ap !== '') {
-                            if (parseInt(s.ap) > parseInt(s.hp)) w++;
-                            else l++;
-                        }
-                    }
+                    if (awayG > homeG) w++; else if (awayG < homeG) l++;
+                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.ap) > parseInt(s.hp)) w++; else if (s.hp !== '' && s.ap !== '') l++;
                 }
             })
         })
-
         return { ...team, w, l, gf, gc, dg: gf - gc }
-    }).sort((a, b) => {
-        if (b.w !== a.w) return b.w - a.w;
-        if (b.dg !== a.dg) return b.dg - a.dg;
-        return b.gf - a.gf;
-    })
+    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf)
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Toggle Simulator League */}
             <div className="flex justify-center gap-4 py-4">
-                <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase transition-all border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Kings</button>
-                <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase transition-all border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Queens</button>
-                <button onClick={clearScores} className="px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase transition-all border bg-red-600/20 text-red-500 border-red-500 hover:bg-red-600 hover:text-white ml-8">Borrar Datos</button>
+                <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Kings</button>
+                <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Queens</button>
             </div>
 
-            {/* Matchdays Nav */}
             <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
                 {matchdays.map(day => (
-                    <button
-                        key={day.id}
-                        onClick={() => setActiveMatchdayId(day.id)}
-                        className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
-                            activeMatchdayId === day.id
-                                ? (compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
-                                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
-                        }`}
-                    >
-                        {day.name.replace(/Jornada\s*/i, 'J')}
+                    <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
+                        {day.name}
                     </button>
                 ))}
             </div>
 
-            {/* Content Area */}
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
-                
-                {/* Matches Grid */}
                 <div className="flex-1">
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-6 text-center">Partidos - {activeMatchday?.name}</h3>
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-6 text-center">{activeMatchday?.name}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', hp: '', ap: '' }
                             const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-
                             return (
                                 <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
                                     <div className="w-full flex items-center justify-between gap-2">
-                                        <div className="flex flex-col items-center gap-2 flex-1">
-                                            {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}
-                                        </div>
-                                        
+                                        <div className="flex flex-col items-center flex-1">{m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}</div>
                                         <div className="flex items-center gap-3">
                                             <input type="text" value={s.hg} onChange={(e) => updateScore(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                             <span className="text-sm font-black text-slate-600 italic">VS</span>
                                             <input type="text" value={s.ag} onChange={(e) => updateScore(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                         </div>
-
-                                        <div className="flex flex-col items-center gap-2 flex-1">
-                                            {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}
-                                        </div>
+                                        <div className="flex flex-col items-center flex-1">{m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}</div>
                                     </div>
-                                    
-                                    {/* Penalty Inputs (Only show if regular goals are tied and not empty) */}
                                     {isTie && (
-                                        <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5 animate-fade-in">
-                                            <span className="text-[10px] font-black italic text-slate-500 uppercase tracking-widest">Penales</span>
-                                            <div className="flex items-center gap-2">
-                                                <input type="text" value={s.hp} onChange={(e) => updateScore(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black focus:outline-none" maxLength={2} />
-                                                <span className="text-slate-600 font-bold">-</span>
-                                                <input type="text" value={s.ap} onChange={(e) => updateScore(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black focus:outline-none" maxLength={2} />
-                                            </div>
+                                        <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5">
+                                            <span className="text-[10px] font-black italic text-slate-500 uppercase">Penales</span>
+                                            <input type="text" value={s.hp} onChange={(e) => updateScore(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            <input type="text" value={s.ap} onChange={(e) => updateScore(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
                                         </div>
                                     )}
                                 </div>
@@ -629,48 +611,44 @@ function SimulatorView() {
                     </div>
                 </div>
 
-                {/* Standings Table */}
                 <div className="w-full xl:w-[450px]">
-                    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden sticky top-28">
-                        <div className="bg-black/60 p-3 text-center border-b border-white/10">
-                            <h3 className="font-black italic uppercase tracking-tighter text-white">Clasificación Simulada</h3>
-                        </div>
-                        <table className="w-full border-collapse text-center text-sm">
+                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
+                        <table className="w-full text-center text-sm">
                             <thead>
-                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase tracking-wider border-b border-white/5">
+                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
                                     <th className="py-2 w-8">#</th>
                                     <th className="py-2 text-left pl-2">Equipo</th>
-                                    <th className="py-2 w-8" title="Victorias">V</th>
-                                    <th className="py-2 w-8" title="Derrotas">D</th>
-                                    <th className="py-2 w-8" title="Goles a Favor">GF</th>
-                                    <th className="py-2 w-8" title="Goles en Contra">GC</th>
-                                    <th className="py-2 w-8" title="Diferencia de Goles">DG</th>
+                                    <th className="py-2 w-8">V</th>
+                                    <th className="py-2 w-8">D</th>
+                                    <th className="py-2 w-8">DG</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {standings.map((t, idx) => (
-                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                        <td className="py-2 font-black text-slate-500">{idx + 1}</td>
-                                        <td className="py-2 pl-2 text-left">
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative w-6 h-6 flex items-center justify-center">
-                                                    <Image src={`/logos/${folder}/${t.logo_file}`} width={24} height={24} alt={t.name} className="object-contain" />
-                                                </div>
-                                                <span className="text-[11px] font-bold uppercase truncate max-w-[100px]">{t.name}</span>
-                                            </div>
+                                    <tr key={t.id} className="border-b border-white/5">
+                                        <td className="relative py-2 font-black">
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
+                                            {idx + 1}
+                                        </td>
+                                        <td className="py-2 pl-2 text-left flex items-center gap-2">
+                                            <Image src={`/logos/${folder}/${t.logo_file}`} width={24} height={24} alt={t.name} />
+                                            <span className="text-[11px] font-bold uppercase">{t.name}</span>
                                         </td>
                                         <td className="py-2 font-black text-green-400">{t.w}</td>
                                         <td className="py-2 font-black text-red-400">{t.l}</td>
-                                        <td className="py-2 text-slate-300">{t.gf}</td>
-                                        <td className="py-2 text-slate-300">{t.gc}</td>
                                         <td className="py-2 font-black text-white">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
+                    {/* Leyenda de colores */}
+                    <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500"></div> 7º - 10º Play-in</div>
+                    </div>
                 </div>
-
             </div>
         </div>
     )
