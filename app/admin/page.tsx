@@ -461,7 +461,7 @@ function SimulatorView() {
     const [matchdays, setMatchdays] = useState<any[]>([]);
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null);
     const [teams, setTeams] = useState<any[]>([]);
-    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp_winner: 'home' | 'away' | null }>>({});
+    const [scores, setScores] = useState<Record<number, { hg: string, ag: string, hp: string, ap: string }>>({});
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens';
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio');
@@ -474,42 +474,24 @@ function SimulatorView() {
         return 'bg-transparent';
     };
 
-    // --- Lógica para calcular la tabla de posiciones ---
-    const standings = teams.map(team => {
-        let w = 0, l = 0, gf = 0, gc = 0;
-        matchdays.forEach(md => {
-            md.matches?.forEach((m: any) => {
-                const s = scores[m.id];
-                if (!s || s.hg === '' || s.ag === '') return;
-                const homeG = parseInt(s.hg), awayG = parseInt(s.ag);
-                
-                if (m.home_team_id === team.id) {
-                    gf += homeG; gc += awayG;
-                    if (homeG > awayG) w++; 
-                    else if (homeG < awayG) l++;
-                    else if (s.hp_winner === 'home') w++; 
-                    else if (s.hp_winner === 'away') l++;
-                } else if (m.away_team_id === team.id) {
-                    gf += awayG; gc += homeG;
-                    if (awayG > homeG) w++; 
-                    else if (awayG < homeG) l++;
-                    else if (s.hp_winner === 'away') w++; 
-                    else if (s.hp_winner === 'home') l++;
-                }
-            });
-        });
-        return { ...team, w, l, gf, gc, dg: gf - gc };
-    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf);
-    // ---------------------------------------------------
-
+    // Carga de datos desde Supabase
     useEffect(() => {
         const load = async () => {
+            // 1. Obtener equipos
             const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
             if (tData) setTeams(tData);
 
+            // 2. Obtener jornadas y partidos con sus resultados vinculados
             const { data: mData } = await supabase
                 .from('matchdays')
-                .select(`*, matches(*, home:home_team_id(*), away:away_team_id(*), match_results(*))`)
+                .select(`
+                    *, 
+                    matches(*, 
+                        home:home_team_id(*), 
+                        away:away_team_id(*),
+                        match_results(*)
+                    )
+                `)
                 .eq('competition_key', compKey)
                 .order('display_order');
 
@@ -517,16 +499,14 @@ function SimulatorView() {
                 const loadedScores: any = {};
                 mData.forEach(day => {
                     day.matches?.forEach((m: any) => {
+                        // Si existe un resultado en la DB, cargarlo al estado
                         if (m.match_results && m.match_results.length > 0) {
                             const res = m.match_results[0];
-                            let hp_winner: 'home' | 'away' | null = null;
-                            if (res.home_penalties !== null && res.away_penalties !== null) {
-                                hp_winner = res.home_penalties > res.away_penalties ? 'home' : 'away';
-                            }
                             loadedScores[m.id] = {
                                 hg: String(res.home_goals ?? ''),
                                 ag: String(res.away_goals ?? ''),
-                                hp_winner
+                                hp: String(res.home_penalties ?? ''),
+                                ap: String(res.away_penalties ?? '')
                             };
                         }
                     });
@@ -540,36 +520,43 @@ function SimulatorView() {
         load();
     }, [compKey]);
 
-    const handleSave = async (matchId: number) => {
-        const s = scores[matchId];
-        if (!s) return;
+    // Función para actualizar en Supabase
+    const updateScore = async (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
+        if (value !== '' && !/^\d+$/.test(value)) return;
+        
+        const newScores = { ...scores, [matchId]: { ...(scores[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value } };
+        setScores(newScores);
 
-        const homePen = s.hp_winner === 'home' ? 1 : 0;
-        const awayPen = s.hp_winner === 'away' ? 1 : 0;
-
+        // Upsert a la base de datos
         await supabase.from('match_results').upsert({
             match_id: matchId,
-            home_goals: parseInt(s.hg) || 0,
-            away_goals: parseInt(s.ag) || 0,
-            home_penalties: s.hg === s.ag ? homePen : null,
-            away_penalties: s.hg === s.ag ? awayPen : null
+            home_goals: parseInt(newScores[matchId].hg) || 0,
+            away_goals: parseInt(newScores[matchId].ag) || 0,
+            home_penalties: newScores[matchId].hp !== '' ? parseInt(newScores[matchId].hp) : null,
+            away_penalties: newScores[matchId].ap !== '' ? parseInt(newScores[matchId].ap) : null
         }, { onConflict: 'match_id' });
-        
-        alert("Resultado guardado");
     };
 
-    const handleDelete = async (matchId: number) => {
-        await supabase.from('match_results').delete().eq('match_id', matchId);
-        setScores(prev => ({ ...prev, [matchId]: { hg: '', ag: '', hp_winner: null } }));
-    };
-
-    const updateScoreField = (matchId: number, field: 'hg' | 'ag', value: string) => {
-        setScores(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || { hg: '', ag: '', hp_winner: null }), [field]: value } }));
-    };
-
-    const togglePenalties = (matchId: number, winner: 'home' | 'away') => {
-        setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], hp_winner: winner } }));
-    };
+    const standings = teams.map(team => {
+        let w = 0, l = 0, gf = 0, gc = 0;
+        matchdays.forEach(md => {
+            md.matches?.forEach((m: any) => {
+                const s = scores[m.id];
+                if (!s || s.hg === '' || s.ag === '') return;
+                const homeG = parseInt(s.hg), awayG = parseInt(s.ag);
+                if (m.home_team_id === team.id) {
+                    gf += homeG; gc += awayG;
+                    if (homeG > awayG) w++; else if (homeG < awayG) l++;
+                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.hp) > parseInt(s.ap)) w++; else if (s.hp !== '' && s.ap !== '') l++;
+                } else if (m.away_team_id === team.id) {
+                    gf += awayG; gc += homeG;
+                    if (awayG > homeG) w++; else if (awayG < homeG) l++;
+                    else if (s.hp !== '' && s.ap !== '' && parseInt(s.ap) > parseInt(s.hp)) w++; else if (s.hp !== '' && s.ap !== '') l++;
+                }
+            });
+        });
+        return { ...team, w, l, gf, gc, dg: gf - gc };
+    }).sort((a, b) => (b.w !== a.w) ? b.w - a.w : (b.dg !== a.dg) ? b.dg - a.dg : b.gf - a.gf);
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
@@ -587,43 +574,38 @@ function SimulatorView() {
                     </button>
                 ))}
             </div>
-            
+
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
                 <div className="flex-1">
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-6 text-center">{activeMatchday?.name}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
-                            const s = scores[m.id] || { hg: '', ag: '', hp_winner: null };
-                            const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
-                            
+                            const s = scores[m.id] || { hg: '', ag: '', hp: '', ap: '' }
+                            const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
                             return (
-                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <input type="text" value={s.hg} onChange={(e) => updateScoreField(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border rounded-md font-black text-xl" maxLength={2} />
-                                        <span className="text-sm font-black text-slate-600">VS</span>
-                                        <input type="text" value={s.ag} onChange={(e) => updateScoreField(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border rounded-md font-black text-xl" maxLength={2} />
+                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+                                    <div className="w-full flex items-center justify-between gap-2">
+                                        <div className="flex flex-col items-center flex-1">{m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}</div>
+                                        <div className="flex items-center gap-3">
+                                            <input type="text" value={s.hg} onChange={(e) => updateScore(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            <span className="text-sm font-black text-slate-600 italic">VS</span>
+                                            <input type="text" value={s.ag} onChange={(e) => updateScore(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                        </div>
+                                        <div className="flex flex-col items-center flex-1">{m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}</div>
                                     </div>
-
                                     {isTie && (
-                                        <div className="flex gap-4 items-center">
-                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500 cursor-pointer">
-                                                <input type="checkbox" checked={s.hp_winner === 'home'} onChange={() => togglePenalties(m.id, 'home')} /> {m.home.name} gana
-                                            </label>
-                                            <label className="flex items-center gap-2 text-xs font-bold text-yellow-500 cursor-pointer">
-                                                <input type="checkbox" checked={s.hp_winner === 'away'} onChange={() => togglePenalties(m.id, 'away')} /> {m.away.name} gana
-                                            </label>
+                                        <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5">
+                                            <span className="text-[10px] font-black italic text-slate-500 uppercase">Penales</span>
+                                            <input type="text" value={s.hp} onChange={(e) => updateScore(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
+                                            <input type="text" value={s.ap} onChange={(e) => updateScore(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
                                         </div>
                                     )}
-
-                                    <div className="flex gap-2">
-                                        <button onClick={() => handleSave(m.id)} className="bg-green-600 px-4 py-1 rounded text-[10px] font-black uppercase">Guardar</button>
-                                        <button onClick={() => handleDelete(m.id)} className="bg-red-600 px-4 py-1 rounded text-[10px] font-black uppercase">Borrar</button>
-                                    </div>
                                 </div>
                             )
                         })}
                     </div>
                 </div>
-                
+
                 <div className="w-full xl:w-[450px]">
                     <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
                         <table className="w-full text-center text-sm">
@@ -654,6 +636,12 @@ function SimulatorView() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    {/* Leyenda de colores */}
+                    <div className="mt-4 grid grid-cols-1 gap-2 p-3 bg-black/20 rounded text-[10px] uppercase font-bold text-slate-400">
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500"></div> 1º Semifinal</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500"></div> 2º - 6º Cuartos</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500"></div> 7º - 10º Play-in</div>
                     </div>
                 </div>
             </div>
