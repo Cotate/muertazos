@@ -477,11 +477,14 @@ function SimulatorView() {
     // 1. CARGA DE DATOS
 useEffect(() => {
     const load = async () => {
-        // 1. Cargar equipos
-        const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
+
+        const { data: tData } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('competition_key', compKey);
+
         if (tData) setTeams(tData);
 
-        // 2. Cargar jornadas y partidos (SIN anidar match_results para evitar el bloqueo de Supabase)
         const { data: mData, error: mError } = await supabase
             .from('matchdays')
             .select(`
@@ -497,208 +500,486 @@ useEffect(() => {
 
         if (mError) console.error("Error jornadas:", mError);
 
-        // 3. LA MAGIA: Cargar los resultados directamente desde su propia tabla
         const { data: rData, error: rError } = await supabase
             .from('match_results')
             .select('*');
 
         if (rError) console.error("Error leyendo match_results:", rError);
-        
-        // Debug para ti: esto te mostrará si los datos llegan o si algo los bloquea
-        console.log("Resultados traídos de la BD:", rData);
+
+        const loadedScores: any = {};
+
+        if (rData) {
+            rData.forEach((res: any) => {
+                loadedScores[res.match_id] = {
+                    hg: res.home_goals != null ? String(res.home_goals) : '',
+                    ag: res.away_goals != null ? String(res.away_goals) : '',
+                    pWinner: res.penalty_winner ?? null
+                };
+            });
+        }
 
         if (mData) {
-            const loadedScores: any = {};
-            
-            // 4. Llenamos el objeto loadedScores con los datos de rData
-            if (rData) {
-                rData.forEach((res: any) => {
-                    loadedScores[res.match_id] = {
-                        hg: res.home_goals != null ? String(res.home_goals) : '',
-                        ag: res.away_goals != null ? String(res.away_goals) : '',
-                        hp: res.home_penalties != null ? String(res.home_penalties) : '',
-                        ap: res.away_penalties != null ? String(res.away_penalties) : ''
-                    };
-                });
-            }
 
-            // 5. Ordenamos los partidos
             mData.forEach(day => {
                 if (day.matches) {
-                    day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+                    day.matches.sort(
+                        (a: any, b: any) =>
+                            (a.match_order ?? 99) - (b.match_order ?? 99) ||
+                            a.id - b.id
+                    );
                 }
             });
 
             setScores(loadedScores);
             setMatchdays(mData);
+
             if (!activeMatchdayId && mData.length > 0) {
                 setActiveMatchdayId(mData[0].id);
             }
         }
     };
+
     load();
-}, [compKey]); // Quité activeMatchdayId de las dependencias si no está en tu original
 
-    const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
+}, [compKey]);
 
-    // 2. ACTUALIZAR ESTADO LOCAL (Inputs)
-    const handleLocalScoreChange = (matchId: number, field: 'hg' | 'ag' | 'hp' | 'ap', value: string) => {
-        if (value !== '' && !/^\d+$/.test(value)) return;
-        setScores(prev => ({
-            ...prev,
-            [matchId]: { ...(prev[matchId] || { hg: '', ag: '', hp: '', ap: '' }), [field]: value }
-        }));
-    };
+const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
-    // 3. GUARDAR TODA LA JORNADA
-    const saveActiveMatchday = async () => {
-        if (!activeMatchday) return;
 
-        const resultsToUpsert = activeMatchday.matches
-            .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
-            .map((m: any) => ({
-                match_id: m.id,
-                home_goals: parseInt(scores[m.id].hg),
-                away_goals: parseInt(scores[m.id].ag),
-                home_penalties: scores[m.id].hp !== '' ? parseInt(scores[m.id].hp) : null,
-                away_penalties: scores[m.id].ap !== '' ? parseInt(scores[m.id].ap) : null,
-            }));
 
-        if (resultsToUpsert.length === 0) return alert("No hay marcadores completos para guardar.");
+const handleLocalScoreChange = (
+    matchId: number,
+    field: 'hg' | 'ag',
+    value: string
+) => {
 
-        const { error } = await supabase.from('match_results').upsert(resultsToUpsert, { onConflict: 'match_id' });
+    if (value !== '' && !/^\d+$/.test(value)) return;
 
-        if (error) alert("Error al guardar jornada: " + error.message);
-        else alert(`¡Jornada ${activeMatchday.name} guardada correctamente!`);
-    };
-
-    // 4. BORRAR TODA LA JORNADA
-    const deleteActiveMatchday = async () => {
-        if (!activeMatchday || !confirm(`¿Borrar todos los resultados de la ${activeMatchday.name}?`)) return;
-
-        const matchIds = activeMatchday.matches.map((m: any) => m.id);
-        const { error } = await supabase.from('match_results').delete().in('match_id', matchIds);
-
-        if (!error) {
-            const newScores = { ...scores };
-            matchIds.forEach((id: number) => delete newScores[id]);
-            setScores(newScores);
-            alert("Resultados eliminados.");
+    setScores(prev => ({
+        ...prev,
+        [matchId]: {
+            ...(prev[matchId] || { hg: '', ag: '', pWinner: null }),
+            [field]: value
         }
-    };
+    }));
+};
 
-    // Lógica de Clasificación
-    const standings = teams.map(team => {
-        let w = 0, l = 0, gf = 0, gc = 0;
+
+
+const setPenaltyWinner = (
+    matchId: number,
+    team: 'home' | 'away'
+) => {
+
+    setScores(prev => ({
+        ...prev,
+        [matchId]: {
+            ...(prev[matchId] || { hg: '', ag: '', pWinner: null }),
+            pWinner: team
+        }
+    }));
+};
+
+
+
+const saveActiveMatchday = async () => {
+
+    if (!activeMatchday) return;
+
+    const resultsToUpsert = activeMatchday.matches
+        .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
+        .map((m: any) => ({
+            match_id: m.id,
+            home_goals: parseInt(scores[m.id].hg),
+            away_goals: parseInt(scores[m.id].ag),
+            penalty_winner: scores[m.id].pWinner
+        }));
+
+    if (resultsToUpsert.length === 0)
+        return alert("No hay marcadores completos para guardar.");
+
+    const { error } = await supabase
+        .from('match_results')
+        .upsert(resultsToUpsert, { onConflict: 'match_id' });
+
+    if (error)
+        alert("Error al guardar jornada: " + error.message);
+    else
+        alert(`¡Jornada ${activeMatchday.name} guardada correctamente!`);
+};
+
+
+
+const deleteActiveMatchday = async () => {
+
+    if (!activeMatchday) return;
+
+    if (!confirm(`¿Borrar todos los resultados de la ${activeMatchday.name}?`))
+        return;
+
+    const matchIds = activeMatchday.matches.map((m: any) => m.id);
+
+    const { error } = await supabase
+        .from('match_results')
+        .delete()
+        .in('match_id', matchIds);
+
+    if (!error) {
+
+        const newScores = { ...scores };
+
+        matchIds.forEach((id: number) => delete newScores[id]);
+
+        setScores(newScores);
+
+        alert("Resultados eliminados.");
+    }
+};
+
+
+
+const standings = teams
+    .map(team => {
+
+        let w = 0;
+        let l = 0;
+        let gf = 0;
+        let gc = 0;
+
         matchdays.forEach(md => {
+
             md.matches?.forEach((m: any) => {
+
                 const s = scores[m.id];
+
                 if (!s || s.hg === '' || s.ag === '') return;
-                const hG = parseInt(s.hg), aG = parseInt(s.ag);
-                const hP = parseInt(s.hp || '0'), aP = parseInt(s.ap || '0');
-                
+
+                const hG = parseInt(s.hg);
+                const aG = parseInt(s.ag);
+
                 if (m.home_team_id === team.id) {
-                    gf += hG; gc += aG;
-                    if (hG > aG || (hG === aG && hP > aP)) w++; else l++;
+
+                    gf += hG;
+                    gc += aG;
+
+                    if (hG > aG) w++;
+                    else if (hG < aG) l++;
+                    else if (s.pWinner === 'home') w++;
+                    else l++;
+
                 } else if (m.away_team_id === team.id) {
-                    gf += aG; gc += hG;
-                    if (aG > hG || (aG === hG && aP > hP)) w++; else l++;
+
+                    gf += aG;
+                    gc += hG;
+
+                    if (aG > hG) w++;
+                    else if (aG < hG) l++;
+                    else if (s.pWinner === 'away') w++;
+                    else l++;
                 }
+
             });
+
         });
-        return { ...team, w, l, gf, gc, dg: gf - gc };
-    }).sort((a, b) => b.w - a.w || b.dg - a.dg || b.gf - a.gf);
 
-    return (
-        <div className="w-full flex flex-col items-center">
-            {/* Nav Competición */}
-            <div className="flex justify-center gap-4 py-4">
-                <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Kings</button>
-                <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Queens</button>
-            </div>
+        return {
+            ...team,
+            w,
+            l,
+            gf,
+            gc,
+            dg: gf - gc
+        };
 
-            {/* Nav Jornadas */}
-            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
-                {matchdays.map(day => (
-                    <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
-                        {day.name}
-                    </button>
-                ))}
-            </div>
+    })
+    .sort((a, b) =>
+        b.w - a.w ||
+        b.dg - a.dg ||
+        b.gf - a.gf
+    );
 
-            <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
-                <div className="flex-1">
-                    {/* Cabecera de Jornada con Botones Globales */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
-                        <div className="flex gap-2">
-                            <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar Jornada</button>
-                            <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar Jornada</button>
-                        </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {activeMatchday?.matches?.map((m: any) => {
-                            const s = scores[m.id] || { hg: '', ag: '', hp: '', ap: '' }
-                            const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-                            return (
-                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
-                                    <div className="w-full flex items-center justify-between gap-2">
-                                        <div className="flex flex-col items-center flex-1">{m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />}</div>
-                                        <div className="flex items-center gap-3">
-                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
-                                            <span className="text-sm font-black text-slate-600 italic">VS</span>
-                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
-                                        </div>
-                                        <div className="flex flex-col items-center flex-1">{m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />}</div>
-                                    </div>
-                                    {isTie && (
-                                        <div className="w-full flex items-center justify-center gap-4 pt-3 border-t border-white/5">
-                                            <span className="text-[10px] font-black italic text-slate-500 uppercase">Penales</span>
-                                            <input type="text" value={s.hp} onChange={(e) => handleLocalScoreChange(m.id, 'hp', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
-                                            <input type="text" value={s.ap} onChange={(e) => handleLocalScoreChange(m.id, 'ap', e.target.value)} className="w-8 h-8 text-center bg-black border border-[#FFD300]/50 rounded text-[#FFD300] font-black" maxLength={2} />
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
 
-                {/* Clasificación */}
-                <div className="w-full xl:w-[450px]">
-                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
-                        <table className="w-full text-center text-sm">
-                            <thead>
-                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
-                                    <th className="py-2 w-8">#</th>
-                                    <th className="py-2 text-left pl-2">Equipo</th>
-                                    <th className="py-2 w-8">V</th>
-                                    <th className="py-2 w-8">D</th>
-                                    <th className="py-2 w-8">DG</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {standings.map((t, idx) => (
-                                    <tr key={t.id} className="border-b border-white/5">
-                                        <td className="relative py-2 font-black">
-                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
-                                            {idx + 1}
-                                        </td>
-                                        <td className="py-2 pl-2 text-left flex items-center gap-2">
-                                            <Image src={`/logos/${folder}/${t.logo_file}`} width={24} height={24} alt={t.name} />
-                                            <span className="text-[11px] font-bold uppercase">{t.name}</span>
-                                        </td>
-                                        <td className="py-2 font-black text-green-400">{t.w}</td>
-                                        <td className="py-2 font-black text-red-400">{t.l}</td>
-                                        <td className="py-2 font-black text-white">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
+return (
+
+<div className="w-full flex flex-col items-center">
+
+<div className="flex justify-center gap-4 py-4">
+
+<button
+onClick={() => setCompKey('kings')}
+className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${
+compKey === 'kings'
+? 'bg-[#FFD300] text-black border-[#FFD300]'
+: 'bg-transparent text-slate-500 border-slate-700'
+}`}
+>
+Kings
+</button>
+
+<button
+onClick={() => setCompKey('queens')}
+className={`px-6 py-2 rounded-full text-xs font-black italic tracking-widest uppercase border ${
+compKey === 'queens'
+? 'bg-[#01d6c3] text-black border-[#01d6c3]'
+: 'bg-transparent text-slate-500 border-slate-700'
+}`}
+>
+Queens
+</button>
+
+</div>
+
+
+
+<div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
+
+{matchdays.map(day => (
+
+<button
+key={day.id}
+onClick={() => setActiveMatchdayId(day.id)}
+className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider rounded border ${
+activeMatchdayId === day.id
+? compKey === 'kings'
+? 'bg-[#FFD300] text-black'
+: 'bg-[#01d6c3] text-black'
+: 'bg-black/40 text-slate-400'
+}`}
+>
+{day.name}
+</button>
+
+))}
+
+</div>
+
+
+
+<div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
+
+<div className="flex-1">
+
+<div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+
+<h3 className="text-2xl font-black italic uppercase tracking-tighter">
+{activeMatchday?.name}
+</h3>
+
+<div className="flex gap-2">
+
+<button
+onClick={saveActiveMatchday}
+className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic"
+>
+Guardar Jornada
+</button>
+
+<button
+onClick={deleteActiveMatchday}
+className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic"
+>
+Borrar Jornada
+</button>
+
+</div>
+
+</div>
+
+
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+{activeMatchday?.matches?.map((m: any) => {
+
+const s = scores[m.id] || { hg: '', ag: '', pWinner: null }
+
+const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
+
+return (
+
+<div
+key={m.id}
+className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-4"
+>
+
+<div className="w-full flex items-center justify-between gap-2">
+
+<div className="flex flex-col items-center flex-1">
+{m.home && (
+<Image
+src={`/logos/${folder}/${m.home.logo_file}`}
+width={getLogoSize(m.home.logo_file)}
+height={getLogoSize(m.home.logo_file)}
+alt="home"
+/>
+)}
+</div>
+
+<div className="flex items-center gap-3">
+
+<input
+type="text"
+value={s.hg}
+onChange={(e) =>
+handleLocalScoreChange(m.id, 'hg', e.target.value)
 }
+className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white"
+/>
+
+<span className="text-sm font-black text-slate-600 italic">
+VS
+</span>
+
+<input
+type="text"
+value={s.ag}
+onChange={(e) =>
+handleLocalScoreChange(m.id, 'ag', e.target.value)
+}
+className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white"
+/>
+
+</div>
+
+<div className="flex flex-col items-center flex-1">
+{m.away && (
+<Image
+src={`/logos/${folder}/${m.away.logo_file}`}
+width={getLogoSize(m.away.logo_file)}
+height={getLogoSize(m.away.logo_file)}
+alt="away"
+/>
+)}
+</div>
+
+</div>
+
+
+
+{isTie && (
+
+<div className="flex items-center gap-6 pt-3 border-t border-white/5">
+
+<label className="flex items-center gap-1 text-xs text-white">
+<input
+type="checkbox"
+checked={s.pWinner === 'home'}
+onChange={() => setPenaltyWinner(m.id, 'home')}
+/>
+Local
+</label>
+
+<span className="text-[10px] font-black text-slate-500 uppercase">
+Penales
+</span>
+
+<label className="flex items-center gap-1 text-xs text-white">
+<input
+type="checkbox"
+checked={s.pWinner === 'away'}
+onChange={() => setPenaltyWinner(m.id, 'away')}
+/>
+Visitante
+</label>
+
+</div>
+
+)}
+
+</div>
+
+)
+
+})}
+
+</div>
+
+</div>
+
+
+
+<div className="w-full xl:w-[450px]">
+
+<div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
+
+<table className="w-full text-center text-sm">
+
+<thead>
+
+<tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+
+<th className="py-2 w-8">#</th>
+<th className="py-2 text-left pl-2">Equipo</th>
+<th className="py-2 w-8">V</th>
+<th className="py-2 w-8">D</th>
+<th className="py-2 w-8">GF</th>
+<th className="py-2 w-8">GC</th>
+<th className="py-2 w-8">DG</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{standings.map((t, idx) => (
+
+<tr key={t.id} className="border-b border-white/5">
+
+<td className="py-2 font-black">
+{idx + 1}
+</td>
+
+<td className="py-2 pl-2 text-left flex items-center gap-2">
+
+<Image
+src={`/logos/${folder}/${t.logo_file}`}
+width={24}
+height={24}
+alt={t.name}
+/>
+
+<span className="text-[11px] font-bold uppercase">
+{t.name}
+</span>
+
+</td>
+
+<td className="py-2 font-black text-green-400">
+{t.w}
+</td>
+
+<td className="py-2 font-black text-red-400">
+{t.l}
+</td>
+
+<td className="py-2 font-black text-white">
+{t.gf}
+</td>
+
+<td className="py-2 font-black text-white">
+{t.gc}
+</td>
+
+<td className="py-2 font-black text-white">
+{t.dg > 0 ? `+${t.dg}` : t.dg}
+</td>
+
+</tr>
+
+))}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+)
