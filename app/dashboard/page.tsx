@@ -462,7 +462,6 @@ function SimulatorView() {
                 <div className="flex-1">
                     <div className="mb-6">
                         <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
-                        <p className="text-[10px] text-slate-500 italic mt-1">Los cambios aquí son temporales y no se guardan en el sistema.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
