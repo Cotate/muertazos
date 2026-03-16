@@ -443,7 +443,7 @@ function RankingView({ user }: { user: any }) {
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="w-10 px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
+                                        <td className="w-10 px-2 py-1.5 text-center border-r border-white/5 font-black italic text-[10px]">
                                             {isFirst ? (
                                                 <span className="text-base drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
