@@ -475,44 +475,53 @@ function SimulatorView() {
     };
 
     // 1. CARGA DE DATOS
+// 1. CARGA DE DATOS
 useEffect(() => {
     const load = async () => {
         const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
         if (tData) setTeams(tData);
 
+        // ATENCIÓN AQUÍ: He añadido explícitamente la tabla match_results a la consulta
+        // y un console.log para ver los datos crudos.
         const { data: mData, error } = await supabase
             .from('matchdays')
             .select(`
                 *, 
-                matches(*, 
+                matches (
+                    *, 
                     home:home_team_id(*), 
                     away:away_team_id(*),
-                    match_results(*)
+                    match_results (*)
                 )
             `)
             .eq('competition_key', compKey)
-            .order('display_order')
-            // ESTO FUERZA A SUPABASE A NO USAR CACHE DEL NAVEGADOR
-            .setHeader('Cache-Control', 'no-cache'); 
+            .order('display_order');
+
+        if (error) {
+            console.error("Error cargando Supabase:", error);
+        }
+
+        console.log("Datos crudos de Supabase:", mData); // <--- REVISA ESTO EN LA CONSOLA (F12)
 
         if (mData) {
             const loadedScores: any = {};
             mData.forEach(day => {
                 day.matches?.forEach((m: any) => {
-                    // Importante: Acceder al índice [0] del array match_results
-                    const res = m.match_results?.[0];
-                    if (res) {
+                    // Verificación más robusta
+                    if (m.match_results && Array.isArray(m.match_results) && m.match_results.length > 0) {
+                        const res = m.match_results[0];
                         loadedScores[m.id] = {
-                            hg: res.home_goals !== null ? String(res.home_goals) : '',
-                            ag: res.away_goals !== null ? String(res.away_goals) : '',
-                            hp: res.home_penalties !== null ? String(res.home_penalties) : '',
-                            ap: res.away_penalties !== null ? String(res.away_penalties) : ''
+                            hg: res.home_goals != null ? String(res.home_goals) : '',
+                            ag: res.away_goals != null ? String(res.away_goals) : '',
+                            hp: res.home_penalties != null ? String(res.home_penalties) : '',
+                            ap: res.away_penalties != null ? String(res.away_penalties) : ''
                         };
                     }
                 });
                 day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
             });
 
+            console.log("Scores procesados:", loadedScores); // <--- SI ESTO ESTÁ VACÍO PERO HAY DATOS EN DB, ES LA RELACIÓN.
             setScores(loadedScores);
             setMatchdays(mData);
             if (!activeMatchdayId && mData.length > 0) {
@@ -535,7 +544,6 @@ useEffect(() => {
     };
 
     // 3. GUARDAR TODA LA JORNADA
-// 1. Guardar toda la jornada
   const saveActiveMatchday = async () => {
     if (!activeMatchday) return;
 
