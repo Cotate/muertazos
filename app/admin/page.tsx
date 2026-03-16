@@ -522,44 +522,59 @@ function SimulatorView() {
     };
 
     // 3. GUARDAR TODA LA JORNADA
-const saveActiveMatchday = async () => {
+// 1. Guardar toda la jornada
+  const saveActiveMatchday = async () => {
     if (!activeMatchday) return;
 
-    // Filtramos solo los partidos que tienen goles ingresados
     const resultsToUpsert = activeMatchday.matches
-        .filter((m: any) => {
-            const s = scores[m.id];
-            return s && s.hg !== '' && s.ag !== '';
-        })
-        .map((m: any) => {
-            const s = scores[m.id];
-            return {
-                match_id: m.id,
-                home_goals: parseInt(s.hg),
-                away_goals: parseInt(s.ag),
-                home_penalties: s.hp !== '' ? parseInt(s.hp) : null,
-                away_penalties: s.ap !== '' ? parseInt(s.ap) : null,
-            };
-        });
+      .filter((m: any) => {
+        const s = scores[m.id];
+        return s && s.hg !== '' && s.ag !== '';
+      })
+      .map((m: any) => {
+        const s = scores[m.id];
+        return {
+          match_id: m.id,
+          home_goals: parseInt(s.hg),
+          away_goals: parseInt(s.ag),
+          home_penalties: s.hp !== '' ? parseInt(s.hp) : null,
+          away_penalties: s.ap !== '' ? parseInt(s.ap) : null,
+        };
+      });
 
-    console.log("Enviando a Supabase:", resultsToUpsert); // Debug
+    if (resultsToUpsert.length === 0) return alert("No hay marcadores completos para guardar.");
 
-    if (resultsToUpsert.length === 0) {
-        alert("No hay marcadores válidos para guardar.");
-        return;
-    }
+    const { error } = await supabase
+      .from('match_results')
+      .upsert(resultsToUpsert, { onConflict: 'match_id' });
 
-    const { data, error } = await supabase
-        .from('match_results')
-        .upsert(resultsToUpsert, { onConflict: 'match_id' });
+    if (error) alert("Error al guardar: " + error.message);
+    else alert(`¡Jornada ${activeMatchday.name} guardada!`);
+  };
+
+  // 2. Borrar toda la jornada (ESTA ES LA QUE TE DABA ERROR)
+  const deleteActiveMatchday = async () => {
+    if (!activeMatchday) return;
+    if (!confirm(`¿Borrar todos los resultados de la ${activeMatchday.name}?`)) return;
+
+    const matchIds: number[] = activeMatchday.matches.map((m: any) => m.id);
+    
+    const { error } = await supabase
+      .from('match_results')
+      .delete()
+      .in('match_id', matchIds);
 
     if (error) {
-        console.error("Error de Supabase:", error);
-        alert("Error al guardar: " + error.message);
+      alert("Error al borrar: " + error.message);
     } else {
-        alert(`¡Resultados de la ${activeMatchday.name} guardados en la base de datos!`);
+      const newScores = { ...scores };
+      matchIds.forEach((id: number) => {
+        delete newScores[id];
+      });
+      setScores(newScores);
+      alert("Resultados eliminados de la base de datos.");
     }
-};
+  };
 
     // Lógica de Clasificación
     const standings = teams.map(team => {
