@@ -475,40 +475,52 @@ function SimulatorView() {
     };
 
     // 1. CARGA DE DATOS
-    useEffect(() => {
-        const load = async () => {
-            const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
-            if (tData) setTeams(tData);
+useEffect(() => {
+    const load = async () => {
+        const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
+        if (tData) setTeams(tData);
 
-            const { data: mData } = await supabase
-                .from('matchdays')
-                .select(`*, matches(*, home:home_team_id(*), away:away_team_id(*), match_results(*))`)
-                .eq('competition_key', compKey)
-                .order('display_order');
+        const { data: mData } = await supabase
+            .from('matchdays')
+            .select(`
+                *, 
+                matches(*, 
+                    home:home_team_id(*), 
+                    away:away_team_id(*),
+                    match_results(*)
+                )
+            `)
+            .eq('competition_key', compKey)
+            .order('display_order');
 
-            if (mData) {
-                const loadedScores: any = {};
-                mData.forEach(day => {
-                    day.matches?.forEach((m: any) => {
-                        if (m.match_results && m.match_results.length > 0) {
-                            const res = m.match_results[0];
-                            loadedScores[m.id] = {
-                                hg: String(res.home_goals ?? ''),
-                                ag: String(res.away_goals ?? ''),
-                                hp: String(res.home_penalties ?? ''),
-                                ap: String(res.away_penalties ?? '')
-                            };
-                        }
-                    });
-                    day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+        if (mData) {
+            const loadedScores: Record<number, { hg: string, ag: string, hp: string, ap: string }> = {};
+            
+            mData.forEach(day => {
+                day.matches?.forEach((m: any) => {
+                    // Verificamos si existe el array y si tiene al menos un resultado
+                    if (m.match_results && Array.isArray(m.match_results) && m.match_results.length > 0) {
+                        const res = m.match_results[0];
+                        loadedScores[m.id] = {
+                            hg: res.home_goals !== null ? String(res.home_goals) : '',
+                            ag: res.away_goals !== null ? String(res.away_goals) : '',
+                            hp: res.home_penalties !== null ? String(res.home_penalties) : '',
+                            ap: res.away_penalties !== null ? String(res.away_penalties) : ''
+                        };
+                    }
                 });
-                setScores(loadedScores);
-                setMatchdays(mData);
-                setActiveMatchdayId(mData.length > 0 ? mData[0].id : null);
+                day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
+            });
+
+            setScores(loadedScores);
+            setMatchdays(mData);
+            if (!activeMatchdayId && mData.length > 0) {
+                setActiveMatchdayId(mData[0].id);
             }
-        };
-        load();
-    }, [compKey]);
+        }
+    };
+    load();
+}, [compKey]);
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
