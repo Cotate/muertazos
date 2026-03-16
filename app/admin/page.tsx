@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -480,7 +482,8 @@ useEffect(() => {
         const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey);
         if (tData) setTeams(tData);
 
-        const { data: mData } = await supabase
+        // Añadimos { count: 'exact' } solo para debugging interno si fuera necesario
+        const { data: mData, error } = await supabase
             .from('matchdays')
             .select(`
                 *, 
@@ -493,14 +496,19 @@ useEffect(() => {
             .eq('competition_key', compKey)
             .order('display_order');
 
+        if (error) {
+            console.error("Error cargando jornadas:", error);
+            return;
+        }
+
         if (mData) {
             const loadedScores: Record<number, { hg: string, ag: string, hp: string, ap: string }> = {};
             
             mData.forEach(day => {
                 day.matches?.forEach((m: any) => {
-                    // Verificamos si existe el array y si tiene al menos un resultado
-                    if (m.match_results && Array.isArray(m.match_results) && m.match_results.length > 0) {
-                        const res = m.match_results[0];
+                    // Verificamos si match_results existe y tiene contenido
+                    const res = m.match_results?.[0]; 
+                    if (res) {
                         loadedScores[m.id] = {
                             hg: res.home_goals !== null ? String(res.home_goals) : '',
                             ag: res.away_goals !== null ? String(res.away_goals) : '',
@@ -512,15 +520,17 @@ useEffect(() => {
                 day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99) || a.id - b.id);
             });
 
+            console.log("Marcadores cargados desde DB:", loadedScores); // Revisa esto en F12
             setScores(loadedScores);
             setMatchdays(mData);
+            
             if (!activeMatchdayId && mData.length > 0) {
                 setActiveMatchdayId(mData[0].id);
             }
         }
     };
     load();
-}, [compKey]);
+}, [compKey]); // Si usas el activeMatchdayId aquí podrías crear un bucle, déjalo así.
 
     const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
 
