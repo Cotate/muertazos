@@ -398,39 +398,41 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
-            <div className="w-full flex items-center justify-between mb-4 px-4 md:px-8">
-                <div className="flex-1 flex justify-start">
+            {/* Header Responsivo */}
+            <div className="w-full flex flex-col md:flex-row items-center justify-between mb-6 px-2 md:px-8 gap-4">
+                <div className="w-full md:w-1/3 flex justify-center md:justify-start">
                     <button 
                         onClick={() => setShowFull(!showFull)} 
-                        className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
                     >
                         {showFull ? '← VOLVER' : 'DESGLOSE'}
                     </button>
                 </div>
 
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
                 
-                <div className="flex-1 flex justify-end">
+                <div className="w-full md:w-1/3 flex justify-center md:justify-end">
                     {totalPages > 1 && (
-                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                        <div className="flex items-center bg-black/40 rounded-lg border border-white/10 overflow-hidden shadow-lg">
                             <button 
                                 disabled={safeCurrentPage === 0} 
                                 onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-4 py-1.5 text-[10px] font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-5 py-2 text-sm font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20 text-slate-500' : 'text-[#FFD300] hover:bg-white/5'}`}
                             > ◀ </button>
+                            <span className="px-3 text-[10px] text-slate-400 font-bold">{safeCurrentPage + 1}/{totalPages}</span>
                             <button 
                                 disabled={safeCurrentPage === totalPages - 1} 
                                 onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-4 py-1.5 text-[10px] font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                                className={`px-5 py-2 text-sm font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20 text-slate-500' : 'text-[#FFD300] hover:bg-white/5'}`}
                             > ▶ </button>
                         </div>
                     )}
                 </div>
             </div>
-        </div>
 
+            {/* Contenedor de Tabla */}
             <div className="w-fit mx-auto">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="border-collapse table-auto">
@@ -442,7 +444,6 @@ function RankingView({ user }: { user: any }) {
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        {/* Fila con py-1 para un equilibrio óptimo */}
                                         <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[11px]">
                                             {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
@@ -450,7 +451,7 @@ function RankingView({ user }: { user: any }) {
                                         <td className="w-[120px] px-3 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-3">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
-                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" />
                                                 </div>
                                                 <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline' : 'text-slate-300'}`}>
                                                     {u.username}
@@ -475,5 +476,5 @@ function RankingView({ user }: { user: any }) {
                 </div>
             </div>
         </div>
-    )
+    );
 }
