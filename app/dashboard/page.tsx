@@ -397,43 +397,39 @@ function RankingView({ user }: { user: any }) {
     const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
 
     return (
-        <div className="w-full flex flex-col md:flex-row items-center justify-between mb-4 px-2 md:px-8 gap-4">
-    
-    <div className="w-full md:w-auto flex justify-center md:justify-start">
-        <button 
-            onClick={() => setShowFull(!showFull)} 
-            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
-        >
-            {showFull ? '← VOLVER' : 'DESGLOSE'}
-        </button>
-    </div>
+        <div className="w-full flex flex-col items-center py-2 px-2">
+            <div className="w-full flex items-center justify-between mb-4 px-4 md:px-8">
+                <div className="flex-1 flex justify-start">
+                    <button 
+                        onClick={() => setShowFull(!showFull)} 
+                        className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-white border-white/20 hover:border-[#FFD300] hover:text-[#FFD300]'}`}
+                    >
+                        {showFull ? '← VOLVER' : 'DESGLOSE'}
+                    </button>
+                </div>
 
-    <h2 className="text-lg md:text-xl font-black italic uppercase tracking-tighter text-center shrink-0 order-first md:order-none w-full md:w-auto">
-        <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
-    </h2>
-    
-    <div className="w-full md:w-auto flex justify-center md:justify-end">
-        {totalPages > 1 && (
-            <div className="flex items-center bg-black/40 rounded-lg border border-white/10 overflow-hidden shadow-lg">
-                <button 
-                    disabled={safeCurrentPage === 0} 
-                    onClick={() => setCurrentPage(prev => prev - 1)} 
-                    className={`px-6 py-3 text-sm font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300] active:bg-[#FFD300] active:text-black'}`}
-                > ◀ </button>
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center px-4 shrink-0">
+                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+                </h2>
                 
-                <span className="px-3 text-[10px] text-slate-500 font-bold">
-                    {safeCurrentPage + 1} / {totalPages}
-                </span>
-
-                <button 
-                    disabled={safeCurrentPage === totalPages - 1} 
-                    onClick={() => setCurrentPage(prev => prev + 1)} 
-                    className={`px-6 py-3 text-sm font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300] active:bg-[#FFD300] active:text-black'}`}
-                > ▶ </button>
+                <div className="flex-1 flex justify-end">
+                    {totalPages > 1 && (
+                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                            <button 
+                                disabled={safeCurrentPage === 0} 
+                                onClick={() => setCurrentPage(prev => prev - 1)} 
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            > ◀ </button>
+                            <button 
+                                disabled={safeCurrentPage === totalPages - 1} 
+                                onClick={() => setCurrentPage(prev => prev + 1)} 
+                                className={`px-4 py-1.5 text-[10px] font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            > ▶ </button>
+                        </div>
+                    )}
+                </div>
             </div>
-        )}
-    </div>
-</div>
+        </div>
 
             <div className="w-fit mx-auto">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
