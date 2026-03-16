@@ -182,10 +182,11 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      {/* Main ajustado para eliminar scroll vertical excesivo */}
-      <main className="max-w-5xl mx-auto pt-4 pb-4 px-4">
+      {/* Aumentado max-w de 5xl a 7xl para dar más espacio a la tabla */}
+      <main className="max-w-7xl mx-auto pt-4 pb-4 px-4">
         {view === 'picks' ? (
-            <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
+            /* Aumentado max-w de 2xl a 4xl para picks más grandes y coherentes con el nuevo ancho */
+            <div className="max-w-4xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64">
                         <p className="text-slate-600 font-black italic tracking-widest animate-pulse">PROXIMAMENTE...</p>
@@ -278,6 +279,7 @@ export default function UserDashboard() {
                 )}
             </div>
         ) : (
+            /* Vista de Ranking */
             <RankingView user={user} />
         )}
       </main>
@@ -340,6 +342,7 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
     )
 }
 
+// COMPONENTE DE RANKING ADAPTADO PARA USUARIOS CON ANCHO AMPLIADO
 function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
     const [showFull, setShowFull] = useState(false)
@@ -383,7 +386,7 @@ function RankingView({ user }: { user: any }) {
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
     
-    // Mostramos 15 usuarios por página para asegurar que quepa sin scroll
+    // Mostramos 15 usuarios por página para asegurar que quepa sin scroll vertical
     const pageChunks: number[][] = [];
     for (let i = 0; i < totalUsers; i += 15) {
         pageChunks.push([i, Math.min(i + 15, totalUsers)]);
@@ -396,7 +399,7 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-1">
-            {/* Header de la tabla con margen reducido */}
+            {/* Header de la tabla compacto */}
             <div className="w-full flex items-center justify-between mb-2 px-4 md:px-8">
                 <div className="flex-1 flex justify-start">
                     <button 
@@ -429,19 +432,24 @@ function RankingView({ user }: { user: any }) {
                 </div>
             </div>
 
-            <div className="w-fit mx-auto">
+            {/* Contenedor de la tabla, se elimina mx-auto y se usa w-full para que crezca */}
+            <div className="w-full">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-                    <table className="border-collapse table-auto">
+                    <table className="border-collapse table-auto w-full">
                         <thead>
                             <tr className="bg-black/40 text-slate-500 text-[8px] font-black uppercase tracking-widest border-b border-white/10">
-                                <th className="px-2 py-2 border-r border-white/5">#</th>
-                                <th className="px-4 py-2 text-left border-r border-white/5">USUARIO</th>
+                                {/* Aumentado ancho de columna # de 10 a 14 */}
+                                <th className="w-14 px-2 py-2 border-r border-white/5">#</th>
+                                {/* Aumentado ancho de columna USUARIO de [120px] a [200px] */}
+                                <th className="w-[200px] px-4 py-2 text-left border-r border-white/5">USUARIO</th>
                                 {showFull && rankingData.days.map(day => (
-                                    <th key={day.id} className="px-1 py-2 w-8 border-l border-white/5">
+                                    /* Aumentado ancho de columna J de 8 a 10 */
+                                    <th key={day.id} className="px-1 py-2 w-10 border-l border-white/5">
                                         {day.name.includes('JORNADA') ? day.name.replace('JORNADA ', 'J') : day.name.substring(0,2)}
                                     </th>
                                 ))}
-                                <th className="px-4 py-2">PTS</th>
+                                {/* Aumentado ancho de columna PTS de 14 a 20 */}
+                                <th className="w-20 px-4 py-2">PTS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -452,8 +460,7 @@ function RankingView({ user }: { user: any }) {
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        {/* Celda de posición más compacta */}
-                                        <td className="w-10 px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
+                                        <td className="px-2 py-0.5 text-center border-r border-white/5 font-black italic text-[10px]">
                                             {isFirst ? (
                                                 <span className="text-base drop-shadow-[0_0_8px_rgba(255,211,0,0.6)]">👑</span>
                                             ) : (
@@ -461,33 +468,34 @@ function RankingView({ user }: { user: any }) {
                                             )}
                                         </td>
                                         
-                                        <td className="w-[120px] px-2 py-0.5 border-r border-white/5">
+                                        <td className="px-2 py-0.5 border-r border-white/5">
                                             <div className="flex items-center gap-2">
-                                                <div className={`relative w-6 h-6 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[9px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
+                                                {/* Aumentado tamaño de avatar de w-6 h-6 a w-7 h-7, y text-9 a text-10 */}
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-[10px] ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10 text-slate-400'}`}>
                                                     {u.username.charAt(0).toUpperCase()}
                                                     <Image 
                                                         key={`${currentPage}-${u.username}`}
                                                         src={`/usuarios/${u.username}.jpg`} 
                                                         alt={u.username} 
                                                         fill 
-                                                        sizes="24px" 
+                                                        sizes="28px" 
                                                         className="object-cover z-10" 
                                                         onError={(e) => e.currentTarget.style.display = 'none'} 
                                                     />
                                                 </div>
-                                                <span className={`uppercase text-[9px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] truncate block w-full ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline decoration-[#FFD300]/40' : 'text-slate-300 font-medium group-hover:text-white'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-1 py-0.5 text-center border-l border-white/5 text-[9px] font-mono w-7 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                            <td key={day.id} className={`px-1 py-0.5 text-center border-l border-white/5 text-[9px] font-mono ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
                                         
-                                        <td className={`w-14 px-2 py-0.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`px-2 py-0.5 text-center border-l border-white/10 font-black text-sm italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
