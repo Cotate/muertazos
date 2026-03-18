@@ -22,7 +22,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Michel-Owono.png",
   "Pau 'ZZ' Ruiz.png",
   "Pol-Lechuga.png"
-]
+],
 "El Barrio": [
   "Carlos Val.png",
   "Cristian Ubón.png",
@@ -36,7 +36,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Sergio Fernández.png",
   "Sergio Herrero.png",
   "Ñito Martín.png"
-]
+],
 "Jijantes FC": [
   "Cristian Lobato.png",
   "Dani Martí.png",
@@ -52,7 +52,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Sergi Torres.png",
   "Víctor Pérez Bello.png",
   "Álex Cañero.png"
-]
+],
 "La Capital CF": [
   "Antoni Hernández.png",
   "Daniel Pérez.png",
@@ -66,7 +66,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Pablo Beguer.png",
   "Sergi Vives.png",
   "Sohaib Rektout.png"
-]
+],
 "Los Troncos FC": [
   "Alex Cubedo.png",
   "Carles Planas.png",
@@ -81,7 +81,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Victor Oribe.png",
   "Yaroslav Toporkov.png",
   "Álvaro Arché.png"
-]
+],
 "PIO FC": [
   "Adri Espinar.png",
   "Adrián Frutos.png",
@@ -95,7 +95,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Pol Benito.png",
   "Yeray Muñoz.png",
   "Álex Sánchez.png"
-]
+],
 "Porcinos FC": [
   "Aitor Vives.png",
   "Dani Pérez.png",
@@ -110,7 +110,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Roger Carbó.png",
   "Tomeu Nadal.png",
   "Victor Nofuentes.png"
-]
+],
 "Rayo de Barcelona": [
   "Abde Bakkali.png",
   "Adrià Escribano.png",
@@ -124,7 +124,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Jordi Gómez.png",
   "Jorge Ibáñez.png",
   "Roc Bancells.png"
-]
+],
 "Saiyans FC": [
   "Albert Garcia.png",
   "Borja Montejo.png",
@@ -138,7 +138,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Juanan Gallego.png",
   "Pablo Fernández.png",
   "Sergi Gestí.png"
-]
+],
 "Skull FC": [
   "Alberto Arnalot.png",
   "Dani Santos.png",
@@ -152,7 +152,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Roberto Tobe.png",
   "Víctor Mongil.png",
   "Álex Salas.png"
-]
+],
 "Ultimate Mostoles": [
   "Aleix Hernando.png",
   "Aleix Lage.png",
@@ -166,7 +166,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Marc Granero.png",
   "Mikhail Prokopev.png",
   "Víctor Vidal.png"
-]
+],
 "xBuyer Team": [
   "Aleix Ruiz.png",
   "Eric Sánchez.png",
@@ -181,7 +181,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Víctor Vargas.png",
   "Xavier Cabezas.png",
   "Álex Romero.png"
-]
+],
 }
 
 export default function UserDashboard() {
