@@ -266,10 +266,11 @@ export default function UserDashboard() {
                 )}
             </div>
         ) : view === 'ranking' ? (
-          <div className="text-center py-20"><p className="text-slate-600 font-black italic">RANKING (PROXIMAMENTE)</p></div>
-        ) : view === 'simulator' ? (
-          <div className="text-center py-20"><p className="text-slate-600 font-black italic">SIMULADOR (PROXIMAMENTE)</p></div>
+            <RankingView user={user} />
+        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
+            <SimulatorView />
         ) : (
+            /* Este es el "si no" final, que muestra la pizarra */
             <PizarraView />
         )}
       </main>
