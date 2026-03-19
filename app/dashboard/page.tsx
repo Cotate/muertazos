@@ -369,11 +369,7 @@ function PizarraView() {
         </div>
     );
 }
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { supabase } from '@/lib/supabase'; // Asegúrate de que esta ruta coincida con tu proyecto
-
-export default function SimulatorView() {
+function SimulatorView() {
     const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings');
     const [matchdays, setMatchdays] = useState<any[]>([]);
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null);
@@ -381,10 +377,9 @@ export default function SimulatorView() {
     const [scores, setScores] = useState<Record<number, { hg: string, ag: string, penaltyWinnerId: number | null }>>({});
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens';
-    
-    // Escudos más grandes en los marcadores
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio');
-    const getLogoSize = (filename: string) => isPio(filename) ? 65 : 90;
+    // Aumentamos el tamaño de los escudos
+    const getLogoSize = (filename: string) => isPio(filename) ? 54 : 72;
 
     const getRowColor = (idx: number) => {
         if (idx === 0) return 'bg-yellow-500';
@@ -471,21 +466,27 @@ export default function SimulatorView() {
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Cabecera unificada: Liga + Jornadas */}
-            <div className="w-full flex items-center justify-center flex-wrap gap-4 py-4 px-6 border-b border-white/5">
+            {/* Contenedor Unificado: Botones de liga y jornadas */}
+            <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-6 border-b border-white/5 bg-slate-900/20">
+                
+                {/* Botones Kings / Queens */}
                 <div className="flex gap-2 border-r border-white/10 pr-4">
-                    <button onClick={() => setCompKey('kings')} className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-all ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Kings</button>
-                    <button onClick={() => setCompKey('queens')} className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-all ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Queens</button>
+                    <button onClick={() => setCompKey('kings')} className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Kings</button>
+                    <button onClick={() => setCompKey('queens')} className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Queens</button>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2">
+                {/* Botones de Jornadas sin fondo azul */}
+                <div className="flex flex-wrap items-center gap-2">
                     {matchdays.map(day => {
                         const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '');
                         const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`;
-                        const isActive = activeMatchdayId === day.id;
 
                         return (
-                            <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase rounded border transition-all ${isActive ? (compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-[#01d6c3] text-black border-[#01d6c3]') : 'bg-transparent text-slate-400 border-slate-700 hover:border-slate-500'}`}>
+                            <button 
+                                key={day.id} 
+                                onClick={() => setActiveMatchdayId(day.id)} 
+                                className={`px-2 py-1.5 text-[11px] font-black italic uppercase border-b-2 transition-colors ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'border-[#FFD300] text-[#FFD300]' : 'border-[#01d6c3] text-[#01d6c3]') : 'border-transparent text-slate-400 hover:text-white'}`}
+                            >
                                 {label}
                             </button>
                         )
@@ -494,37 +495,37 @@ export default function SimulatorView() {
             </div>
 
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
-                {/* Columna de Partidos (Ahora en 1 sola columna) */}
+                {/* Columna de Partidos */}
                 <div className="flex-1">
-                    <div className="mb-6 flex justify-between items-end">
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">{activeMatchday?.name}</h3>
+                    <div className="mb-6">
+                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
                     </div>
 
+                    {/* Cambiado a flex flex-col para forzar 1 sola columna */}
                     <div className="flex flex-col gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null };
                             const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
                             return (
-                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-5 flex flex-col items-center justify-center gap-4 hover:bg-slate-900/70 transition-colors">
-                                    <div className="w-full flex items-center justify-between gap-4">
+                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+                                    <div className="w-full flex items-center justify-between gap-2">
                                         <div className="flex flex-col items-center flex-1">
                                             {m.home && (
-                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_15px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : 'hover:scale-105'}`}>
-                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" className="object-contain" priority />
+                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
+                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />
                                                 </button>
                                             )}
                                         </div>
-
                                         <div className="flex items-center gap-4">
-                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-lg font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none transition-all" maxLength={2} />
+                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-md font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+                                            {/* VS en color blanco */}
                                             <span className="text-sm font-black text-white italic">VS</span>
-                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-lg font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none transition-all" maxLength={2} />
+                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-md font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                         </div>
-
                                         <div className="flex flex-col items-center flex-1">
                                             {m.away && (
-                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_15px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : 'hover:scale-105'}`}>
-                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" className="object-contain" priority />
+                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
+                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />
                                                 </button>
                                             )}
                                         </div>
@@ -535,9 +536,9 @@ export default function SimulatorView() {
                     </div>
                 </div>
 
-                {/* Columna de Tabla */}
+                {/* Columna de Tabla de Posiciones */}
                 <div className="w-full xl:w-[480px]">
-                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl sticky top-8">
+                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
                         <table className="w-full text-center text-sm">
                             <thead>
                                 <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
@@ -553,11 +554,11 @@ export default function SimulatorView() {
                             <tbody>
                                 {standings.map((t, idx) => (
                                     <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                        <td className="relative py-2.5 font-black text-xs text-slate-300">
+                                        <td className="relative py-2.5 font-black text-xs">
                                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
                                             {idx + 1}
                                         </td>
-                                        <td className="py-2.5 pl-2 text-left flex items-center gap-2 text-white">
+                                        <td className="py-2.5 pl-2 text-left flex items-center gap-2">
                                             <Image src={`/logos/${folder}/${t.logo_file}`} width={22} height={22} alt={t.name} />
                                             <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
                                         </td>
