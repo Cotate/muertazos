@@ -378,13 +378,12 @@ function SimulatorView() {
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens';
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio');
-    // Aumentamos el tamaño de los escudos
     const getLogoSize = (filename: string) => isPio(filename) ? 54 : 72;
 
     const getRowColor = (idx: number) => {
-        if (idx === 0) return 'bg-yellow-500';
-        if (idx >= 1 && idx <= 5) return 'bg-blue-500';
-        if (idx >= 6 && idx <= 9) return 'bg-red-500';
+        if (idx === 0) return 'bg-yellow-500'; // 1er lugar
+        if (idx >= 1 && idx <= 3) return 'bg-blue-500'; // 2do a 4to
+        if (idx >= 6 && idx <= 9) return 'bg-red-500'; // 7mo a 10mo
         return 'bg-transparent';
     };
 
@@ -466,8 +465,8 @@ function SimulatorView() {
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Contenedor Unificado: Botones de liga y jornadas */}
-            <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-6 border-b border-white/5 bg-slate-900/20">
+            {/* Contenedor Unificado: Sin color de fondo para que se unifique */}
+            <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-6 border-b border-white/5">
                 
                 {/* Botones Kings / Queens */}
                 <div className="flex gap-2 border-r border-white/10 pr-4">
@@ -475,7 +474,7 @@ function SimulatorView() {
                     <button onClick={() => setCompKey('queens')} className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}>Queens</button>
                 </div>
 
-                {/* Botones de Jornadas sin fondo azul */}
+                {/* Botones de Jornadas */}
                 <div className="flex flex-wrap items-center gap-2">
                     {matchdays.map(day => {
                         const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '');
@@ -494,15 +493,15 @@ function SimulatorView() {
                 </div>
             </div>
 
-            <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
-                {/* Columna de Partidos */}
-                <div className="flex-1">
-                    <div className="mb-6">
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
-                    </div>
+            <div className="w-full max-w-7xl mx-auto px-6 py-8">
+                {/* Título movido arriba para que la tabla y los partidos inicien a la misma altura */}
+                <div className="mb-6">
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-center xl:text-left">{activeMatchday?.name}</h3>
+                </div>
 
-                    {/* Cambiado a flex flex-col para forzar 1 sola columna */}
-                    <div className="flex flex-col gap-4">
+                <div className="flex flex-col xl:flex-row gap-8">
+                    {/* Columna de Partidos */}
+                    <div className="flex-1 flex flex-col gap-4">
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null };
                             const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
@@ -518,7 +517,6 @@ function SimulatorView() {
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-md font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
-                                            {/* VS en color blanco */}
                                             <span className="text-sm font-black text-white italic">VS</span>
                                             <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-12 h-12 text-center bg-black border border-white/20 rounded-md font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
                                         </div>
@@ -534,43 +532,59 @@ function SimulatorView() {
                             );
                         })}
                     </div>
-                </div>
 
-                {/* Columna de Tabla de Posiciones */}
-                <div className="w-full xl:w-[480px]">
-                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
-                        <table className="w-full text-center text-sm">
-                            <thead>
-                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
-                                    <th className="py-3 w-8">#</th>
-                                    <th className="py-3 text-left pl-2">Equipo</th>
-                                    <th className="py-3 w-8">V</th>
-                                    <th className="py-3 w-8">D</th>
-                                    <th className="py-3 w-8">GF</th>
-                                    <th className="py-3 w-8">GC</th>
-                                    <th className="py-3 w-10 bg-white/5">DG</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {standings.map((t, idx) => (
-                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                        <td className="relative py-2.5 font-black text-xs">
-                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
-                                            {idx + 1}
-                                        </td>
-                                        <td className="py-2.5 pl-2 text-left flex items-center gap-2">
-                                            <Image src={`/logos/${folder}/${t.logo_file}`} width={22} height={22} alt={t.name} />
-                                            <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
-                                        </td>
-                                        <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
-                                        <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
-                                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
-                                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                                        <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                    {/* Columna de Tabla de Posiciones */}
+                    <div className="w-full xl:w-[480px]">
+                        <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                            <table className="w-full text-center text-sm">
+                                <thead>
+                                    <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+                                        <th className="py-3 w-8">#</th>
+                                        <th className="py-3 text-left pl-2">Equipo</th>
+                                        <th className="py-3 w-8">V</th>
+                                        <th className="py-3 w-8">D</th>
+                                        <th className="py-3 w-8">GF</th>
+                                        <th className="py-3 w-8">GC</th>
+                                        <th className="py-3 w-10 bg-white/5">DG</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {standings.map((t, idx) => (
+                                        <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                                            <td className="relative py-2.5 font-black text-xs">
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
+                                                {idx + 1}
+                                            </td>
+                                            <td className="py-2.5 pl-2 text-left flex items-center gap-2">
+                                                <Image src={`/logos/${folder}/${t.logo_file}`} width={22} height={22} alt={t.name} />
+                                                <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
+                                            </td>
+                                            <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
+                                            <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
+                                            <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
+                                            <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
+                                            <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Leyenda de clasificación */}
+                        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] uppercase font-bold text-slate-400 bg-black/20 p-3 rounded-xl border border-white/5">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
+                                <span>1º Semifinal</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+                                <span>2º a 4º Cuartos</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                                <span>7º a 10º Play In</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
