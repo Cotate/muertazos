@@ -471,13 +471,11 @@ export default function UserDashboard() {
                 )}
             </div>
         ) : view === 'ranking' ? (
-            /* Vista de Ranking pasándole el usuario actual para diferenciarlo */
             <RankingView user={user} />
-        ) : (
-            /* Vista de Simulador */
+        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
             <SimulatorView />
         ) : (
-            /* NUEVA VISTA: PIZARRA TÁCTICA */
+            /* Este es el "si no" final, que muestra la pizarra */
             <PizarraView />
         )}
       </main>
