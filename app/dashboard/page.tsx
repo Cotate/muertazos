@@ -528,14 +528,13 @@ function PizarraView() {
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
-        // Si es el jugador nuevo, opcionalmente podrías pedir nombre para el 'alt', 
-        // pero como quitamos los nombres visuales, solo lo añadimos.
         const newPlayer = {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
             x: 50,
-            y: 50
+            y: 50,
+            zIndex: playersOnPitch.length + 1 // Nuevo para controlar capas
         };
         setPlayersOnPitch(prev => [...prev, newPlayer]);
     };
@@ -544,18 +543,28 @@ function PizarraView() {
         const players = PLAYERS_DATA[selectedTeam];
         if (!players) return;
         
+        const currentCount = playersOnPitch.length;
         const newPlayers = players.map((fileName, index) => ({
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
             x: 30 + (index * 8) % 40, 
-            y: 30 + (index * 8) % 40
+            y: 30 + (index * 8) % 40,
+            zIndex: currentCount + index + 1
         }));
         setPlayersOnPitch(prev => [...prev, ...newPlayers]);
     };
 
     const removePlayer = (idToRemove: string) => {
         setPlayersOnPitch(prev => prev.filter(p => p.id !== idToRemove));
+    };
+
+    const handlePointerDown = (id: string) => {
+        setDraggingId(id);
+        // Al tocarlo, aumentamos su zIndex para que pase al frente
+        setPlayersOnPitch(prev => prev.map(p => 
+            p.id === id ? { ...p, zIndex: Math.max(...prev.map(pl => pl.zIndex), 0) + 1 } : p
+        ));
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
@@ -601,7 +610,6 @@ function PizarraView() {
                         {PLAYERS_DATA[selectedTeam]?.map(player => (
                             <option key={player} value={player}>{player.replace('.png', '')}</option>
                         ))}
-                        {/* Opción Crear al final */}
                         <option value="Nuevo.png">CREAR JUGADOR</option>
                     </select>
                 </div>
@@ -644,16 +652,17 @@ function PizarraView() {
                 {playersOnPitch.map((player) => (
                     <div 
                         key={player.id}
-                        onPointerDown={(e) => { if (e.detail < 2) setDraggingId(player.id); }}
+                        onPointerDown={() => handlePointerDown(player.id)}
                         onDoubleClick={() => removePlayer(player.id)}
-                        className={`absolute w-14 h-14 md:w-24 md:h-24 lg:w-32 lg:h-32 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50 scale-105' : 'z-10'}`}
+                        className={`absolute w-12 h-12 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'scale-110' : ''}`}
                         style={{ 
                             left: `${player.x}%`, 
                             top: `${player.y}%`,
-                            transition: draggingId === player.id ? 'none' : 'transform 0.1s' 
+                            zIndex: player.zIndex,
+                            transition: draggingId === player.id ? 'none' : 'transform 0.1s, z-index 0s' 
                         }}
                     >
-                        <div className="relative w-full h-full drop-shadow-2xl">
+                        <div className="relative w-full h-full drop-shadow-xl">
                             <Image 
                                 src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} 
                                 alt="jugador" 
