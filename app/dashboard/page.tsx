@@ -1,7 +1,3 @@
-/******************************************************************************
-CODIGO FRANKESTEIN A VER SI SALE LO DEL CAMPO TIO 2.0
-
-*******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -139,11 +135,9 @@ export default function UserDashboard() {
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
-  // COMPONENTE DE BOTÓN DE NAVEGACIÓN CORREGIDO
   const NavButton = ({ label, targetView, targetLeague }: { label: string, targetView: any, targetLeague?: any }) => {
     const isActive = view === targetView && (!targetLeague || league === targetLeague);
     
-    // Un solo className que maneja toda la lógica de estilos
     const classFinal = `
       h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all
       ${isActive && targetLeague === 'kings' ? 'text-[#ffd300]' : 
@@ -168,7 +162,6 @@ export default function UserDashboard() {
       {/* HEADER ADAPTATIVO */}
       <header className="w-full h-16 md:h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 md:px-10 sticky top-0 z-50">
         
-        {/* IZQUIERDA: Hamburguesa (Móvil) / Nav (PC) */}
         <div className="flex items-center flex-1">
           <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-white p-2">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} /></svg>
@@ -181,12 +174,10 @@ export default function UserDashboard() {
           </nav>
         </div>
 
-        {/* MEDIO: Logo */}
         <div className="relative w-28 h-8 md:w-44 md:h-12 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
-        {/* DERECHA */}
         <div className="flex items-center justify-end flex-1 gap-2 md:gap-6">
           <nav className="hidden lg:flex gap-6 h-full items-center mr-6">
             <NavButton label="SIMULADOR" targetView="simulator" />
@@ -202,7 +193,6 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      {/* MENU LATERAL MÓVIL */}
       {menuOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setMenuOpen(false)} />
@@ -266,14 +256,14 @@ export default function UserDashboard() {
             </div>
         ) : view === 'ranking' ? (
             <RankingView user={user} />
-        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
+        ) : view === 'simulator' ? (
             <SimulatorView />
         ) : (
-            /* Este es el "si no" final, que muestra la pizarra */
             <PizarraView />
         )}
       </main>
-{/* Ticket oculto */}
+
+      {/* Ticket oculto */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
@@ -330,9 +320,7 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
     const appearanceClass = isSelected ? "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10" : (anyPickInMatch ? "grayscale opacity-30 scale-90" : "grayscale-0 opacity-100 scale-100");
     return (
         <button onClick={onClick} disabled={disabled} className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}>
-            <div className="relative w-24 h-24 md:w-28 md:h-28">
-                <Image src={`/logos/${folder}/${team.logo_file}`} alt={team.name} fill className="object-contain" />
-            </div>
+             <img src={`/logos/${folder}/${team.logo_file}`} alt={team.name} className="w-16 h-16 md:w-20 md:h-20 object-contain" />
         </button>
     )
 }
