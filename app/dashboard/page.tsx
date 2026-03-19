@@ -377,8 +377,10 @@ function SimulatorView() {
     const [scores, setScores] = useState<Record<number, { hg: string, ag: string, penaltyWinnerId: number | null }>>({});
 
     const folder = compKey === 'kings' ? 'Kings' : 'Queens';
+    
+    // Aumentamos el tamaño base de los logos
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio');
-    const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54;
+    const getLogoSize = (filename: string) => isPio(filename) ? 60 : 80;
 
     const getRowColor = (idx: number) => {
         if (idx === 0) return 'bg-yellow-500';
@@ -465,54 +467,65 @@ function SimulatorView() {
 
     return (
         <div className="w-full flex flex-col items-center">
-            <div className="flex justify-center gap-4 py-4">
-                <button onClick={() => setCompKey('kings')} className={`px-6 py-2 rounded-full text-xs font-black italic uppercase border ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Kings</button>
-                <button onClick={() => setCompKey('queens')} className={`px-6 py-2 rounded-full text-xs font-black italic uppercase border ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700'}`}>Queens</button>
+            {/* CONTENEDOR UNIFICADO: Ligas + Jornadas (Sin fondo azul y más compacto) */}
+            <div className="w-full max-w-7xl flex flex-wrap items-center justify-center gap-4 py-3 px-6 border-b border-white/10">
+                {/* Selectores de Liga */}
+                <div className="flex gap-2 border-r border-white/10 pr-4">
+                    <button onClick={() => setCompKey('kings')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black italic uppercase transition-all ${compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>Kings</button>
+                    <button onClick={() => setCompKey('queens')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black italic uppercase transition-all ${compKey === 'queens' ? 'bg-[#01d6c3] text-black' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>Queens</button>
+                </div>
+
+                {/* Selectores de Jornada */}
+                <div className="flex flex-wrap justify-center gap-1.5">
+                    {matchdays.map(day => {
+                        const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '');
+                        const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`;
+                        const isActive = activeMatchdayId === day.id;
+
+                        return (
+                            <button 
+                                key={day.id} 
+                                onClick={() => setActiveMatchdayId(day.id)} 
+                                className={`px-3 py-1.5 text-[10px] font-black italic rounded transition-all border ${isActive ? (compKey === 'kings' ? 'bg-[#FFD300] border-[#FFD300] text-black' : 'bg-[#01d6c3] border-[#01d6c3] text-black') : 'bg-transparent border-slate-700 text-slate-500 hover:border-slate-500'}`}
+                            >
+                                {label}
+                            </button>
+                        )
+                    })}
+                </div>
             </div>
 
-            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
-                {matchdays.map(day => {
-                    // Lógica para convertir "Jornada X" o "CualquierCosa X" en "JX"
-                    const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '');
-                    const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`;
-
-                    return (
-                        <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
-                            {label}
-                        </button>
-                    )
-                })}
-            </div>
-
-            <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
+            <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-6 px-6 py-6">
+                {/* IZQUIERDA: Partidos */}
                 <div className="flex-1">
-                    <div className="mb-6">
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">{activeMatchday?.name}</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {activeMatchday?.matches?.map((m: any) => {
                             const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null };
                             const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag;
                             return (
-                                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
-                                    <div className="w-full flex items-center justify-between gap-2">
+                                <div key={m.id} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-lg">
+                                    <div className="w-full flex items-center justify-between gap-4">
+                                        {/* Home Team */}
                                         <div className="flex flex-col items-center flex-1">
                                             {m.home && (
-                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
-                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" />
+                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)} className={`transition-all duration-300 ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_15px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : 'hover:scale-105'}`}>
+                                                    <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="home" className="object-contain" />
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
-                                            <span className="text-xs font-black text-slate-600 italic">VS</span>
-                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none" maxLength={2} />
+
+                                        {/* Score Input */}
+                                        <div className="flex items-center gap-2">
+                                            <input type="text" value={s.hg} onChange={(e) => handleLocalScoreChange(m.id, 'hg', e.target.value)} className="w-12 h-12 text-center bg-black border-2 border-white/10 rounded-xl font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none transition-all" maxLength={2} />
+                                            <span className="text-sm font-black text-white italic px-1">VS</span>
+                                            <input type="text" value={s.ag} onChange={(e) => handleLocalScoreChange(m.id, 'ag', e.target.value)} className="w-12 h-12 text-center bg-black border-2 border-white/10 rounded-xl font-black text-2xl text-white focus:border-[#FFD300] focus:outline-none transition-all" maxLength={2} />
                                         </div>
+
+                                        {/* Away Team */}
                                         <div className="flex flex-col items-center flex-1">
                                             {m.away && (
-                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)} className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}>
-                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" />
+                                                <button onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)} className={`transition-all duration-300 ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_15px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : 'hover:scale-105'}`}>
+                                                    <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="away" className="object-contain" />
                                                 </button>
                                             )}
                                         </div>
@@ -523,36 +536,38 @@ function SimulatorView() {
                     </div>
                 </div>
 
-                <div className="w-full xl:w-[480px]">
-                    <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                {/* DERECHA: Clasificación */}
+                <div className="w-full xl:w-[420px]">
+                    <div className="bg-slate-950/50 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                        <div className="bg-white/5 py-2 px-4 border-b border-white/10">
+                            <span className="text-[10px] font-black italic uppercase text-slate-400 tracking-widest">Clasificación en vivo</span>
+                        </div>
                         <table className="w-full text-center text-sm">
                             <thead>
-                                <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+                                <tr className="text-[9px] text-slate-500 font-black uppercase border-b border-white/5">
                                     <th className="py-3 w-8">#</th>
                                     <th className="py-3 text-left pl-2">Equipo</th>
-                                    <th className="py-3 w-8">V</th>
+                                    <th className="py-3 w-8 text-white">V</th>
                                     <th className="py-3 w-8">D</th>
-                                    <th className="py-3 w-8">GF</th>
-                                    <th className="py-3 w-8">GC</th>
-                                    <th className="py-3 w-10 bg-white/5">DG</th>
+                                    <th className="py-3 w-10 bg-white/5 text-white">DG</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {standings.map((t, idx) => (
-                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                        <td className="relative py-2.5 font-black text-xs">
+                                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                        <td className="relative py-2 font-black text-xs text-slate-400">
                                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`}></div>
                                             {idx + 1}
                                         </td>
-                                        <td className="py-2.5 pl-2 text-left flex items-center gap-2">
-                                            <Image src={`/logos/${folder}/${t.logo_file}`} width={22} height={22} alt={t.name} />
-                                            <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
+                                        <td className="py-2 pl-2 text-left flex items-center gap-2">
+                                            <div className="relative w-6 h-6">
+                                                <Image src={`/logos/${folder}/${t.logo_file}`} fill alt={t.name} className="object-contain" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase truncate max-w-[100px]">{t.name}</span>
                                         </td>
-                                        <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
-                                        <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
-                                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
-                                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                                        <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                                        <td className="py-2 font-black text-[#00ff88] text-xs">{t.w}</td>
+                                        <td className="py-2 font-black text-red-500 text-xs">{t.l}</td>
+                                        <td className="py-2 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
                                     </tr>
                                 ))}
                             </tbody>
