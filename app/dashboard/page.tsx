@@ -528,10 +528,20 @@ function PizarraView() {
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
+        let displayName = fileName.replace('.png', '');
+        
+        // Si es el jugador nuevo, pedimos el nombre
+        if (fileName === "Nuevo.png") {
+            const customName = prompt("Introduce el nombre del jugador:");
+            if (!customName) return; // Cancelar si no hay nombre
+            displayName = customName;
+        }
+
         const newPlayer = {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
+            displayName: displayName,
             x: 50,
             y: 50
         };
@@ -546,6 +556,7 @@ function PizarraView() {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
+            displayName: fileName.replace('.png', ''),
             x: 30 + (index * 8) % 40, 
             y: 30 + (index * 8) % 40
         }));
@@ -554,17 +565,6 @@ function PizarraView() {
 
     const removePlayer = (idToRemove: string) => {
         setPlayersOnPitch(prev => prev.filter(p => p.id !== idToRemove));
-    };
-
-    const clearPitch = () => {
-        setPlayersOnPitch([]);
-    };
-
-    const handlePointerDown = (e: React.PointerEvent, id: string) => {
-        // Solo iniciamos drag si no es un doble clic (que manejamos aparte)
-        if (e.detail < 2) {
-            setDraggingId(id);
-        }
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
@@ -582,22 +582,17 @@ function PizarraView() {
         ));
     };
 
-    const handlePointerUp = () => {
-        setDraggingId(null);
-    };
-
     return (
         <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
             
-            {/* Controles de la pizarra */}
+            {/* Controles */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap gap-4 items-end shadow-xl">
-                
-                <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipo</label>
                     <select 
                         value={selectedTeam} 
                         onChange={(e) => setSelectedTeam(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none"
+                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
                     >
                         {availableTeams.map(team => (
                             <option key={team} value={team}>{team}</option>
@@ -605,13 +600,15 @@ function PizarraView() {
                     </select>
                 </div>
 
-                <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jugador</label>
                     <select 
                         value={selectedPlayer} 
                         onChange={(e) => setSelectedPlayer(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none"
+                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
                     >
+                        {/* Opción Crear primero */}
+                        <option value="Nuevo.png">✨ CREAR JUGADOR</option>
                         {PLAYERS_DATA[selectedTeam]?.map(player => (
                             <option key={player} value={player}>{player.replace('.png', '')}</option>
                         ))}
@@ -629,10 +626,10 @@ function PizarraView() {
                         onClick={addAllPlayers}
                         className="bg-[#01d6c3] text-black font-black italic px-4 py-2 rounded-lg hover:bg-teal-400 transition-colors flex-1 sm:flex-none"
                     >
-                        Añadir Todos
+                        Todos
                     </button>
                     <button 
-                        onClick={clearPitch}
+                        onClick={() => setPlayersOnPitch([])}
                         className="bg-red-500/10 text-red-500 border border-red-500/50 font-black italic px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors flex-1 sm:flex-none"
                     >
                         Limpiar
@@ -640,46 +637,49 @@ function PizarraView() {
                 </div>
             </div>
 
-            {/* LA CANCHA - Sin márgenes innecesarios y con fondo contenido */}
+            {/* LA CANCHA */}
             <div 
                 ref={boardRef}
                 onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerUp}
-                className="relative w-full aspect-[16/9] bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
+                onPointerUp={() => setDraggingId(null)}
+                onPointerLeave={() => setDraggingId(null)}
+                className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
                 style={{
                     backgroundImage: 'url(/Campo.jpg)',
-                    backgroundSize: '100% 100%', // Ajusta la imagen exactamente al contenedor
+                    backgroundSize: '100% 100%',
                     backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat'
                 }}
             >
                 {playersOnPitch.map((player) => (
                     <div 
                         key={player.id}
-                        onPointerDown={(e) => handlePointerDown(e, player.id)}
-                        onDoubleClick={() => removePlayer(player.id)} // Eliminar con doble clic
-                        className={`absolute w-16 h-16 md:w-24 md:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50 scale-110' : 'z-10 hover:scale-105'}`}
+                        onPointerDown={(e) => { if (e.detail < 2) setDraggingId(player.id); }}
+                        onDoubleClick={() => removePlayer(player.id)}
+                        className={`absolute w-14 h-14 md:w-20 md:h-20 flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50' : 'z-10'}`}
                         style={{ 
                             left: `${player.x}%`, 
                             top: `${player.y}%`,
                             transition: draggingId === player.id ? 'none' : 'transform 0.1s' 
                         }}
                     >
-                        <div className="relative w-full h-full drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                        <div className="relative w-full h-full drop-shadow-lg">
                             <Image 
-                                src={`/jugadores/${player.team}/${player.fileName}`} 
-                                alt={player.fileName} 
+                                src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} 
+                                alt={player.displayName} 
                                 fill 
                                 className="object-contain pointer-events-none select-none" 
                             />
                         </div>
+                        {/* Nombre del jugador */}
+                        <span className="bg-black/70 text-white text-[8px] md:text-[10px] px-1 rounded mt-1 font-bold whitespace-nowrap border border-white/20">
+                            {player.displayName}
+                        </span>
                     </div>
                 ))}
             </div>
             
             <p className="text-center text-slate-400 text-[10px] uppercase tracking-widest font-bold">
-                * Arrastra para mover • Doble clic sobre el jugador para eliminarlo
+                * DOBLE CLIC SOBRE EL JUGADOR PARA ELIMINARLO
             </p>
         </div>
     );
