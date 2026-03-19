@@ -528,20 +528,12 @@ function PizarraView() {
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
-        let displayName = fileName.replace('.png', '');
-        
-        // Si es el jugador nuevo, pedimos el nombre
-        if (fileName === "Nuevo.png") {
-            const customName = prompt("Introduce el nombre del jugador:");
-            if (!customName) return; // Cancelar si no hay nombre
-            displayName = customName;
-        }
-
+        // Si es el jugador nuevo, opcionalmente podrías pedir nombre para el 'alt', 
+        // pero como quitamos los nombres visuales, solo lo añadimos.
         const newPlayer = {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
-            displayName: displayName,
             x: 50,
             y: 50
         };
@@ -556,7 +548,6 @@ function PizarraView() {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
-            displayName: fileName.replace('.png', ''),
             x: 30 + (index * 8) % 40, 
             y: 30 + (index * 8) % 40
         }));
@@ -607,11 +598,11 @@ function PizarraView() {
                         onChange={(e) => setSelectedPlayer(e.target.value)}
                         className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
                     >
-                        {/* Opción Crear primero */}
-                        <option value="Nuevo.png">✨ CREAR JUGADOR</option>
                         {PLAYERS_DATA[selectedTeam]?.map(player => (
                             <option key={player} value={player}>{player.replace('.png', '')}</option>
                         ))}
+                        {/* Opción Crear al final */}
+                        <option value="Nuevo.png">CREAR JUGADOR</option>
                     </select>
                 </div>
 
@@ -655,25 +646,21 @@ function PizarraView() {
                         key={player.id}
                         onPointerDown={(e) => { if (e.detail < 2) setDraggingId(player.id); }}
                         onDoubleClick={() => removePlayer(player.id)}
-                        className={`absolute w-14 h-14 md:w-20 md:h-20 flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50' : 'z-10'}`}
+                        className={`absolute w-14 h-14 md:w-24 md:h-24 lg:w-32 lg:h-32 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50 scale-105' : 'z-10'}`}
                         style={{ 
                             left: `${player.x}%`, 
                             top: `${player.y}%`,
                             transition: draggingId === player.id ? 'none' : 'transform 0.1s' 
                         }}
                     >
-                        <div className="relative w-full h-full drop-shadow-lg">
+                        <div className="relative w-full h-full drop-shadow-2xl">
                             <Image 
                                 src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} 
-                                alt={player.displayName} 
+                                alt="jugador" 
                                 fill 
                                 className="object-contain pointer-events-none select-none" 
                             />
                         </div>
-                        {/* Nombre del jugador */}
-                        <span className="bg-black/70 text-white text-[8px] md:text-[10px] px-1 rounded mt-1 font-bold whitespace-nowrap border border-white/20">
-                            {player.displayName}
-                        </span>
                     </div>
                 ))}
             </div>
