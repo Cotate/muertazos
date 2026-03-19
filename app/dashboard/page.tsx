@@ -273,58 +273,46 @@ export default function UserDashboard() {
             <PizarraView />
         )}
       </main>
-      {/* CONTENEDOR OCULTO PARA EL TICKET DE PICKS */}
-      <div className="absolute left-[-9999px] top-[-9999px]">
-        <div 
-          ref={shareTicketRef} 
-          className="w-[450px] bg-[#0a0a0a] border-2 border-slate-800 p-8 flex flex-col items-center justify-center rounded-3xl"
-        >
-          {/* Header del Ticket */}
-          <div className="relative w-48 h-12 mb-4">
-            {/* Usamos img normal en lugar de next/image para evitar problemas de carga con html2canvas */}
-            <img src="/Muertazos.png" alt="Muertazos" className="w-full h-full object-contain" crossOrigin="anonymous" />
-          </div>
-          
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800">
-              <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="w-full h-full object-cover" crossOrigin="anonymous" />
-            </div>
-            <h2 className="text-2xl font-black italic uppercase" style={{ color: activeColor }}>
-              {user.username}
-            </h2>
-          </div>
+      {/* Ticket oculto */}
+      <div className="absolute top-[-9999px] left-[-9999px]">
+        {matchdays.length > 0 && (
+          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
+              <div className="flex justify-between items-center mb-8">
+                  <div className="relative w-36 h-10">
+                      <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+                  </div>
+                  <div className="text-right">
+                      <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">
+                          {user.username}
+                      </div>
+                      <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
+                          {matchdays[currentDayIndex]?.name}
+                      </div>
+                  </div>
+              </div>
 
-          <p className="text-sm font-bold text-slate-400 tracking-widest mb-6 uppercase">
-            {matchdays[currentDayIndex]?.name} - {league}
-          </p>
-          
-          {/* Picks (Solo los equipos seleccionados) */}
-          <div className="w-full grid grid-cols-2 gap-4 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
-            {matchdays[currentDayIndex]?.matches.map((match: any) => {
-              const predictedId = predictions[match.id]
-              if (!predictedId) return null // Si no picó nada en este partido, no sale
+              <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
+                  {matchdays[currentDayIndex]?.matches.map((match: any) => {
+                      const pickId = predictions[match.id]
+                      const isHomePredicted = pickId === match.home_team_id;
+                      const isAwayPredicted = pickId === match.away_team_id;
+                      const folder = league === 'kings' ? 'Kings' : 'Queens';
 
-              const pickedTeam = predictedId === match.home_team_id ? match.home : match.away;
-              const folder = league === 'kings' ? 'Kings' : 'Queens';
-
-              return (
-                <div key={match.id} className="flex flex-col items-center justify-center p-3 bg-slate-900 rounded-xl border border-slate-700 shadow-md">
-                   <img 
-                     src={`/logos/${folder}/${pickedTeam.logo_file}`} 
-                     alt={pickedTeam.name} 
-                     className="w-16 h-16 object-contain" 
-                     crossOrigin="anonymous"
-                   />
-                </div>
-              )
-            })}
+                      return (
+                          <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
+                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                                  </div>
+                                  <div className="text-2xl font-black italic text-white">VS</div>
+                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                                  </div>
+                          </div>
+                      );
+                  })}
+              </div>
           </div>
-
-          {/* Footer del Ticket */}
-          <div className="mt-8 text-center">
-            <p className="text-xs text-slate-500 font-bold tracking-[0.3em]">MUERTAZOS.COM</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
