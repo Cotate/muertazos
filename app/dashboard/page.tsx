@@ -274,49 +274,53 @@ export default function UserDashboard() {
         )}
       </main>
       {/* Ticket oculto */}
-      <div className="absolute top-[-9999px] left-[-9999px]">
-        {matchdays.length > 0 && (
-          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
-              <div className="flex justify-between items-center mb-8">
-                  <div className="relative w-36 h-10">
-                      <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
-                  </div>
-                  <div className="text-right">
-                      <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">
-                          {user.username}
-                      </div>
-                      <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
-                          {matchdays[currentDayIndex]?.name}
-                      </div>
-                  </div>
-              </div>
+<div className="absolute top-[-9999px] left-[-9999px]">
+  {matchdays.length > 0 && (
+    <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
+        <div className="flex justify-between items-center mb-8">
+            <div className="relative w-36 h-10">
+                <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+            </div>
+            <div className="text-right">
+                <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">
+                    {user.username}
+                </div>
+                <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
+                    {matchdays[currentDayIndex]?.name}
+                </div>
+            </div>
+        </div>
 
-              <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
-                  {matchdays[currentDayIndex]?.matches.map((match: any) => {
-                      const pickId = predictions[match.id]
-                      const isHomePredicted = pickId === match.home_team_id;
-                      const isAwayPredicted = pickId === match.away_team_id;
-                      const folder = league === 'kings' ? 'Kings' : 'Queens';
+        <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
+            {matchdays[currentDayIndex]?.matches.map((match: any) => {
+                const pickId = predictions[match.id]
+                const isHomePredicted = pickId === match.home_team_id;
+                const isAwayPredicted = pickId === match.away_team_id;
+                const folder = league === 'kings' ? 'Kings' : 'Queens';
 
-                      return (
-                          <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
-                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
-                                  </div>
-                                  <div className="text-2xl font-black italic text-white">VS</div>
-                                  <div className={`relative w-24 h-24 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
-                                  </div>
-                          </div>
-                      );
-                  })}
-              </div>
-          </div>
-        )}
-      </div>
+                return (
+                    <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
+                        <div className={`relative w-24 h-24 flex items-center justify-center ${isHomePredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                            <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                        </div>
+                        <div className="text-2xl font-black italic text-white">VS</div>
+                        <div className={`relative w-24 h-24 flex items-center justify-center ${isAwayPredicted ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
+                            <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+
+        {/* Footer con el nombre de la página */}
+        <div className="mt-8 pt-4 border-t border-[#ffffff10] text-center">
+            <span className="text-white font-black italic text-lg tracking-tighter opacity-80 uppercase">
+                muertazos.com
+            </span>
+        </div>
     </div>
-  )
-}
+  )}
+</div>
 
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
