@@ -634,20 +634,21 @@ function SimulatorView() {
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
 function RankingView({ user }: { user: any }) {
-    const [rankingData, setRankingData] = useState<{users: any[], days: any[]}>({users: [], days: []})
+    const [rankingData, setRankingData] = useState<{ users: any[], days: any[] }>({ users: [], days: [] })
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0)
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         const fetchRanking = async () => {
             const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
-            if (!lockedDays || lockedDays.length === 0) { setRankingData({users: [], days: []}); setLoading(false); return }
-            
+            if (!lockedDays || lockedDays.length === 0) { setRankingData({ users: [], days: [] }); setLoading(false); return }
+
             const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
             const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
             const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
-            
+
             const userScores = appUsers?.map(u => {
                 let total = 0; const dayBreakdown: any = {}
                 lockedDays.forEach(day => {
@@ -661,12 +662,12 @@ function RankingView({ user }: { user: any }) {
                 })
                 return { username: u.username, total, dayBreakdown }
             })
-            
+
             userScores?.sort((a, b) => {
                 if (b.total !== a.total) return b.total - a.total;
                 return a.username.localeCompare(b.username);
             });
-            
+
             setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
         }
         fetchRanking()
@@ -691,8 +692,8 @@ function RankingView({ user }: { user: any }) {
             {/* Header Responsivo */}
             <div className="w-full flex flex-col md:flex-row items-center justify-between mb-6 px-2 md:px-8 gap-4">
                 <div className="w-full md:w-1/3 flex justify-center md:justify-start">
-                    <button 
-                        onClick={() => setShowFull(!showFull)} 
+                    <button
+                        onClick={() => setShowFull(!showFull)}
                         className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
                     >
                         {showFull ? '← VOLVER' : 'DESGLOSE'}
@@ -702,21 +703,24 @@ function RankingView({ user }: { user: any }) {
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
-                
-                <div className="w-full md:w-1/3 flex justify-center md:justify-end">
+
+                <div className="flex-1 flex justify-end">
                     {totalPages > 1 && (
-                        <div className="flex items-center bg-black/40 rounded-lg border border-white/10 overflow-hidden shadow-lg">
-                            <button 
-                                disabled={safeCurrentPage === 0} 
-                                onClick={() => setCurrentPage(prev => prev - 1)} 
-                                className={`px-5 py-2 text-sm font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20 text-slate-500' : 'text-[#FFD300] hover:bg-white/5'}`}
-                            > ◀ </button>
-                            <span className="px-3 text-[10px] text-slate-400 font-bold">{safeCurrentPage + 1}/{totalPages}</span>
-                            <button 
-                                disabled={safeCurrentPage === totalPages - 1} 
-                                onClick={() => setCurrentPage(prev => prev + 1)} 
-                                className={`px-5 py-2 text-sm font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20 text-slate-500' : 'text-[#FFD300] hover:bg-white/5'}`}
-                            > ▶ </button>
+                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                            <button
+                                disabled={safeCurrentPage === 0}
+                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ◀
+                            </button>
+                            <button
+                                disabled={safeCurrentPage === totalPages - 1}
+                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ▶
+                            </button>
                         </div>
                     )}
                 </div>
@@ -730,20 +734,33 @@ function RankingView({ user }: { user: any }) {
                             {paginatedUsers.map((u, idx) => {
                                 const globalPos = currentChunk[0] + idx + 1;
                                 const isFirst = globalPos === 1;
-                                const isMe = u.username === user.username;
+                                const isMe = u.username === user?.username;
+                                const hasError = imageErrors[u.username];
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
                                         <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[11px]">
                                             {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
-                                        
+
                                         <td className="w-[120px] px-3 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-3">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
-                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" />
+                                                    {!hasError ? (
+                                                        <Image 
+                                                            src={`/usuarios/${u.username}.jpg`} 
+                                                            alt={u.username} 
+                                                            fill 
+                                                            className="object-cover"
+                                                            onError={() => setImageErrors(prev => ({...prev, [u.username]: true}))}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-white uppercase">
+                                                            {u.username.charAt(0)}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black underline' : 'text-slate-300'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black' : 'text-slate-300'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
@@ -754,7 +771,7 @@ function RankingView({ user }: { user: any }) {
                                                 <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-                                        
+
                                         <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
