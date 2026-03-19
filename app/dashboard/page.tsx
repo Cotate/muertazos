@@ -422,9 +422,9 @@ function SimulatorView() {
     const getLogoSize = (filename: string) => isPio(filename) ? 54 : 72;
 
     const getRowColor = (idx: number) => {
-        if (idx === 0) return 'bg-yellow-500'; // 1er lugar
-        if (idx >= 1 && idx <= 3) return 'bg-blue-500'; // 2do a 4to
-        if (idx >= 6 && idx <= 9) return 'bg-red-500'; // 7mo a 10mo
+        if (idx === 0) return 'bg-yellow-500';          // 1er lugar (índice 0)
+        if (idx >= 1 && idx <= 5) return 'bg-blue-500';  // 2do a 6to (índices 1, 2, 3, 4, 5)
+        if (idx >= 6 && idx <= 9) return 'bg-red-500';   // 7mo a 10mo (índices 6, 7, 8, 9)
         return 'bg-transparent';
     };
 
@@ -619,7 +619,7 @@ function SimulatorView() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-                                <span>2º a 4º Cuartos</span>
+                                <span>2º a 6º Cuartos</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
