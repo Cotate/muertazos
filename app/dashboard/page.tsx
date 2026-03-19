@@ -1,3 +1,7 @@
+/******************************************************************************
+CODIGO FRANKESTEIN A VER SI SALE LO DEL CAMPO TIO 2.0
+
+*******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -509,7 +513,7 @@ function PizarraView() {
     const [selectedTeam, setSelectedTeam] = useState<string>(availableTeams[0] || "");
     const [selectedPlayer, setSelectedPlayer] = useState<string>(PLAYERS_DATA[availableTeams[0]]?.[0] || "");
     
-    // Lista de jugadores que están actualmente en la cancha
+    // Lista de jugadores en la cancha
     const [playersOnPitch, setPlayersOnPitch] = useState<any[]>([]);
     
     // Estado para el Drag & Drop
@@ -525,10 +529,10 @@ function PizarraView() {
 
     const addPlayerToPitch = (fileName: string) => {
         const newPlayer = {
-            id: Math.random().toString(36).substr(2, 9), // ID único
+            id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
-            x: 50, // Aparecen en el centro por defecto (%)
+            x: 50,
             y: 50
         };
         setPlayersOnPitch(prev => [...prev, newPlayer]);
@@ -542,9 +546,8 @@ function PizarraView() {
             id: Math.random().toString(36).substr(2, 9),
             team: selectedTeam,
             fileName: fileName,
-            // Los distribuimos un poco para que no caigan todos uno encima de otro
-            x: 40 + (index * 5) % 20, 
-            y: 40 + (index * 5) % 20
+            x: 30 + (index * 8) % 40, 
+            y: 30 + (index * 8) % 40
         }));
         setPlayersOnPitch(prev => [...prev, ...newPlayers]);
     };
@@ -557,21 +560,20 @@ function PizarraView() {
         setPlayersOnPitch([]);
     };
 
-    // Funciones de Drag & Drop
     const handlePointerDown = (e: React.PointerEvent, id: string) => {
-        e.preventDefault();
-        setDraggingId(id);
+        // Solo iniciamos drag si no es un doble clic (que manejamos aparte)
+        if (e.detail < 2) {
+            setDraggingId(id);
+        }
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!draggingId || !boardRef.current) return;
         
         const rect = boardRef.current.getBoundingClientRect();
-        // Calculamos la posición del ratón en porcentajes respecto al tamaño de la cancha
         let x = ((e.clientX - rect.left) / rect.width) * 100;
         let y = ((e.clientY - rect.top) / rect.height) * 100;
 
-        // Evitar que se salgan de los bordes
         x = Math.max(0, Math.min(x, 100));
         y = Math.max(0, Math.min(y, 100));
 
@@ -585,7 +587,7 @@ function PizarraView() {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
             
             {/* Controles de la pizarra */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap gap-4 items-end shadow-xl">
@@ -619,9 +621,9 @@ function PizarraView() {
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button 
                         onClick={() => addPlayerToPitch(selectedPlayer)}
-                        className="bg-[#ffd300] text-black font-black italic px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex-1 sm:flex-none"
+                        className="bg-[#ffd300] text-black font-black italic px-6 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex-1 sm:flex-none"
                     >
-                        Añadir 1
+                        Añadir
                     </button>
                     <button 
                         onClick={addAllPlayers}
@@ -638,53 +640,46 @@ function PizarraView() {
                 </div>
             </div>
 
-            {/* LA CANCHA (Superficie interactiva) */}
+            {/* LA CANCHA - Sin márgenes innecesarios y con fondo contenido */}
             <div 
                 ref={boardRef}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
-                className="relative w-full aspect-[2/3] sm:aspect-[3/4] md:aspect-video bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
+                className="relative w-full aspect-[16/9] bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
                 style={{
                     backgroundImage: 'url(/Campo.jpg)',
-                    backgroundSize: 'cover',
+                    backgroundSize: '100% 100%', // Ajusta la imagen exactamente al contenedor
                     backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
                 }}
             >
-                {/* Renderizar los jugadores en la cancha */}
                 {playersOnPitch.map((player) => (
                     <div 
                         key={player.id}
                         onPointerDown={(e) => handlePointerDown(e, player.id)}
-                        className={`absolute w-12 h-12 md:w-16 md:h-16 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50 scale-110 drop-shadow-2xl' : 'z-10 hover:scale-105'}`}
+                        onDoubleClick={() => removePlayer(player.id)} // Eliminar con doble clic
+                        className={`absolute w-16 h-16 md:w-24 md:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'z-50 scale-110' : 'z-10 hover:scale-105'}`}
                         style={{ 
                             left: `${player.x}%`, 
                             top: `${player.y}%`,
                             transition: draggingId === player.id ? 'none' : 'transform 0.1s' 
                         }}
                     >
-                        {/* Botón miniatura para borrar jugador (X) */}
-                        <button 
-                            onPointerDown={(e) => { e.stopPropagation(); removePlayer(player.id); }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] font-black z-20 flex items-center justify-center border border-slate-900 hover:scale-110"
-                        >
-                            ✕
-                        </button>
-                        
-                        <div className="relative w-full h-full drop-shadow-md">
+                        <div className="relative w-full h-full drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
                             <Image 
                                 src={`/jugadores/${player.team}/${player.fileName}`} 
                                 alt={player.fileName} 
                                 fill 
-                                className="object-contain pointer-events-none" 
+                                className="object-contain pointer-events-none select-none" 
                             />
                         </div>
                     </div>
                 ))}
             </div>
             
-            <p className="text-center text-slate-500 text-xs mt-2">
-                * Arrastra a los jugadores para moverlos. Presiona la '✕' en la esquina de su imagen para eliminarlos.
+            <p className="text-center text-slate-400 text-[10px] uppercase tracking-widest font-bold">
+                * Arrastra para mover • Doble clic sobre el jugador para eliminarlo
             </p>
         </div>
     );
