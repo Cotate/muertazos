@@ -28,7 +28,7 @@ export default function UserDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
-  const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra'>('picks')
+const [view, setView] = useState<'ranking' | 'simulator' | 'picks' | 'pizarra' | 'all_picks'>('picks');
   const [menuOpen, setMenuOpen] = useState(false)
   
   const [matchdays, setMatchdays] = useState<any[]>([])
