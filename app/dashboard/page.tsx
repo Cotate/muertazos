@@ -207,12 +207,11 @@ export default function UserDashboard() {
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setMenuOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-64 bg-slate-950 border-r border-slate-800 p-6 flex flex-col gap-6">
-             <h3 className="text-slate-500 font-black italic tracking-tighter text-sm border-b border-slate-800 pb-2">NAVEGACIÓN</h3>
              <button onClick={() => {setView('picks'); setLeague('kings'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#ffd300]">KINGS</button>
              <button onClick={() => {setView('picks'); setLeague('queens'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#01d6c3]">QUEENS</button>
              <button onClick={() => {setView('ranking'); setMenuOpen(false)}} className="text-left font-black italic text-xl">RANKING</button>
              <button onClick={() => {setView('simulator'); setMenuOpen(false)}} className="text-left font-black italic text-xl">SIMULADOR</button>
-             <button onClick={() => {setView('pizarra'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PIZARRA TÁCTICA</button>
+             <button onClick={() => {setView('pizarra'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PIZARRA</button>
           </div>
         </div>
       )}
@@ -472,11 +471,17 @@ function SimulatorView() {
             </div>
 
             <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
-                {matchdays.map(day => (
-                    <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
-                        {day.name}
-                    </button>
-                ))}
+                {matchdays.map(day => {
+                    // Lógica para convertir "Jornada X" o "CualquierCosa X" en "JX"
+                    const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '');
+                    const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`;
+
+                    return (
+                        <button key={day.id} onClick={() => setActiveMatchdayId(day.id)} className={`px-3 py-1 text-[11px] font-black italic uppercase rounded border ${activeMatchdayId === day.id ? (compKey === 'kings' ? 'bg-[#FFD300] text-black' : 'bg-[#01d6c3] text-black') : 'bg-black/40 text-slate-400'}`}>
+                            {label}
+                        </button>
+                    )
+                })}
             </div>
 
             <div className="w-full max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 px-6 py-8">
