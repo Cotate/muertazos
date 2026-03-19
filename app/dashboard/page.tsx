@@ -9,192 +9,27 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import html2canvas from 'html2canvas'
 
-// === CONFIGURACIÓN DE EQUIPOS Y JUGADORES ===
-// Como el navegador no puede "leer" carpetas, debes enlistar aquí tus equipos y el nombre exacto de sus archivos .png
 const PLAYERS_DATA: Record<string, string[]> = {
-  "1K FC": [
-  "Achraf Laiti.png",
-  "Cristian Faura.png",
-  "Erik Beattie.png",
-  "Gerard-Verge.png",
-  "Guelmi-Pons.png",
-  "Isma-Reguia.png",
-  "Iván-Rivera.png",
-  "Joel Paredes.png",
-  "Joel-Navas.png",
-  "Karim-Moya.png",
-  "Michel-Owono.png",
-  "Pau 'ZZ' Ruiz.png",
-  "Pol-Lechuga.png"
-],
-"El Barrio": [
-  "Carlos Val.png",
-  "Cristian Ubón.png",
-  "Gerard Puigvert.png",
-  "Hugo Eyre.png",
-  "Joel Bañuls.png",
-  "Pablo Saborido.png",
-  "Pau Fernández.png",
-  "Pol Molés.png",
-  "Robert Vallribera.png",
-  "Sergio Fernández.png",
-  "Sergio Herrero.png",
-  "Ñito Martín.png"
-],
-"Jijantes FC": [
-  "Cristian Lobato.png",
-  "Dani Martí.png",
-  "Daniel Plaza.png",
-  "David Toro.png",
-  "Iker Hernández.png",
-  "Ion Vázquez.png",
-  "José Segovia.png",
-  "Juanpe Nzo.png",
-  "Mario León.png",
-  "Michel Herrero.png",
-  "Pau Fer.png",
-  "Sergi Torres.png",
-  "Víctor Pérez Bello.png",
-  "Álex Cañero.png"
-],
-"La Capital CF": [
-  "Antoni Hernández.png",
-  "Daniel Pérez.png",
-  "Daouda Bamma.png",
-  "Iñaki Villalba.png",
-  "Julen Álvarez.png",
-  "Manel Jiménez.png",
-  "Manuel Martín.png",
-  "Mario Victorio.png",
-  "Omar Dambelleh.png",
-  "Pablo Beguer.png",
-  "Sergi Vives.png",
-  "Sohaib Rektout.png"
-],
-"Los Troncos FC": [
-  "Alex Cubedo.png",
-  "Carles Planas.png",
-  "Carlos Contreras.png",
-  "Daniel Tamayo.png",
-  "David Reyes.png",
-  "Eloy Amoedo.png",
-  "Joan Oriol.png",
-  "Mark Sorroche.png",
-  "Masi Dabo.png",
-  "Sagar Escoto Majó.png",
-  "Victor Oribe.png",
-  "Yaroslav Toporkov.png",
-  "Álvaro Arché.png"
-],
-"PIO FC": [
-  "Adri Espinar.png",
-  "Adrián Frutos.png",
-  "Fernando Velillas.png",
-  "Iker Bartolomé.png",
-  "Izan Grande.png",
-  "Joan Luque.png",
-  "Luis García.png",
-  "Marc Briones.png",
-  "Marc Grifell.png",
-  "Pol Benito.png",
-  "Yeray Muñoz.png",
-  "Álex Sánchez.png"
-],
-"Porcinos FC": [
-  "Aitor Vives.png",
-  "Dani Pérez.png",
-  "David Soriano.png",
-  "Edgar Alvaro.png",
-  "Fouad El Amrani.png",
-  "Marc Pelaz.png",
-  "Nadir Louah.png",
-  "Nico Santos.png",
-  "Oscar Coll.png",
-  "Ricard Pujol.png",
-  "Roger Carbó.png",
-  "Tomeu Nadal.png",
-  "Victor Nofuentes.png"
-],
-"Rayo de Barcelona": [
-  "Abde Bakkali.png",
-  "Adrià Escribano.png",
-  "Carlos Heredia.png",
-  "Carlos Omabegho.png",
-  "David Moreno.png",
-  "Gerard Oliva.png",
-  "Guillem 'ZZ' Ruiz.png",
-  "Ismael González.png",
-  "Iván Torres.png",
-  "Jordi Gómez.png",
-  "Jorge Ibáñez.png",
-  "Roc Bancells.png"
-],
-"Saiyans FC": [
-  "Albert Garcia.png",
-  "Borja Montejo.png",
-  "Dani Santiago.png",
-  "Diego Jiménez.png",
-  "Feliu Torrus.png",
-  "Gerard Vacas.png",
-  "Gio Ferinu.png",
-  "Isaac Maldonado.png",
-  "Iván Fajardo.png",
-  "Juanan Gallego.png",
-  "Pablo Fernández.png",
-  "Sergi Gestí.png"
-],
-"Skull FC": [
-  "Alberto Arnalot.png",
-  "Dani Santos.png",
-  "David 'Burrito' Ruiz.png",
-  "Jorge Escobar.png",
-  "Kevin Zárate.png",
-  "Koke Navares.png",
-  "Nano Modrego.png",
-  "Pablo de Castro.png",
-  "Raúl Escobar.png",
-  "Roberto Tobe.png",
-  "Víctor Mongil.png",
-  "Álex Salas.png"
-],
-"Ultimate Mostoles": [
-  "Aleix Hernando.png",
-  "Aleix Lage.png",
-  "Aleix Martí.png",
-  "Alex 'Capi' Domingo.png",
-  "David Grifell.png",
-  "Eloy Pizarro.png",
-  "Ferran Corominas.png",
-  "Javi Espinosa.png",
-  "Juan Lorente.png",
-  "Marc Granero.png",
-  "Mikhail Prokopev.png",
-  "Víctor Vidal.png"
-],
-"xBuyer Team": [
-  "Aleix Ruiz.png",
-  "Eric Sánchez.png",
-  "Galde Hugue.png",
-  "Jacobo Liencres.png",
-  "Javier Comas.png",
-  "Joel Espinosa.png",
-  "Juanma González.png",
-  "Mario Reyes.png",
-  "Sergio 'Chechi' Costa.png",
-  "Sergio Campos.png",
-  "Víctor Vargas.png",
-  "Xavier Cabezas.png",
-  "Álex Romero.png"
-],
+  "1K FC": ["Achraf Laiti.png", "Cristian Faura.png", "Erik Beattie.png", "Gerard-Verge.png", "Guelmi-Pons.png", "Isma-Reguia.png", "Iván-Rivera.png", "Joel Paredes.png", "Joel-Navas.png", "Karim-Moya.png", "Michel-Owono.png", "Pau 'ZZ' Ruiz.png", "Pol-Lechuga.png"],
+  "El Barrio": ["Carlos Val.png", "Cristian Ubón.png", "Gerard Puigvert.png", "Hugo Eyre.png", "Joel Bañuls.png", "Pablo Saborido.png", "Pau Fernández.png", "Pol Molés.png", "Robert Vallribera.png", "Sergio Fernández.png", "Sergio Herrero.png", "Ñito Martín.png"],
+  "Jijantes FC": ["Cristian Lobato.png", "Dani Martí.png", "Daniel Plaza.png", "David Toro.png", "Iker Hernández.png", "Ion Vázquez.png", "José Segovia.png", "Juanpe Nzo.png", "Mario León.png", "Michel Herrero.png", "Pau Fer.png", "Sergi Torres.png", "Víctor Pérez Bello.png", "Álex Cañero.png"],
+  "La Capital CF": ["Antoni Hernández.png", "Daniel Pérez.png", "Daouda Bamma.png", "Iñaki Villalba.png", "Julen Álvarez.png", "Manel Jiménez.png", "Manuel Martín.png", "Mario Victorio.png", "Omar Dambelleh.png", "Pablo Beguer.png", "Sergi Vives.png", "Sohaib Rektout.png"],
+  "Los Troncos FC": ["Alex Cubedo.png", "Carles Planas.png", "Carlos Contreras.png", "Daniel Tamayo.png", "David Reyes.png", "Eloy Amoedo.png", "Joan Oriol.png", "Mark Sorroche.png", "Masi Dabo.png", "Sagar Escoto Majó.png", "Victor Oribe.png", "Yaroslav Toporkov.png", "Álvaro Arché.png"],
+  "PIO FC": ["Adri Espinar.png", "Adrián Frutos.png", "Fernando Velillas.png", "Iker Bartolomé.png", "Izan Grande.png", "Joan Luque.png", "Luis García.png", "Marc Briones.png", "Marc Grifell.png", "Pol Benito.png", "Yeray Muñoz.png", "Álex Sánchez.png"],
+  "Porcinos FC": ["Aitor Vives.png", "Dani Pérez.png", "David Soriano.png", "Edgar Alvaro.png", "Fouad El Amrani.png", "Marc Pelaz.png", "Nadir Louah.png", "Nico Santos.png", "Oscar Coll.png", "Ricard Pujol.png", "Roger Carbó.png", "Tomeu Nadal.png", "Victor Nofuentes.png"],
+  "Rayo de Barcelona": ["Abde Bakkali.png", "Adrià Escribano.png", "Carlos Heredia.png", "Carlos Omabegho.png", "David Moreno.png", "Gerard Oliva.png", "Guillem 'ZZ' Ruiz.png", "Ismael González.png", "Iván Torres.png", "Jordi Gómez.png", "Jorge Ibáñez.png", "Roc Bancells.png"],
+  "Saiyans FC": ["Albert Garcia.png", "Borja Montejo.png", "Dani Santiago.png", "Diego Jiménez.png", "Feliu Torrus.png", "Gerard Vacas.png", "Gio Ferinu.png", "Isaac Maldonado.png", "Iván Fajardo.png", "Juanan Gallego.png", "Pablo Fernández.png", "Sergi Gestí.png"],
+  "Skull FC": ["Alberto Arnalot.png", "Dani Santos.png", "David 'Burrito' Ruiz.png", "Jorge Escobar.png", "Kevin Zárate.png", "Koke Navares.png", "Nano Modrego.png", "Pablo de Castro.png", "Raúl Escobar.png", "Roberto Tobe.png", "Víctor Mongil.png", "Álex Salas.png"],
+  "Ultimate Mostoles": ["Aleix Hernando.png", "Aleix Lage.png", "Aleix Martí.png", "Alex 'Capi' Domingo.png", "David Grifell.png", "Eloy Pizarro.png", "Ferran Corominas.png", "Javi Espinosa.png", "Juan Lorente.png", "Marc Granero.png", "Mikhail Prokopev.png", "Víctor Vidal.png"],
+  "xBuyer Team": ["Aleix Ruiz.png", "Eric Sánchez.png", "Galde Hugue.png", "Jacobo Liencres.png", "Javier Comas.png", "Joel Espinosa.png", "Juanma González.png", "Mario Reyes.png", "Sergio 'Chechi' Costa.png", "Sergio Campos.png", "Víctor Vargas.png", "Xavier Cabezas.png", "Álex Romero.png"],
 }
 
 export default function UserDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
-  
-  // Añadimos 'pizarra' a las vistas posibles
   const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra'>('picks')
+  const [menuOpen, setMenuOpen] = useState(false) // Para móvil
   
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
@@ -235,24 +70,18 @@ export default function UserDashboard() {
     if (mDays) {
       const sortedDays = mDays.map(day => {
         const sortedMatches = [...(day.matches || [])].sort((a: any, b: any) => {
-          const orderA = a.match_order !== null && a.match_order !== undefined ? a.match_order : a.id;
-          const orderB = b.match_order !== null && b.match_order !== undefined ? b.match_order : b.id;
+          const orderA = a.match_order ?? a.id;
+          const orderB = b.match_order ?? b.id;
           return orderA - orderB;
         });
         return { ...day, matches: sortedMatches };
       });
 
       setMatchdays(sortedDays)
-
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('user_id', user.id)
-      
+      const { data: preds } = await supabase.from('predictions').select('*').eq('user_id', user.id)
       const predMap: Record<number, number> = {}
       preds?.forEach((p: any) => predMap[p.match_id] = p.predicted_team_id)
       setPredictions(predMap)
-
       const currentMatchesIds = sortedDays[currentDayIndex]?.matches.map((m:any) => m.id) || []
       const alreadyHasPreds = preds?.some((p:any) => currentMatchesIds.includes(p.match_id))
       setHasSavedInDB(!!alreadyHasPreds)
@@ -262,7 +91,6 @@ export default function UserDashboard() {
   const handlePredict = (matchId: number, teamId: number) => {
     if (hasSavedInDB && !isEditing) return 
     if (matchdays[currentDayIndex]?.is_locked) return 
-    
     setPredictions(prev => {
         if (prev[matchId] === teamId) {
             const next = { ...prev };
@@ -295,29 +123,15 @@ export default function UserDashboard() {
   const handleSharePicks = async () => {
     if (!shareTicketRef.current) return;
     setIsGenerating(true);
-
     try {
       await new Promise(resolve => setTimeout(resolve, 400));
-      const canvas = await html2canvas(shareTicketRef.current, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: '#0a0a0a',
-        logging: false
-      });
-      
+      const canvas = await html2canvas(shareTicketRef.current, { useCORS: true, scale: 2, backgroundColor: '#0a0a0a', logging: false });
       const image = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.href = image;
       link.download = `Picks_${user.username}.png`;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-    } catch (error: any) {
-      console.error('Error:', error);
-      alert('Error al generar la imagen.');
-    } finally {
-      setIsGenerating(false);
-    }
+    } catch (error) { console.error(error); } finally { setIsGenerating(false); }
   }
 
   if (!user) return null
@@ -325,63 +139,80 @@ export default function UserDashboard() {
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
+  const NavButton = ({ label, targetView, targetLeague }: { label: string, targetView: any, targetLeague?: any }) => {
+    const isActive = view === targetView && (!targetLeague || league === targetLeague);
+    const color = targetLeague === 'queens' ? '#01d6c3' : (targetLeague === 'kings' ? '#ffd300' : '#ffffff');
+    
+    return (
+      <button 
+        onClick={() => { setView(targetView); if(targetLeague) setLeague(targetLeague); setMenuOpen(false); }}
+        style={{ borderBottom: isActive ? `3px solid ${color}` : '3px solid transparent' }}
+        className={`h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+        // Se sobreescribe el color de texto si es Kings o Queens activo
+        className={isActive && targetLeague === 'kings' ? 'text-[#ffd300]' : isActive && targetLeague === 'queens' ? 'text-[#01d6c3]' : isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}
+      >
+        {label}
+      </button>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       
-      {/* HEADER ACTUALIZADO PARA INCLUIR PIZARRA */}
-      <header className="w-full h-16 md:h-20 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-3 md:px-8 sticky top-0 z-50">
-        <div className="flex gap-3 md:gap-8 flex-1 items-center h-full overflow-x-auto [&::-webkit-scrollbar]:hidden">
-            <button 
-                onClick={() => { setLeague('kings'); setView('picks'); }}
-                style={{ borderBottom: league === 'kings' && view === 'picks' ? `3px solid #ffd300` : '3px solid transparent' }}
-                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${league === 'kings' && view === 'picks' ? 'text-[#ffd300]' : 'text-slate-600 hover:text-slate-400'}`}
-            >KINGS</button>
-            <button 
-                onClick={() => { setLeague('queens'); setView('picks'); }}
-                style={{ borderBottom: league === 'queens' && view === 'picks' ? `3px solid #01d6c3` : '3px solid transparent' }}
-                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${league === 'queens' && view === 'picks' ? 'text-[#01d6c3]' : 'text-slate-600 hover:text-slate-400'}`}
-            >QUEENS</button>
-            <button 
-                onClick={() => setView('ranking')}
-                style={{ borderBottom: view === 'ranking' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${view === 'ranking' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
-            >RANKING</button>
-            <button 
-                onClick={() => setView('simulator')}
-                style={{ borderBottom: view === 'simulator' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${view === 'simulator' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
-            >SIMULADOR</button>
-            <button 
-                onClick={() => setView('pizarra')}
-                style={{ borderBottom: view === 'pizarra' ? `3px solid #ffffff` : '3px solid transparent' }}
-                className={`h-full text-[10px] sm:text-xs md:text-xl font-black italic tracking-widest whitespace-nowrap transition-all ${view === 'pizarra' ? 'text-white' : 'text-slate-600 hover:text-slate-400'}`}
-            >PIZARRA</button>
+      {/* HEADER ADAPTATIVO */}
+      <header className="w-full h-16 md:h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 md:px-10 sticky top-0 z-50">
+        
+        {/* IZQUIERDA: Hamburguesa (Móvil) / Nav (PC) */}
+        <div className="flex items-center flex-1">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-white p-2">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} /></svg>
+          </button>
+          
+          <nav className="hidden lg:flex gap-6 h-full items-center">
+            <NavButton label="KINGS" targetView="picks" targetLeague="kings" />
+            <NavButton label="QUEENS" targetView="picks" targetLeague="queens" />
+            <NavButton label="RANKING" targetView="ranking" />
+          </nav>
         </div>
 
-        <div className="hidden lg:block relative w-32 h-10 flex-shrink-0 mx-2">
+        {/* MEDIO: Logo (Siempre centrado) */}
+        <div className="relative w-28 h-8 md:w-44 md:h-12 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
-        <div className="flex-none lg:flex-1 flex justify-end items-center gap-2 md:gap-6 pl-2">
-            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl flex-shrink-0">
-                 <Image 
-                    src={`/usuarios/${user.username}.jpg`} 
-                    alt={user.username} 
-                    fill 
-                    className="object-cover"
-                    onError={(e) => e.currentTarget.style.display = 'none'}
-                />
+        {/* DERECHA: Nav (PC) / User (PC & Móvil) */}
+        <div className="flex items-center justify-end flex-1 gap-2 md:gap-6">
+          <nav className="hidden lg:flex gap-6 h-full items-center mr-6">
+            <NavButton label="SIMULADOR" targetView="simulator" />
+            <NavButton label="PIZARRA" targetView="pizarra" />
+          </nav>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="relative w-8 h-8 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
+                <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill className="object-cover" />
             </div>
-            <button 
-                onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} 
-                className="text-[8px] md:text-[9px] font-black text-red-500 border border-red-500/20 px-2 py-1 md:px-4 md:py-1.5 rounded-full hover:bg-red-500 hover:text-white transition-all italic tracking-tighter"
-            >SALIR</button>
+            <button onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} className="text-[9px] md:text-xs font-black text-red-500 border border-red-500/20 px-3 py-1 md:px-5 md:py-2 rounded-full hover:bg-red-500 hover:text-white transition-all italic">SALIR</button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto pt-4 pb-10 px-4">
+      {/* MENU LATERAL MÓVIL */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setMenuOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-64 bg-slate-950 border-r border-slate-800 p-6 flex flex-col gap-6">
+             <h3 className="text-slate-500 font-black italic tracking-tighter text-sm border-b border-slate-800 pb-2">NAVEGACIÓN</h3>
+             <button onClick={() => {setView('picks'); setLeague('kings'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#ffd300]">KINGS</button>
+             <button onClick={() => {setView('picks'); setLeague('queens'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#01d6c3]">QUEENS</button>
+             <button onClick={() => {setView('ranking'); setMenuOpen(false)}} className="text-left font-black italic text-xl">RANKING</button>
+             <button onClick={() => {setView('simulator'); setMenuOpen(false)}} className="text-left font-black italic text-xl">SIMULADOR</button>
+             <button onClick={() => {setView('pizarra'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PIZARRA TÁCTICA</button>
+          </div>
+        </div>
+      )}
+
+      <main className="max-w-5xl mx-auto pt-6 pb-20 px-4">
         {view === 'picks' ? (
-            /* Vista de Picks */
             <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64">
@@ -390,84 +221,38 @@ export default function UserDashboard() {
                 ) : (
                     <>
                         <div className="flex justify-between items-center mb-8 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
-                            <button 
-                                disabled={currentDayIndex === 0} 
-                                onClick={() => { setCurrentDayIndex(i => i-1); setIsEditing(false); }} 
-                                style={{ color: activeColor, borderColor: activeColor + '40' }}
-                                className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"
-                            > ← </button>
-                            
+                            <button disabled={currentDayIndex === 0} onClick={() => { setCurrentDayIndex(i => i-1); setIsEditing(false); }} style={{ color: activeColor, borderColor: activeColor + '40' }} className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"> ← </button>
                             <div className="text-center">
-                                <h2 className="text-2xl font-black italic uppercase tracking-tighter" style={{ color: activeColor }}>
-                                    {matchdays[currentDayIndex].name}
-                                </h2>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter" style={{ color: activeColor }}>{matchdays[currentDayIndex].name}</h2>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">{matchdays[currentDayIndex].date_label}</p>
                             </div>
-
-                            <button 
-                                disabled={currentDayIndex === matchdays.length - 1} 
-                                onClick={() => { setCurrentDayIndex(i => i+1); setIsEditing(false); }} 
-                                style={{ color: activeColor, borderColor: activeColor + '40' }}
-                                className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"
-                            > → </button>
+                            <button disabled={currentDayIndex === matchdays.length - 1} onClick={() => { setCurrentDayIndex(i => i+1); setIsEditing(false); }} style={{ color: activeColor, borderColor: activeColor + '40' }} className="w-12 h-10 flex items-center justify-center border rounded-xl disabled:opacity-5 font-black text-xl hover:bg-white/5 transition-colors"> → </button>
                         </div>
-
                         <div className="space-y-4">
                             {matchdays[currentDayIndex].matches.map((match: any) => {
                                 const isLocked = matchdays[currentDayIndex].is_locked
                                 const myPick = predictions[match.id]
                                 const anyPick = myPick !== undefined;
-
                                 return (
                                     <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-800/50 hover:border-slate-700 transition-colors">
-                                        <TeamButton 
-                                            team={match.home} 
-                                            league={league}
-                                            isSelected={myPick === match.home_team_id}
-                                            anyPickInMatch={anyPick}
-                                            onClick={() => handlePredict(match.id, match.home_team_id)}
-                                            disabled={(hasSavedInDB && !isEditing) || isLocked}
-                                        />
+                                        <TeamButton team={match.home} league={league} isSelected={myPick === match.home_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.home_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
                                         <span className="text-3xl font-black text-white italic tracking-tighter mx-4">VS</span>
-                                        <TeamButton 
-                                            team={match.away} 
-                                            league={league}
-                                            isSelected={myPick === match.away_team_id}
-                                            anyPickInMatch={anyPick}
-                                            onClick={() => handlePredict(match.id, match.away_team_id)}
-                                            disabled={(hasSavedInDB && !isEditing) || isLocked}
-                                        />
+                                        <TeamButton team={match.away} league={league} isSelected={myPick === match.away_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.away_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
                                     </div>
                                 )
                             })}
                         </div>
-
                         <div className="mt-10 flex justify-center">
                             {matchdays[currentDayIndex]?.is_locked ? (
-                                <div className="bg-red-950/20 border border-red-900/50 text-red-500 px-10 py-4 rounded-2xl font-black italic tracking-widest text-sm">
-                                    JORNADA CERRADA
-                                </div>
+                                <div className="bg-red-950/20 border border-red-900/50 text-red-500 px-10 py-4 rounded-2xl font-black italic tracking-widest text-sm">JORNADA CERRADA</div>
                             ) : (
                                 hasSavedInDB && !isEditing ? (
                                     <div className="flex flex-col sm:flex-row gap-4">
-                                        <button 
-                                            onClick={() => setIsEditing(true)} 
-                                            className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase text-sm"
-                                        >Editar predicción</button>
-                                        
-                                        <button 
-                                            onClick={handleSharePicks} 
-                                            disabled={isGenerating}
-                                            className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm flex items-center justify-center gap-2"
-                                        >
-                                            {isGenerating ? 'GENERANDO...' : 'COMPARTIR PICKS'}
-                                        </button>
+                                        <button onClick={() => setIsEditing(true)} className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase text-sm">Editar predicción</button>
+                                        <button onClick={handleSharePicks} disabled={isGenerating} className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm flex items-center justify-center gap-2">{isGenerating ? 'GENERANDO...' : 'COMPARTIR PICKS'}</button>
                                     </div>
                                 ) : (
-                                    <button 
-                                        onClick={savePredictions} 
-                                        className={`${btnColor} text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm`}
-                                    >Confirmar Jornada</button>
+                                    <button onClick={savePredictions} className={`${btnColor} text-slate-950 px-12 py-4 rounded-2xl font-black italic uppercase text-sm`}>Confirmar Jornada</button>
                                 )
                             )}
                         </div>
@@ -476,18 +261,12 @@ export default function UserDashboard() {
             </div>
         ) : view === 'ranking' ? (
             <RankingView user={user} />
-        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
+        ) : view === 'simulator' ? (
             <SimulatorView />
         ) : (
-            /* Este es el "si no" final, que muestra la pizarra */
             <PizarraView />
         )}
       </main>
-
-      {/* Ticket oculto para compartir */}
-      <div className="absolute top-[-9999px] left-[-9999px]">
-        {/* Código del ticket conservado sin cambios... */}
-      </div>
     </div>
   )
 }
@@ -495,188 +274,92 @@ export default function UserDashboard() {
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
     let appearanceClass = isSelected ? "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10" : (anyPickInMatch ? "grayscale opacity-30 scale-90" : "grayscale-0 opacity-100 scale-100");
-
     return (
         <button onClick={onClick} disabled={disabled} className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}>
-            <div className="relative w-28 h-28">
+            <div className="relative w-24 h-24 md:w-28 md:h-28">
                 <Image src={`/logos/${folder}/${team.logo_file}`} alt={team.name} fill className="object-contain" />
             </div>
         </button>
     )
 }
 
-// ==========================================
-// COMPONENTE: PIZARRA TÁCTICA
-// ==========================================
 function PizarraView() {
     const availableTeams = Object.keys(PLAYERS_DATA);
     const [selectedTeam, setSelectedTeam] = useState<string>(availableTeams[0] || "");
     const [selectedPlayer, setSelectedPlayer] = useState<string>(PLAYERS_DATA[availableTeams[0]]?.[0] || "");
-    
-    // Lista de jugadores en la cancha
     const [playersOnPitch, setPlayersOnPitch] = useState<any[]>([]);
-    
-    // Estado para el Drag & Drop
     const boardRef = useRef<HTMLDivElement>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
 
-    // Actualiza el jugador seleccionado si cambias de equipo
     useEffect(() => {
-        if (selectedTeam && PLAYERS_DATA[selectedTeam]) {
-            setSelectedPlayer(PLAYERS_DATA[selectedTeam][0]);
-        }
+        if (selectedTeam && PLAYERS_DATA[selectedTeam]) { setSelectedPlayer(PLAYERS_DATA[selectedTeam][0]); }
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
-        const newPlayer = {
-            id: Math.random().toString(36).substr(2, 9),
-            team: selectedTeam,
-            fileName: fileName,
-            x: 50,
-            y: 50,
-            zIndex: playersOnPitch.length + 1 // Nuevo para controlar capas
-        };
+        const newPlayer = { id: Math.random().toString(36).substr(2, 9), team: selectedTeam, fileName: fileName, x: 50, y: 50, zIndex: playersOnPitch.length + 1 };
         setPlayersOnPitch(prev => [...prev, newPlayer]);
     };
 
     const addAllPlayers = () => {
         const players = PLAYERS_DATA[selectedTeam];
         if (!players) return;
-        
         const currentCount = playersOnPitch.length;
         const newPlayers = players.map((fileName, index) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            team: selectedTeam,
-            fileName: fileName,
-            x: 30 + (index * 8) % 40, 
-            y: 30 + (index * 8) % 40,
-            zIndex: currentCount + index + 1
+            id: Math.random().toString(36).substr(2, 9), team: selectedTeam, fileName: fileName, x: 30 + (index * 8) % 40, y: 30 + (index * 8) % 40, zIndex: currentCount + index + 1
         }));
         setPlayersOnPitch(prev => [...prev, ...newPlayers]);
     };
 
-    const removePlayer = (idToRemove: string) => {
-        setPlayersOnPitch(prev => prev.filter(p => p.id !== idToRemove));
-    };
-
     const handlePointerDown = (id: string) => {
         setDraggingId(id);
-        // Al tocarlo, aumentamos su zIndex para que pase al frente
-        setPlayersOnPitch(prev => prev.map(p => 
-            p.id === id ? { ...p, zIndex: Math.max(...prev.map(pl => pl.zIndex), 0) + 1 } : p
-        ));
+        setPlayersOnPitch(prev => prev.map(p => p.id === id ? { ...p, zIndex: Math.max(...prev.map(pl => pl.zIndex), 0) + 1 } : p ));
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!draggingId || !boardRef.current) return;
-        
         const rect = boardRef.current.getBoundingClientRect();
         let x = ((e.clientX - rect.left) / rect.width) * 100;
         let y = ((e.clientY - rect.top) / rect.height) * 100;
-
-        x = Math.max(0, Math.min(x, 100));
-        y = Math.max(0, Math.min(y, 100));
-
-        setPlayersOnPitch(prev => prev.map(p => 
-            p.id === draggingId ? { ...p, x, y } : p
-        ));
+        setPlayersOnPitch(prev => prev.map(p => p.id === draggingId ? { ...p, x: Math.max(0, Math.min(x, 100)), y: Math.max(0, Math.min(y, 100)) } : p ));
     };
 
     return (
         <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
-            
-            {/* Controles */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap gap-4 items-end shadow-xl">
                 <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipo</label>
-                    <select 
-                        value={selectedTeam} 
-                        onChange={(e) => setSelectedTeam(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
-                    >
-                        {availableTeams.map(team => (
-                            <option key={team} value={team}>{team}</option>
-                        ))}
+                    <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)} className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm">
+                        {availableTeams.map(team => <option key={team} value={team}>{team}</option>)}
                     </select>
                 </div>
-
                 <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jugador</label>
-                    <select 
-                        value={selectedPlayer} 
-                        onChange={(e) => setSelectedPlayer(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
-                    >
-                        {PLAYERS_DATA[selectedTeam]?.map(player => (
-                            <option key={player} value={player}>{player.replace('.png', '')}</option>
-                        ))}
+                    <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm">
+                        {PLAYERS_DATA[selectedTeam]?.map(player => <option key={player} value={player}>{player.replace('.png', '')}</option>)}
                         <option value="Nuevo.png">CREAR JUGADOR</option>
                     </select>
                 </div>
-
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button 
-                        onClick={() => addPlayerToPitch(selectedPlayer)}
-                        className="bg-[#ffd300] text-black font-black italic px-6 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex-1 sm:flex-none"
-                    >
-                        Añadir
-                    </button>
-                    <button 
-                        onClick={addAllPlayers}
-                        className="bg-[#01d6c3] text-black font-black italic px-4 py-2 rounded-lg hover:bg-teal-400 transition-colors flex-1 sm:flex-none"
-                    >
-                        Todos
-                    </button>
-                    <button 
-                        onClick={() => setPlayersOnPitch([])}
-                        className="bg-red-500/10 text-red-500 border border-red-500/50 font-black italic px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors flex-1 sm:flex-none"
-                    >
-                        Limpiar
-                    </button>
+                    <button onClick={() => addPlayerToPitch(selectedPlayer)} className="bg-[#ffd300] text-black font-black italic px-6 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex-1 sm:flex-none">Añadir</button>
+                    <button onClick={addAllPlayers} className="bg-[#01d6c3] text-black font-black italic px-4 py-2 rounded-lg hover:bg-teal-400 transition-colors flex-1 sm:flex-none">Todos</button>
+                    <button onClick={() => setPlayersOnPitch([])} className="bg-red-500/10 text-red-500 border border-red-500/50 font-black italic px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors flex-1 sm:flex-none">Limpiar</button>
                 </div>
             </div>
 
-            {/* LA CANCHA */}
-            <div 
-                ref={boardRef}
-                onPointerMove={handlePointerMove}
-                onPointerUp={() => setDraggingId(null)}
-                onPointerLeave={() => setDraggingId(null)}
-                className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
-                style={{
-                    backgroundImage: 'url(/Campo.jpg)',
-                    backgroundSize: '100% 100%',
-                    backgroundPosition: 'center',
-                }}
-            >
+            <div ref={boardRef} onPointerMove={handlePointerMove} onPointerUp={() => setDraggingId(null)} onPointerLeave={() => setDraggingId(null)} 
+                 className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
+                 style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: '100% 100%' }}>
                 {playersOnPitch.map((player) => (
-                    <div 
-                        key={player.id}
-                        onPointerDown={() => handlePointerDown(player.id)}
-                        onDoubleClick={() => removePlayer(player.id)}
-                        className={`absolute w-12 h-12 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'scale-110' : ''}`}
-                        style={{ 
-                            left: `${player.x}%`, 
-                            top: `${player.y}%`,
-                            zIndex: player.zIndex,
-                            transition: draggingId === player.id ? 'none' : 'transform 0.1s, z-index 0s' 
-                        }}
-                    >
+                    <div key={player.id} onPointerDown={() => handlePointerDown(player.id)} onDoubleClick={() => setPlayersOnPitch(prev => prev.filter(p => p.id !== player.id))}
+                        className={`absolute w-10 h-10 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'scale-110' : ''}`}
+                        style={{ left: `${player.x}%`, top: `${player.y}%`, zIndex: player.zIndex, transition: draggingId === player.id ? 'none' : 'transform 0.1s' }}>
                         <div className="relative w-full h-full drop-shadow-xl">
-                            <Image 
-                                src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} 
-                                alt="jugador" 
-                                fill 
-                                className="object-contain pointer-events-none select-none" 
-                            />
+                            <Image src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} alt="jugador" fill className="object-contain pointer-events-none select-none" />
                         </div>
                     </div>
                 ))}
             </div>
-            
-            <p className="text-center text-slate-400 text-[10px] uppercase tracking-widest font-bold">
-                * DOBLE CLIC SOBRE EL JUGADOR PARA ELIMINARLO
-            </p>
+            <p className="text-center text-slate-400 text-[10px] uppercase tracking-widest font-bold">* DOBLE CLIC PARA ELIMINAR</p>
         </div>
     );
 }
