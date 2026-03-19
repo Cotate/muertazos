@@ -689,42 +689,46 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
-            {/* Header Responsivo */}
-            <div className="w-full flex flex-col md:flex-row items-center justify-between mb-6 px-2 md:px-8 gap-4">
-                <div className="w-full md:w-1/3 flex justify-center md:justify-start">
-                    <button
-                        onClick={() => setShowFull(!showFull)}
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
-                    >
-                        {showFull ? '← VOLVER' : 'DESGLOSE'}
-                    </button>
-                </div>
+{/* Header Responsivo */}
+<div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
+    
+    {/* Columna Izquierda: Botón */}
+    <div className="w-full flex justify-center md:justify-start">
+        <button
+            onClick={() => setShowFull(!showFull)}
+            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
+        >
+            {showFull ? '← VOLVER' : 'DESGLOSE'}
+        </button>
+    </div>
 
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none">
-                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
-                </h2>
+    {/* Columna Central: Título */}
+    <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
+        <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+    </h2>
 
-                <div className="flex-1 flex justify-end">
-                    {totalPages > 1 && (
-                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                            <button
-                                disabled={safeCurrentPage === 0}
-                                onClick={() => setCurrentPage(prev => prev - 1)}
-                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ◀
-                            </button>
-                            <button
-                                disabled={safeCurrentPage === totalPages - 1}
-                                onClick={() => setCurrentPage(prev => prev + 1)}
-                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ▶
-                            </button>
-                        </div>
-                    )}
-                </div>
+    {/* Columna Derecha: Paginación */}
+    <div className="w-full flex justify-center md:justify-end">
+        {totalPages > 1 && (
+            <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                <button
+                    disabled={safeCurrentPage === 0}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                >
+                    ◀
+                </button>
+                <button
+                    disabled={safeCurrentPage === totalPages - 1}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                >
+                    ▶
+                </button>
             </div>
+        )}
+    </div>
+</div>
 
             {/* Contenedor de Tabla */}
             <div className="w-fit mx-auto">
