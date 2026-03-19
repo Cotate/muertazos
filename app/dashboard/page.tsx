@@ -273,7 +273,7 @@ export default function UserDashboard() {
             <PizarraView />
         )}
       </main>
-      {/* Ticket oculto */}
+{/* Ticket oculto */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
@@ -310,6 +310,13 @@ export default function UserDashboard() {
                           </div>
                       );
                   })}
+              </div>
+
+              {/* FOOTER DEL TICKET */}
+              <div className="mt-8 pt-4 border-t border-[#ffffff10] text-center">
+                  <p className="text-white/40 font-black italic text-sm tracking-widest uppercase">
+                      muertazos.com
+                  </p>
               </div>
           </div>
         )}
