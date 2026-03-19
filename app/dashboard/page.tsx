@@ -273,6 +273,59 @@ export default function UserDashboard() {
             <PizarraView />
         )}
       </main>
+      {/* CONTENEDOR OCULTO PARA EL TICKET DE PICKS */}
+      <div className="absolute left-[-9999px] top-[-9999px]">
+        <div 
+          ref={shareTicketRef} 
+          className="w-[450px] bg-[#0a0a0a] border-2 border-slate-800 p-8 flex flex-col items-center justify-center rounded-3xl"
+        >
+          {/* Header del Ticket */}
+          <div className="relative w-48 h-12 mb-4">
+            {/* Usamos img normal en lugar de next/image para evitar problemas de carga con html2canvas */}
+            <img src="/Muertazos.png" alt="Muertazos" className="w-full h-full object-contain" crossOrigin="anonymous" />
+          </div>
+          
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800">
+              <img src={`/usuarios/${user.username}.jpg`} alt={user.username} className="w-full h-full object-cover" crossOrigin="anonymous" />
+            </div>
+            <h2 className="text-2xl font-black italic uppercase" style={{ color: activeColor }}>
+              {user.username}
+            </h2>
+          </div>
+
+          <p className="text-sm font-bold text-slate-400 tracking-widest mb-6 uppercase">
+            {matchdays[currentDayIndex]?.name} - {league}
+          </p>
+          
+          {/* Picks (Solo los equipos seleccionados) */}
+          <div className="w-full grid grid-cols-2 gap-4 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
+            {matchdays[currentDayIndex]?.matches.map((match: any) => {
+              const predictedId = predictions[match.id]
+              if (!predictedId) return null // Si no picó nada en este partido, no sale
+
+              const pickedTeam = predictedId === match.home_team_id ? match.home : match.away;
+              const folder = league === 'kings' ? 'Kings' : 'Queens';
+
+              return (
+                <div key={match.id} className="flex flex-col items-center justify-center p-3 bg-slate-900 rounded-xl border border-slate-700 shadow-md">
+                   <img 
+                     src={`/logos/${folder}/${pickedTeam.logo_file}`} 
+                     alt={pickedTeam.name} 
+                     className="w-16 h-16 object-contain" 
+                     crossOrigin="anonymous"
+                   />
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Footer del Ticket */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-slate-500 font-bold tracking-[0.3em]">MUERTAZOS.COM</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
