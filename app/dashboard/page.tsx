@@ -311,12 +311,12 @@ export default function UserDashboard() {
                       );
                   })}
               </div>
-              {/* FOOTER DEL TICKET */}
-          <div className="mt-8 pt-4 border-t border-[#ffffff10] text-center">
-              <span className="text-white/40 font-black italic text-sm tracking-widest uppercase">
-                  muertazos.com
-              </span>
-          </div>
+{/* PIE DEL TICKET */}
+              <div className="mt-6 pt-4 border-t border-[#ffffff10] text-center">
+                  <p className="text-white/50 font-black italic text-sm tracking-widest uppercase">
+                      muertazos.com
+                  </p>
+              </div>
           </div>
         )}
       </div>
