@@ -29,7 +29,7 @@ export default function UserDashboard() {
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
   const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra'>('picks')
-  const [menuOpen, setMenuOpen] = useState(false) // Para móvil
+  const [menuOpen, setMenuOpen] = useState(false)
   
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
@@ -139,17 +139,23 @@ export default function UserDashboard() {
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
+  // COMPONENTE DE BOTÓN DE NAVEGACIÓN CORREGIDO
   const NavButton = ({ label, targetView, targetLeague }: { label: string, targetView: any, targetLeague?: any }) => {
     const isActive = view === targetView && (!targetLeague || league === targetLeague);
-    const color = targetLeague === 'queens' ? '#01d6c3' : (targetLeague === 'kings' ? '#ffd300' : '#ffffff');
     
+    // Un solo className que maneja toda la lógica de estilos
+    const classFinal = `
+      h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all
+      ${isActive && targetLeague === 'kings' ? 'text-[#ffd300]' : 
+        isActive && targetLeague === 'queens' ? 'text-[#01d6c3]' : 
+        isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}
+    `;
+
     return (
       <button 
         onClick={() => { setView(targetView); if(targetLeague) setLeague(targetLeague); setMenuOpen(false); }}
-        style={{ borderBottom: isActive ? `3px solid ${color}` : '3px solid transparent' }}
-        className={`h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-        // Se sobreescribe el color de texto si es Kings o Queens activo
-        className={isActive && targetLeague === 'kings' ? 'text-[#ffd300]' : isActive && targetLeague === 'queens' ? 'text-[#01d6c3]' : isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}
+        style={{ borderBottom: isActive ? `3px solid ${isActive && targetLeague === 'queens' ? '#01d6c3' : isActive && targetLeague === 'kings' ? '#ffd300' : '#ffffff'}` : '3px solid transparent' }}
+        className={classFinal}
       >
         {label}
       </button>
@@ -175,12 +181,12 @@ export default function UserDashboard() {
           </nav>
         </div>
 
-        {/* MEDIO: Logo (Siempre centrado) */}
+        {/* MEDIO: Logo */}
         <div className="relative w-28 h-8 md:w-44 md:h-12 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
-        {/* DERECHA: Nav (PC) / User (PC & Móvil) */}
+        {/* DERECHA */}
         <div className="flex items-center justify-end flex-1 gap-2 md:gap-6">
           <nav className="hidden lg:flex gap-6 h-full items-center mr-6">
             <NavButton label="SIMULADOR" targetView="simulator" />
@@ -260,9 +266,9 @@ export default function UserDashboard() {
                 )}
             </div>
         ) : view === 'ranking' ? (
-            <RankingView user={user} />
+          <div className="text-center py-20"><p className="text-slate-600 font-black italic">RANKING (PROXIMAMENTE)</p></div>
         ) : view === 'simulator' ? (
-            <SimulatorView />
+          <div className="text-center py-20"><p className="text-slate-600 font-black italic">SIMULADOR (PROXIMAMENTE)</p></div>
         ) : (
             <PizarraView />
         )}
@@ -273,7 +279,7 @@ export default function UserDashboard() {
 
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
-    let appearanceClass = isSelected ? "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10" : (anyPickInMatch ? "grayscale opacity-30 scale-90" : "grayscale-0 opacity-100 scale-100");
+    const appearanceClass = isSelected ? "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10" : (anyPickInMatch ? "grayscale opacity-30 scale-90" : "grayscale-0 opacity-100 scale-100");
     return (
         <button onClick={onClick} disabled={disabled} className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}>
             <div className="relative w-24 h-24 md:w-28 md:h-28">
@@ -318,8 +324,8 @@ function PizarraView() {
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!draggingId || !boardRef.current) return;
         const rect = boardRef.current.getBoundingClientRect();
-        let x = ((e.clientX - rect.left) / rect.width) * 100;
-        let y = ((e.clientY - rect.top) / rect.height) * 100;
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
         setPlayersOnPitch(prev => prev.map(p => p.id === draggingId ? { ...p, x: Math.max(0, Math.min(x, 100)), y: Math.max(0, Math.min(y, 100)) } : p ));
     };
 
