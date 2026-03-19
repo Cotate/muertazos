@@ -330,99 +330,111 @@ const [view, setView] = useState<'ranking' | 'simulator' | 'picks' | 'pizarra' |
                     </>
                 )}
             </div>
-       ) : view === 'all_picks' && allPicksMatchday ? (
-            <div className="w-full flex flex-col items-center">
-                <div className="relative group w-full mb-8">
-                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5 rounded-t-2xl">
-                        <div className="flex justify-start">
-                            {totalPages > 1 && (
-                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex justify-center">
-                            <h3 style={{ color: activeColor }} className="text-3xl font-black italic uppercase tracking-tighter">
-                                {allPicksMatchday.name}
-                            </h3>
-                        </div>
-                        <div className="flex justify-end gap-4">
-                            {/* Espacio vacío para mantener el grid igual que en el admin */}
-                        </div>
-                    </div>
+  ) : view === 'all_picks' && allPicksMatchday ? (
+    <div className="w-full flex flex-col items-center">
+      
+      {/* 1. SELECTOR DE JORNADAS ESTILO ADMIN */}
+      <div className="w-full flex justify-center flex-wrap gap-2 py-3 px-6 mb-4 border-b border-white/5 bg-slate-900/20 rounded-xl">
+        {matchdays.map(day => (
+          <button
+            key={day.id}
+            onClick={() => setAllPicksMatchday(day)} // Asumiendo que esta función actualiza la jornada de la tabla
+            className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
+              allPicksMatchday.id === day.id
+                ? (league === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
+                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
+            }`}
+          >
+            {day.name.replace(/Jornada\s*/i, 'J')}
+          </button>
+        ))}
+      </div>
 
-                    <div className="w-full overflow-hidden bg-slate-900/40 rounded-b-2xl border-x border-b border-white/5 shadow-2xl backdrop-blur-sm">
-                        <table className="w-full border-collapse table-fixed text-center">
-                            <thead>
-                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
-                                    <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
-                                    {paginatedUsers.map(u => (
-                                        <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
-                                            <div className="flex flex-col items-center justify-center gap-1.5">
-                                                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
-                                                    {u.username.charAt(0).toUpperCase()}
-                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
-                                                </div>
-                                                <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {allPicksMatchday.matches?.map((m: any) => (
-                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                        <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <div className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                      m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
-                                                </div>
-                                                <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                <div className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                      m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        {paginatedUsers.map(u => {
-                                            const pred = allPicksPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
-                                            const hasWinner = m.winner_team_id !== null
-                                            return (
-                                                <td key={u.id} className="p-1 border-r border-white/5">
-                                                    {pred?.predicted_team?.logo_file ? (
-                                                        <div className="flex justify-center">
-                                                            <Image 
-                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                height={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                alt="p" 
-                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
-                                                            />
-                                                        </div>
-                                                    ) : <span className="text-slate-800 text-xs">-</span>}
-                                                </td>
-                                            )
-                                        })}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+      {/* 2. TABLA TIPO ADMIN OCUPANDO TODO EL ANCHO */}
+      <div className="relative group w-full mb-8">
+        <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5 rounded-t-2xl">
+          <div className="flex justify-start">
+            {totalPages > 1 && (
+              <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center">
+            <h3 style={{ color: activeColor }} className="text-3xl font-black italic uppercase tracking-tighter text-center">
+              {allPicksMatchday.name}
+            </h3>
+          </div>
+          <div className="flex justify-end">
+             {/* Espacio para balancear el grid */}
+          </div>
+        </div>
+
+        <div className="w-full overflow-x-auto bg-slate-900/40 rounded-b-2xl border-x border-b border-white/5 shadow-2xl backdrop-blur-sm">
+          <table className="w-full border-collapse table-fixed text-center min-w-[800px]">
+            <thead>
+              <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
+                <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                {paginatedUsers.map(u => (
+                  <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 flex items-center justify-center text-slate-500 font-black text-sm">
+                        {u.username.charAt(0).toUpperCase()}
+                        <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="40px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
+                      </div>
+                      <span className="text-[9px] leading-tight truncate w-full px-1">{u.username}</span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allPicksMatchday.matches?.map((m: any) => (
+                <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                  <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className={`w-12 h-12 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                        {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
+                      </div>
+                      <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                      <div className={`w-12 h-12 rounded-xl transition-all duration-300 flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                        {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
+                      </div>
+                    </div>
+                  </td>
+                  {paginatedUsers.map(u => {
+                    const pred = allPicksPreds.find(p => p.user_id === u.id && p.match_id === m.id);
+                    const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id;
+                    const hasWinner = m.winner_team_id !== null;
+                    return (
+                      <td key={u.id} className="p-1 border-r border-white/5">
+                        {pred?.predicted_team?.logo_file ? (
+                          <div className="flex justify-center">
+                            <Image 
+                              src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                              width={getLogoSize(pred.predicted_team.logo_file)} 
+                              height={getLogoSize(pred.predicted_team.logo_file)} 
+                              alt="p" 
+                              className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
+                            />
+                          </div>
+                        ) : <span className="text-slate-800 text-xs">-</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
                     </div>
                 </div>
             </div>
         ) : view === 'ranking' ? (
-            /* @ts-ignore */
             <RankingView user={user} />
         ) : view === 'simulator' ? ( 
-            /* @ts-ignore */
             <SimulatorView />
         ) : (
-            /* @ts-ignore */
             <PizarraView />
         )}
       </main>
