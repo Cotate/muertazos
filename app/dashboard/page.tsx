@@ -311,18 +311,13 @@ export default function UserDashboard() {
                       );
                   })}
               </div>
-{/* PIE DEL TICKET */}
-              <div className="mt-6 pt-4 border-t border-[#ffffff10] text-center">
-                  <p className="text-white/50 font-black italic text-sm tracking-widest uppercase">
-                      muertazos.com
-                  </p>
-              </div>
           </div>
         )}
       </div>
     </div>
   )
 }
+
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
     const folder = league === 'kings' ? 'Kings' : 'Queens';
     const appearanceClass = isSelected ? "scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10" : (anyPickInMatch ? "grayscale opacity-30 scale-90" : "grayscale-0 opacity-100 scale-100");
