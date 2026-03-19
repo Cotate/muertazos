@@ -1,5 +1,5 @@
 /******************************************************************************
-CODIGO FRANKESTEIN A VER SI SALE LO DEL CAMPO TIO 2.0
+PRUEBAS
 
 *******************************************************************************/
 'use client'
@@ -19,7 +19,7 @@ const PLAYERS_DATA: Record<string, string[]> = {
   "Porcinos FC": ["Aitor Vives.png", "Dani Pérez.png", "David Soriano.png", "Edgar Alvaro.png", "Fouad El Amrani.png", "Marc Pelaz.png", "Nadir Louah.png", "Nico Santos.png", "Oscar Coll.png", "Ricard Pujol.png", "Roger Carbó.png", "Tomeu Nadal.png", "Victor Nofuentes.png"],
   "Rayo de Barcelona": ["Abde Bakkali.png", "Adrià Escribano.png", "Carlos Heredia.png", "Carlos Omabegho.png", "David Moreno.png", "Gerard Oliva.png", "Guillem 'ZZ' Ruiz.png", "Ismael González.png", "Iván Torres.png", "Jordi Gómez.png", "Jorge Ibáñez.png", "Roc Bancells.png"],
   "Saiyans FC": ["Albert Garcia.png", "Borja Montejo.png", "Dani Santiago.png", "Diego Jiménez.png", "Feliu Torrus.png", "Gerard Vacas.png", "Gio Ferinu.png", "Isaac Maldonado.png", "Iván Fajardo.png", "Juanan Gallego.png", "Pablo Fernández.png", "Sergi Gestí.png"],
-  "Skull FC": ["Alberto Arnalot.png", "Dani Santos.png", "David 'Burrito' Ruiz.png", "Jorge Escobar.png", "Kevin Zárate.png", "Koke Navares.png", "Nano Modrego.png", "Pablo de Castro.png", "Raúl Escobar.png", "Roberto Tobe.png", "Víctor Mongil.png", "Álex Salas.png"],
+  "Skull FC": ["Alberto Arnalot.png", "Dani Santos.png", "David Asensio.png", "David 'Burrito' Ruiz.png", "Jorge Escobar.png", "Kevin Zárate.png", "Koke Navares.png", "Nano Modrego.png", "Pablo de Castro.png", "Raúl Escobar.png", "Roberto Tobe.png", "Víctor Mongil.png", "Álex Salas.png"],
   "Ultimate Mostoles": ["Aleix Hernando.png", "Aleix Lage.png", "Aleix Martí.png", "Alex 'Capi' Domingo.png", "David Grifell.png", "Eloy Pizarro.png", "Ferran Corominas.png", "Javi Espinosa.png", "Juan Lorente.png", "Marc Granero.png", "Mikhail Prokopev.png", "Víctor Vidal.png"],
   "xBuyer Team": ["Aleix Ruiz.png", "Eric Sánchez.png", "Galde Hugue.png", "Jacobo Liencres.png", "Javier Comas.png", "Joel Espinosa.png", "Juanma González.png", "Mario Reyes.png", "Sergio 'Chechi' Costa.png", "Sergio Campos.png", "Víctor Vargas.png", "Xavier Cabezas.png", "Álex Romero.png"],
 }
@@ -36,6 +36,12 @@ export default function UserDashboard() {
   const [predictions, setPredictions] = useState<Record<number, number>>({})
   const [isEditing, setIsEditing] = useState(false)
   const [hasSavedInDB, setHasSavedInDB] = useState(false)
+    // Estados para la nueva vista de "Todos los Picks"
+  const [allPicksMatchday, setAllPicksMatchday] = useState<any>(null)
+  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [allPicksPreds, setAllPicksPreds] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(0)
+  const [pageChunks, setPageChunks] = useState<number[][]>([])
   
   const shareTicketRef = useRef<HTMLDivElement>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -82,12 +88,61 @@ export default function UserDashboard() {
       const predMap: Record<number, number> = {}
       preds?.forEach((p: any) => predMap[p.match_id] = p.predicted_team_id)
       setPredictions(predMap)
-      const currentMatchesIds = sortedDays[currentDayIndex]?.matches.map((m:any) => m.id) || []
+      const currentMatchesIds = sortedDays[0]?.matches.map((m:any) => m.id) || []
       const alreadyHasPreds = preds?.some((p:any) => currentMatchesIds.includes(p.match_id))
       setHasSavedInDB(!!alreadyHasPreds)
     }
-  }
+// 2. CARGAR DATOS PARA "TODOS LOS PICKS" (JORNADA OCULTA Y CERRADA)
+    const { data: apData } = await supabase
+      .from('matchdays')
+      .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
+      .eq('competition_key', league)
+      .eq('is_visible', false)
+      .eq('is_locked', true)
+      .order('display_order', { ascending: false })
+      .limit(1);
 
+    if (apData && apData.length > 0) {
+      const day = apData[0];
+      day.matches?.sort((a: any, b: any) => {
+          const orderA = a.match_order ?? a.id;
+          const orderB = b.match_order ?? b.id;
+          return orderA - orderB;
+      });
+      setAllPicksMatchday(day);
+
+      const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username');
+      const matchIds = day.matches?.map((m: any) => m.id) || [];
+      
+      const { data: pData } = matchIds.length > 0 
+        ? await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)').in('match_id', matchIds)
+        : { data: [] };
+
+      const fetchedUsers = uData || [];
+      setAllUsers(fetchedUsers);
+      setAllPicksPreds(pData || []);
+
+      if (fetchedUsers.length > 0) {
+          const targetPerPage = 12;
+          const pages = Math.ceil(fetchedUsers.length / targetPerPage);
+          const base = Math.floor(fetchedUsers.length / pages);
+          const remainder = fetchedUsers.length % pages;
+          
+          let chunks = [];
+          let start = 0;
+          for(let i=0; i<pages; i++) {
+              let size = base + (i < remainder ? 1 : 0);
+              chunks.push([start, start + size]);
+              start += size;
+          }
+          setPageChunks(chunks)
+          setCurrentPage(0)
+      }
+    } else {
+      setAllPicksMatchday(null);
+      if (view === 'all_picks') setView('picks'); // Redirigir si desaparece la jornada
+    }
+  }
   const handlePredict = (matchId: number, teamId: number) => {
     if (hasSavedInDB && !isEditing) return 
     if (matchdays[currentDayIndex]?.is_locked) return 
@@ -138,6 +193,10 @@ export default function UserDashboard() {
 
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
+    // Helpers para la tabla All Picks
+  const folder = league === 'kings' ? 'Kings' : 'Queens'
+  const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
+  const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
   // COMPONENTE DE BOTÓN DE NAVEGACIÓN CORREGIDO
   const NavButton = ({ label, targetView, targetLeague }: { label: string, targetView: any, targetLeague?: any }) => {
@@ -161,7 +220,9 @@ export default function UserDashboard() {
       </button>
     )
   }
-
+  const paginatedUsers = pageChunks.length > 0 ? allUsers.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
+  const totalPages = pageChunks.length;
+  
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       
@@ -177,6 +238,8 @@ export default function UserDashboard() {
           <nav className="hidden lg:flex gap-6 h-full items-center">
             <NavButton label="KINGS" targetView="picks" targetLeague="kings" />
             <NavButton label="QUEENS" targetView="picks" targetLeague="queens" />
+            {/* AQUÍ APARECE EL BOTÓN "PICKS" SOLO SI HAY JORNADA OCULTA Y CERRADA */}
+            {allPicksMatchday && <NavButton label="PICKS" targetView="all_picks" />}
             <NavButton label="RANKING" targetView="ranking" />
           </nav>
         </div>
@@ -209,8 +272,11 @@ export default function UserDashboard() {
           <div className="absolute left-0 top-0 bottom-0 w-64 bg-slate-950 border-r border-slate-800 p-6 flex flex-col gap-6">
              <button onClick={() => {setView('picks'); setLeague('kings'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#ffd300]">KINGS</button>
              <button onClick={() => {setView('picks'); setLeague('queens'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#01d6c3]">QUEENS</button>
-             <button onClick={() => {setView('ranking'); setMenuOpen(false)}} className="text-left font-black italic text-xl">RANKING</button>
-             <button onClick={() => {setView('simulator'); setMenuOpen(false)}} className="text-left font-black italic text-xl">SIMULADOR</button>
+             {allPicksMatchday && (
+               <button onClick={() => {setView('all_picks'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PICKS</button>
+             )}
+             <button onClick={() => {setView('ranking'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">RANKING</button>
+             <button onClick={() => {setView('simulator'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">SIMULADOR</button>
              <button onClick={() => {setView('pizarra'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PIZARRA</button>
           </div>
         </div>
@@ -264,12 +330,99 @@ export default function UserDashboard() {
                     </>
                 )}
             </div>
+       ) : view === 'all_picks' && allPicksMatchday ? (
+            <div className="w-full flex flex-col items-center">
+                <div className="relative group w-full mb-8">
+                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5 rounded-t-2xl">
+                        <div className="flex justify-start">
+                            {totalPages > 1 && (
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-center">
+                            <h3 style={{ color: activeColor }} className="text-3xl font-black italic uppercase tracking-tighter">
+                                {allPicksMatchday.name}
+                            </h3>
+                        </div>
+                        <div className="flex justify-end gap-4">
+                            {/* Espacio vacío para mantener el grid igual que en el admin */}
+                        </div>
+                    </div>
+
+                    <div className="w-full overflow-hidden bg-slate-900/40 rounded-b-2xl border-x border-b border-white/5 shadow-2xl backdrop-blur-sm">
+                        <table className="w-full border-collapse table-fixed text-center">
+                            <thead>
+                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
+                                    <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                                    {paginatedUsers.map(u => (
+                                        <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle">
+                                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
+                                                    {u.username.charAt(0).toUpperCase()}
+                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                </div>
+                                                <span className="text-[10px] leading-tight truncate w-full px-1">{u.username}</span>
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {allPicksMatchday.matches?.map((m: any) => (
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                        <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                    ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                      m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
+                                                </div>
+                                                <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                                                <div className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
+                                                    ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                      m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {paginatedUsers.map(u => {
+                                            const pred = allPicksPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                            const hasWinner = m.winner_team_id !== null
+                                            return (
+                                                <td key={u.id} className="p-1 border-r border-white/5">
+                                                    {pred?.predicted_team?.logo_file ? (
+                                                        <div className="flex justify-center">
+                                                            <Image 
+                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                                width={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                height={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                alt="p" 
+                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
+                                                            />
+                                                        </div>
+                                                    ) : <span className="text-slate-800 text-xs">-</span>}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         ) : view === 'ranking' ? (
+            /* @ts-ignore */
             <RankingView user={user} />
-        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
+        ) : view === 'simulator' ? ( 
+            /* @ts-ignore */
             <SimulatorView />
         ) : (
-            /* Este es el "si no" final, que muestra la pizarra */
+            /* @ts-ignore */
             <PizarraView />
         )}
       </main>
