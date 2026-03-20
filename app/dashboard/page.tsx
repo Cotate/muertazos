@@ -72,42 +72,38 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
         </div>
     )
 
-    return (
-        <div className="w-full flex flex-col items-center">
-            {/* Se eliminó el bg-slate-900/20 y los bordes para que los botones fluyan con el fondo general */}
-            <div className="w-full flex justify-center flex-wrap gap-2 py-4 px-2">
-                {matchdays.map(day => (
+return (
+    <div className="w-full flex flex-col items-center">
+        {/* BARRA DE NAVEGACIÓN DE JORNADAS (Extremo a extremo) */}
+        <div className="w-full flex justify-center flex-wrap gap-2 py-6 px-4 bg-black/40 border-b border-white/5">
+            {matchdays.length > 0 ? (
+                matchdays.map(day => (
                     <button
                         key={day.id}
                         onClick={() => setActiveMatchdayId(day.id)}
-                        className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
+                        className={`px-4 py-2 text-[12px] font-black italic uppercase tracking-wider transition-all rounded-lg border ${
                             activeMatchdayId === day.id
-                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
-                                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
+                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105 shadow-[0_0_15px_rgba(255,211,0,0.3)]' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105 shadow-[0_0_15px_rgba(1,214,195,0.3)]')
+                                : 'bg-slate-900/50 text-slate-400 border-white/10 hover:border-white/30 hover:text-white'
                         }`}
                     >
                         {day.name.replace(/Jornada\s*/i, 'J')}
                     </button>
-                ))}
-            </div>
+                ))
+            ) : (
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Cargando jornadas...</p>
+            )}
+        </div>
 
             {activeMatchday && (
-                <div className="relative group w-full mb-8">
-                    {/* Se redujo el px-10 a px-4 y se eliminó el bg-slate-900/40 para quitar el aspecto de caja */}
-                    <div className="w-full px-4 py-4 grid grid-cols-3 items-center border-b border-white/5">
-                        <div className="flex justify-start">
-                            {totalPages > 1 && (
-                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex justify-center">
-                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">
-                                {activeMatchday.name}
-                            </h3>
-                        </div>
+                        <div className="w-full overflow-x-auto"> 
+                            {/* TÍTULO DE LA JORNADA */}
+                            <div className="w-full px-6 py-8 flex justify-center bg-gradient-to-b from-black/20 to-transparent">
+                                <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} 
+                                    className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter drop-shadow-2xl">
+                                    {activeMatchday.name}
+                                </h3>
+                            </div>
                         <div className="flex justify-end gap-4">
                             {/* Espacio reservado intencionalmente */}
                         </div>
