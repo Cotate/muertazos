@@ -1,5 +1,5 @@
 /******************************************************************************
-PRUEBA 2.0
+ULTIMO CODIGO BIEN HECHO DE USUARIO 
 *******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
@@ -72,40 +72,42 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
         </div>
     )
 
-return (
-    <div className="w-full flex flex-col items-center">
-        {/* BARRA DE NAVEGACIÓN DE JORNADAS (Extremo a extremo) */}
-        <div className="w-full flex justify-center flex-wrap gap-2 py-6 px-4 bg-black/40 border-b border-white/5">
-            {matchdays.length > 0 ? (
-                matchdays.map(day => (
+    return (
+        <div className="w-full flex flex-col items-center">
+            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
+                {matchdays.map(day => (
                     <button
                         key={day.id}
                         onClick={() => setActiveMatchdayId(day.id)}
-                        className={`px-4 py-2 text-[12px] font-black italic uppercase tracking-wider transition-all rounded-lg border ${
+                        className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
                             activeMatchdayId === day.id
-                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105 shadow-[0_0_15px_rgba(255,211,0,0.3)]' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105 shadow-[0_0_15px_rgba(1,214,195,0.3)]')
-                                : 'bg-slate-900/50 text-slate-400 border-white/10 hover:border-white/30 hover:text-white'
+                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
+                                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
                         }`}
                     >
                         {day.name.replace(/Jornada\s*/i, 'J')}
                     </button>
-                ))
-            ) : (
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Cargando jornadas...</p>
-            )}
-        </div>
+                ))}
+            </div>
 
             {activeMatchday && (
-                        <div className="w-full overflow-x-auto"> 
-                            {/* TÍTULO DE LA JORNADA */}
-                            <div className="w-full px-6 py-8 flex justify-center bg-gradient-to-b from-black/20 to-transparent">
-                                <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} 
-                                    className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter drop-shadow-2xl">
-                                    {activeMatchday.name}
-                                </h3>
-                            </div>
+                <div className="relative group w-full mb-8">
+                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5">
+                        <div className="flex justify-start">
+                            {totalPages > 1 && (
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                                    <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-center">
+                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-3xl font-black italic uppercase tracking-tighter">
+                                {activeMatchday.name}
+                            </h3>
+                        </div>
                         <div className="flex justify-end gap-4">
-                            {/* Espacio reservado intencionalmente */}
+                            {/* Espacio reservado intencionalmente para mantener el grid-cols-3 del admin sin botones */}
                         </div>
                     </div>
 
@@ -381,7 +383,7 @@ export default function UserDashboard() {
         </div>
       )}
 
-    <main className={`mx-auto pt-6 pb-20 ${view === 'all-picks' ? 'w-full' : 'max-w-5xl px-4'}`}>
+      <main className="max-w-5xl mx-auto pt-6 pb-20 px-4">
         {view === 'picks' ? (
             <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
@@ -428,18 +430,17 @@ export default function UserDashboard() {
                         </div>
                     </>
                 )}
-    </div>
+            </div>
         ) : view === 'ranking' ? (
             <RankingView user={user} />
         ) : view === 'all-picks' ? (
-            /* Ahora este componente recibirá el 100% del ancho del navegador */
             <CompetitionReadOnly competitionKey={league} />
         ) : view === 'simulator' ? (
             <SimulatorView />
         ) : (
             <PizarraView />
         )}
-    </main>
+      </main>
       {/* Ticket oculto */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
