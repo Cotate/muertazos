@@ -1,5 +1,5 @@
 /******************************************************************************
-ULTIMO CODIGO BIEN HECHO DE USUARIO 
+PRUEBAS
 *******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
@@ -7,7 +7,161 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import html2canvas from 'html2canvas'
+// --- COMPONENTE DE SOLO LECTURA (TABLA DE RESULTADOS) ---
+function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
+    const [matchdays, setMatchdays] = useState<any[]>([])
+    const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
+    const [users, setUsers] = useState<any[]>([])
+    const [allPreds, setAllPreds] = useState<any[]>([])
+    const [currentPage, setCurrentPage] = useState(0)
+    const [pageChunks, setPageChunks] = useState<number[][]>([])
+    
+    const folder = competitionKey === 'kings' ? 'Kings' : 'Queens'
+    const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
+    const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
+    const load = async () => {
+        // CORRECCIÓN: Filtramos por is_visible = false para ver J1, J2, J3
+        const { data: mData } = await supabase
+            .from('matchdays')
+            .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
+            .eq('competition_key', competitionKey)
+            .eq('is_visible', false) // <--- Aquí el cambio para ver las ocultas
+            .order('display_order')
+
+        const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
+        const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
+        
+        if (mData) { 
+            mData.forEach(day => { 
+                if(day.matches) {
+                    day.matches.sort((a: any, b: any) => (a.match_order ?? 99) - (b.match_order ?? 99));
+                }
+            }); 
+            setMatchdays(mData) 
+            if (mData.length > 0 && !activeMatchdayId) setActiveMatchdayId(mData[0].id)
+        }
+        
+        const fetchedUsers = uData || []
+        setUsers(fetchedUsers)
+        setAllPreds(pData || [])
+
+        if (fetchedUsers.length > 0) {
+            const targetPerPage = 12;
+            const pages = Math.ceil(fetchedUsers.length / targetPerPage);
+            let chunks = [];
+            for(let i=0; i<pages; i++) {
+                chunks.push([i * targetPerPage, (i + 1) * targetPerPage]);
+            }
+            setPageChunks(chunks)
+        }
+    }
+    
+    useEffect(() => { load() }, [competitionKey])
+
+    const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
+    const activeMatchday = matchdays.find(d => d.id === activeMatchdayId);
+
+    if (matchdays.length === 0) return <div className="text-center py-20 font-black italic opacity-20 text-3xl">NO HAY RESULTADOS DISPONIBLES</div>
+
+    return (
+        <div className="w-full flex flex-col items-center bg-slate-900/40 rounded-3xl border border-slate-800 shadow-2xl backdrop-blur-sm overflow-hidden mt-6">
+            {/* Botonera de Jornadas (Diseño Admin) */}
+            <div className="w-full flex justify-center flex-wrap gap-2 py-4 px-6 border-b border-white/5 bg-slate-950/50">
+                {matchdays.map(day => (
+                    <button
+                        key={day.id}
+                        onClick={() => setActiveMatchdayId(day.id)}
+                        className={`px-3 py-1 text-[11px] font-black italic uppercase tracking-wider transition-all rounded border shadow-sm ${
+                            activeMatchdayId === day.id
+                                ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105')
+                                : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-white'
+                        }`}
+                    >
+                        {day.name.replace(/Jornada\s*/i, 'J')}
+                    </button>
+                ))}
+            </div>
+
+            {activeMatchday && (
+                <div className="relative group w-full mb-4">
+                    {/* Header de la Tabla con Paginación */}
+                    <div className="w-full px-4 md:px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5">
+                        <div className="flex justify-start">
+                            {pageChunks.length > 1 && (
+                                <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                                    <button disabled={currentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className="px-5 py-2 text-xs font-black hover:bg-white/10 text-[#FFD300] disabled:opacity-20">◀</button>
+                                    <button disabled={currentPage === pageChunks.length - 1} onClick={() => setCurrentPage(prev => prev + 1)} className="px-5 py-2 text-xs font-black hover:bg-white/10 text-[#FFD300] disabled:opacity-20">▶</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-center text-center">
+                            <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} className="text-xl md:text-3xl font-black italic uppercase tracking-tighter">
+                                {activeMatchday.name}
+                            </h3>
+                        </div>
+                        <div></div>
+                    </div>
+
+                    {/* Tabla de Resultados Estilo Admin */}
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full min-w-[800px] border-collapse table-fixed text-center">
+                            <thead>
+                                <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase border-b border-white/5">
+                                    <th className="w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                                    {paginatedUsers.map(u => (
+                                        <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800">
+                                                    <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill className="object-cover" />
+                                                </div>
+                                                <span className="text-[10px] truncate w-full px-1">{u.username}</span>
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeMatchday.matches?.map((m: any) => (
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                                        <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className={`${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale'}`}>
+                                                    {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
+                                                </div>
+                                                <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                                                <div className={`${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale'}`}>
+                                                    {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {paginatedUsers.map(u => {
+                                            const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
+                                            const isHit = m.winner_team_id && pred?.predicted_team_id === m.winner_team_id
+                                            return (
+                                                <td key={u.id} className="p-1 border-r border-white/5">
+                                                    {pred?.predicted_team?.logo_file ? (
+                                                        <Image 
+                                                            src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
+                                                            width={getLogoSize(pred.predicted_team.logo_file)} 
+                                                            height={getLogoSize(pred.predicted_team.logo_file)} 
+                                                            alt="p" 
+                                                            className={`mx-auto ${m.winner_team_id ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)]' : 'opacity-10 grayscale') : 'opacity-100'}`} 
+                                                        />
+                                                    ) : '-'}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 const PLAYERS_DATA: Record<string, string[]> = {
   "1K FC": ["Achraf Laiti.png", "Cristian Faura.png", "Erik Beattie.png", "Gerard-Verge.png", "Guelmi-Pons.png", "Isma-Reguia.png", "Iván-Rivera.png", "Joel Paredes.png", "Joel-Navas.png", "Karim-Moya.png", "Michel-Owono.png", "Pau 'ZZ' Ruiz.png", "Pol-Lechuga.png"],
   "El Barrio": ["Carlos Val.png", "Cristian Ubón.png", "Gerard Puigvert.png", "Hugo Eyre.png", "Joel Bañuls.png", "Pablo Saborido.png", "Pau Fernández.png", "Pol Molés.png", "Robert Vallribera.png", "Sergio Fernández.png", "Sergio Herrero.png", "Ñito Martín.png"],
@@ -27,7 +181,7 @@ export default function UserDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
-  const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra'>('picks')
+    const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra' | 'all-picks'>('picks')
   const [menuOpen, setMenuOpen] = useState(false)
   
   const [matchdays, setMatchdays] = useState<any[]>([])
@@ -138,22 +292,20 @@ export default function UserDashboard() {
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
   const btnColor = league === 'kings' ? 'bg-[#ffd300]' : 'bg-[#01d6c3]'
 
-  // COMPONENTE DE BOTÓN DE NAVEGACIÓN CORREGIDO
   const NavButton = ({ label, targetView, targetLeague }: { label: string, targetView: any, targetLeague?: any }) => {
     const isActive = view === targetView && (!targetLeague || league === targetLeague);
     
-    // Un solo className que maneja toda la lógica de estilos
     const classFinal = `
       h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all
-      ${isActive && targetLeague === 'kings' ? 'text-[#ffd300]' : 
-        isActive && targetLeague === 'queens' ? 'text-[#01d6c3]' : 
+      ${isActive && (targetLeague === 'kings' || league === 'kings') ? 'text-[#ffd300]' : 
+        isActive && (targetLeague === 'queens' || league === 'queens') ? 'text-[#01d6c3]' : 
         isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}
     `;
 
     return (
       <button 
         onClick={() => { setView(targetView); if(targetLeague) setLeague(targetLeague); setMenuOpen(false); }}
-        style={{ borderBottom: isActive ? `3px solid ${isActive && targetLeague === 'queens' ? '#01d6c3' : isActive && targetLeague === 'kings' ? '#ffd300' : '#ffffff'}` : '3px solid transparent' }}
+        style={{ borderBottom: isActive ? `3px solid ${isActive && (targetLeague === 'queens' || (!targetLeague && league === 'queens')) ? '#01d6c3' : isActive && (targetLeague === 'kings' || (!targetLeague && league === 'kings')) ? '#ffd300' : '#ffffff'}` : '3px solid transparent' }}
         className={classFinal}
       >
         {label}
@@ -167,7 +319,6 @@ export default function UserDashboard() {
       {/* HEADER ADAPTATIVO */}
       <header className="w-full h-16 md:h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 md:px-10 sticky top-0 z-50">
         
-        {/* IZQUIERDA: Hamburguesa (Móvil) / Nav (PC) */}
         <div className="flex items-center flex-1">
           <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-white p-2">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} /></svg>
@@ -180,14 +331,13 @@ export default function UserDashboard() {
           </nav>
         </div>
 
-        {/* MEDIO: Logo */}
         <div className="relative w-28 h-8 md:w-44 md:h-12 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
-        {/* DERECHA */}
         <div className="flex items-center justify-end flex-1 gap-2 md:gap-6">
           <nav className="hidden lg:flex gap-6 h-full items-center mr-6">
+            <NavButton label="PICKS" targetView="all-picks" />
             <NavButton label="SIMULADOR" targetView="simulator" />
             <NavButton label="PIZARRA" targetView="pizarra" />
           </nav>
@@ -209,6 +359,7 @@ export default function UserDashboard() {
              <button onClick={() => {setView('picks'); setLeague('kings'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#ffd300]">KINGS</button>
              <button onClick={() => {setView('picks'); setLeague('queens'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-[#01d6c3]">QUEENS</button>
              <button onClick={() => {setView('ranking'); setMenuOpen(false)}} className="text-left font-black italic text-xl">RANKING</button>
+             <button onClick={() => {setView('all-picks'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">RESULTADOS</button>
              <button onClick={() => {setView('simulator'); setMenuOpen(false)}} className="text-left font-black italic text-xl">SIMULADOR</button>
              <button onClick={() => {setView('pizarra'); setMenuOpen(false)}} className="text-left font-black italic text-xl text-white">PIZARRA</button>
           </div>
@@ -265,10 +416,11 @@ export default function UserDashboard() {
             </div>
         ) : view === 'ranking' ? (
             <RankingView user={user} />
-        ) : view === 'simulator' ? ( // <--- AQUÍ FALTABA ESTA CONDICIÓN
+        ) : view === 'all-picks' ? (
+            <CompetitionReadOnly competitionKey={league} />
+        ) : view === 'simulator' ? (
             <SimulatorView />
         ) : (
-            /* Este es el "si no" final, que muestra la pizarra */
             <PizarraView />
         )}
       </main>
@@ -328,7 +480,6 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
         </button>
     )
 }
-
 function PizarraView() {
     const availableTeams = Object.keys(PLAYERS_DATA);
     const [selectedTeam, setSelectedTeam] = useState<string>(availableTeams[0] || "");
