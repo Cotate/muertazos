@@ -75,7 +75,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
     return (
         <div className="w-full flex flex-col items-center">
             {/* BARRA DE NAVEGACIÓN DE JORNADAS (Diseño 1) */}
-            <div className="w-full flex justify-center flex-wrap gap-2 py-6 px-4 bg-black/40 border-b border-white/5">
+            {/* Se redujo el py-6 a py-2 para eliminar el espacio raro */}
+            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-4 bg-black/40 border-b border-white/5">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
@@ -94,10 +95,11 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
             {activeMatchday && (
                 <div className="w-full">
                     {/* TÍTULO DE LA JORNADA Y PAGINACIÓN DE USUARIOS */}
-                    <div className="w-full px-6 py-10 flex flex-col items-center bg-gradient-to-b from-black/20 to-transparent relative">
+                    {/* Se cambió a flex-row para alinear los botones a la izquierda del título */}
+                    <div className="w-full px-6 py-8 flex flex-row justify-center items-center gap-4 md:gap-8 bg-gradient-to-b from-black/20 to-transparent relative">
                         {/* Controles de Paginación Flotantes (Funcionalidad 2) */}
                         {totalPages > 1 && (
-                            <div className="flex items-center bg-black/60 rounded-xl border border-white/10 overflow-hidden mb-6 shadow-2xl">
+                            <div className="flex items-center bg-black/60 rounded-xl border border-white/10 overflow-hidden shadow-2xl">
                                 <button 
                                     disabled={currentPage === 0} 
                                     onClick={() => setCurrentPage(prev => prev - 1)} 
@@ -118,8 +120,9 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                             </div>
                         )}
 
+                        {/* Letra más pequeña adaptada (text-3xl md:text-4xl) */}
                         <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} 
-                            className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter drop-shadow-2xl">
+                            className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter drop-shadow-2xl">
                             {activeMatchday.name}
                         </h3>
                     </div>
