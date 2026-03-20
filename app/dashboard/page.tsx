@@ -74,7 +74,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
 
     return (
         <div className="w-full flex flex-col items-center">
-            <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-6 border-b border-white/5 bg-slate-900/20">
+            {/* Se eliminó el bg-slate-900/20 y los bordes para que los botones fluyan con el fondo general */}
+            <div className="w-full flex justify-center flex-wrap gap-2 py-4 px-2">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
@@ -92,7 +93,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
 
             {activeMatchday && (
                 <div className="relative group w-full mb-8">
-                    <div className="w-full px-10 py-4 grid grid-cols-3 items-center bg-slate-900/40 border-b border-white/5">
+                    {/* Se redujo el px-10 a px-4 y se eliminó el bg-slate-900/40 para quitar el aspecto de caja */}
+                    <div className="w-full px-4 py-4 grid grid-cols-3 items-center border-b border-white/5">
                         <div className="flex justify-start">
                             {totalPages > 1 && (
                                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
@@ -107,7 +109,7 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                             </h3>
                         </div>
                         <div className="flex justify-end gap-4">
-                            {/* Espacio reservado intencionalmente para mantener el grid-cols-3 del admin sin botones */}
+                            {/* Espacio reservado intencionalmente */}
                         </div>
                     </div>
 
@@ -383,7 +385,7 @@ export default function UserDashboard() {
         </div>
       )}
 
-      <main className="max-w-5xl mx-auto pt-6 pb-20 px-4">
+    <main className={`mx-auto pt-6 pb-20 ${view === 'all-picks' ? 'w-full' : 'max-w-5xl px-4'}`}>
         {view === 'picks' ? (
             <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
@@ -430,17 +432,18 @@ export default function UserDashboard() {
                         </div>
                     </>
                 )}
-            </div>
+    </div>
         ) : view === 'ranking' ? (
             <RankingView user={user} />
         ) : view === 'all-picks' ? (
+            /* Ahora este componente recibirá el 100% del ancho del navegador */
             <CompetitionReadOnly competitionKey={league} />
         ) : view === 'simulator' ? (
             <SimulatorView />
         ) : (
             <PizarraView />
         )}
-      </main>
+    </main>
       {/* Ticket oculto */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
