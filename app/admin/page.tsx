@@ -117,13 +117,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const isPio = (filename: string) => filename?.toLowerCase().includes('pio')
     const getLogoSize = (filename: string) => isPio(filename) ? 38 : 54
 
+    // 1. CARGA INICIAL (Solo Jornadas y Usuarios)
     const load = async () => {
         const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
         const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
-        const { data: pData } = await supabase
-        .from('predictions')
-        .select('*, predicted_team:predicted_team_id(logo_file)')
-        .limit(10000) // <-- Aumenta el límite de filas devueltas
         
         if (mData) { 
             mData.forEach(day => { 
@@ -147,8 +144,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         
         const fetchedUsers = uData || []
         setUsers(fetchedUsers)
-        setAllPreds(pData || [])
 
+        // Paginación de usuarios
         if (fetchedUsers.length > 0) {
             const targetPerPage = 12;
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
@@ -168,6 +165,37 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     }
     
     useEffect(() => { load() }, [competitionKey])
+        // 2. NUEVO HOOK: Cargar predicciones SOLO de la jornada activa
+    useEffect(() => {
+        const fetchPredictions = async () => {
+            // Si no hay jornada activa o aún no cargan las jornadas, salimos
+            if (!activeMatchdayId || matchdays.length === 0) return;
+
+            // Buscamos los datos de la jornada que estamos viendo
+            const activeDay = matchdays.find(d => d.id === activeMatchdayId);
+            
+            // Si la jornada no tiene partidos, limpiamos las predicciones
+            if (!activeDay || !activeDay.matches || activeDay.matches.length === 0) {
+                setAllPreds([]);
+                return;
+            }
+
+            // Extraemos un arreglo solo con los IDs de los partidos de ESTA jornada
+            const matchIds = activeDay.matches.map((m: any) => m.id);
+
+            // Le pedimos a Supabase las predicciones donde el match_id esté en nuestra lista
+            const { data: pData, error } = await supabase
+                .from('predictions')
+                .select('*, predicted_team:predicted_team_id(logo_file)')
+                .in('match_id', matchIds); // <--- ESTA ES LA MAGIA
+
+            if (!error && pData) {
+                setAllPreds(pData);
+            }
+        };
+
+        fetchPredictions();
+    }, [activeMatchdayId, matchdays]); // Se ejecuta cada que cambias de pestaña de jornada
 
     const toggleVisible = async (id: number, currentVal: boolean) => {
         if (!id) return;
