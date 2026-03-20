@@ -1,3 +1,6 @@
+/******************************************************************************
+PRUEBA UNO
+*******************************************************************************/
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -117,7 +120,10 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const load = async () => {
         const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
         const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
-        const { data: pData } = await supabase.from('predictions').select('*, predicted_team:predicted_team_id(logo_file)')
+        const { data: pData } = await supabase
+        .from('predictions')
+        .select('*, predicted_team:predicted_team_id(logo_file)')
+        .limit(10000) // <-- Aumenta el límite de filas devueltas
         
         if (mData) { 
             mData.forEach(day => { 
