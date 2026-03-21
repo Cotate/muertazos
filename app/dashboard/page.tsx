@@ -1,5 +1,5 @@
 /******************************************************************************
-PRUEBA 2.0
+PRUEBA
 *******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
@@ -525,7 +525,9 @@ function PizarraView() {
     const [draggingId, setDraggingId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (selectedTeam && PLAYERS_DATA[selectedTeam]) { setSelectedPlayer(PLAYERS_DATA[selectedTeam][0]); }
+        if (selectedTeam && PLAYERS_DATA[selectedTeam]) { 
+            setSelectedPlayer(PLAYERS_DATA[selectedTeam][0]); 
+        }
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
@@ -584,10 +586,11 @@ function PizarraView() {
                  style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: '100% 100%' }}>
                 {playersOnPitch.map((player) => (
                     <div key={player.id} onPointerDown={() => handlePointerDown(player.id)} onDoubleClick={() => setPlayersOnPitch(prev => prev.filter(p => p.id !== player.id))}
-                        className={`absolute w-10 h-10 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing ${draggingId === player.id ? 'scale-110' : ''}`}
+                        className="absolute w-10 h-10 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing"
                         style={{ left: `${player.x}%`, top: `${player.y}%`, zIndex: player.zIndex, transition: draggingId === player.id ? 'none' : 'transform 0.1s' }}>
                         <div className="relative w-full h-full drop-shadow-xl">
-                            <Image src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} alt="jugador" fill className="object-contain pointer-events-none select-none" />
+                            {/* Aquí se agregó el rounded-lg para el ligero redondeo */}
+                            <Image src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} alt="jugador" fill className="object-contain pointer-events-none select-none rounded-lg" />
                         </div>
                     </div>
                 ))}
