@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Script from 'next/script' // 1. Importamos el componente Script
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -103,10 +104,37 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="mt-8 text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
-          MUERTAZOS © 2026
-        </p>
+        {/* 2. FOOTER ACTUALIZADO CON BOTÓN DE DONACIÓN */}
+        <div className="mt-8 flex flex-col items-center gap-4 pb-8">
+          <div id="donate-button-container">
+            <div id="donate-button" className="hover:scale-105 transition-transform"></div>
+          </div>
+          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
+            MUERTAZOS © 2026
+          </p>
+        </div>
+
       </div>
+
+      {/* 3. CARGA DEL SDK DE PAYPAL */}
+      <Script
+        src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js"
+        strategy="lazyOnload"
+        onLoad={() => {
+          // Usamos (window as any) para evitar errores de TypeScript con el objeto global de PayPal
+          if ((window as any).PayPal) {
+            (window as any).PayPal.Donation.Button({
+              env: 'production',
+              hosted_button_id: 'PE6W2EWS2SJFW',
+              image: {
+                src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_LG.gif',
+                alt: 'Donar con el botón PayPal',
+                title: 'PayPal - The safer, easier way to pay online!',
+              }
+            }).render('#donate-button')
+          }
+        }}
+      />
     </div>
   )
 }
