@@ -534,7 +534,14 @@ function PizarraView() {
     }, [selectedTeam]);
 
     const addPlayerToPitch = (fileName: string) => {
-        const newPlayer = { id: Math.random().toString(36).substr(2, 9), team: selectedTeam, fileName: fileName, x: 50, y: 50, zIndex: playersOnPitch.length + 1 };
+        const newPlayer = { 
+            id: Math.random().toString(36).substr(2, 9), 
+            team: selectedTeam, 
+            fileName: fileName, 
+            x: 50, // Centrado horizontal (50%)
+            y: 50, // Centrado vertical (50%)
+            zIndex: playersOnPitch.length + 1 
+        };
         setPlayersOnPitch(prev => [...prev, newPlayer]);
     };
 
@@ -542,16 +549,25 @@ function PizarraView() {
         const players = PLAYERS_DATA[selectedTeam];
         if (!players) return;
         const currentCount = playersOnPitch.length;
-        // Modificado: x e y ahora son 50 para que todos aparezcan apilados en el centro exacto
+        
+        // Todos aparecen en el centro (x:50, y:50)
         const newPlayers = players.map((fileName, index) => ({
-            id: Math.random().toString(36).substr(2, 9), team: selectedTeam, fileName: fileName, x: 50, y: 50, zIndex: currentCount + index + 1
+            id: Math.random().toString(36).substr(2, 9), 
+            team: selectedTeam, 
+            fileName: fileName, 
+            x: 50, 
+            y: 50, 
+            zIndex: currentCount + index + 1
         }));
         setPlayersOnPitch(prev => [...prev, ...newPlayers]);
     };
 
     const handlePointerDown = (id: string) => {
         setDraggingId(id);
-        setPlayersOnPitch(prev => prev.map(p => p.id === id ? { ...p, zIndex: Math.max(...prev.map(pl => pl.zIndex), 0) + 1 } : p ));
+        setPlayersOnPitch(prev => {
+            const maxZ = prev.length > 0 ? Math.max(...prev.map(pl => pl.zIndex)) : 0;
+            return prev.map(p => p.id === id ? { ...p, zIndex: maxZ + 1 } : p);
+        });
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
@@ -559,7 +575,11 @@ function PizarraView() {
         const rect = boardRef.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        setPlayersOnPitch(prev => prev.map(p => p.id === draggingId ? { ...p, x: Math.max(0, Math.min(x, 100)), y: Math.max(0, Math.min(y, 100)) } : p ));
+        setPlayersOnPitch(prev => prev.map(p => 
+            p.id === draggingId 
+                ? { ...p, x: Math.max(0, Math.min(x, 100)), y: Math.max(0, Math.min(y, 100)) } 
+                : p 
+        ));
     };
 
     return (
@@ -574,7 +594,9 @@ function PizarraView() {
                 <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jugador</label>
                     <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm">
-                        {PLAYERS_DATA[selectedTeam]?.map(player => <option key={player} value={player}>{player.replace('.png', '')}</option>)}
+                        {PLAYERS_DATA[selectedTeam]?.map(player => (
+                            <option key={player} value={player}>{player.replace('.png', '')}</option>
+                        ))}
                         <option value="Nuevo.png">CREAR JUGADOR</option>
                     </select>
                 </div>
@@ -585,22 +607,28 @@ function PizarraView() {
                 </div>
             </div>
 
-            <div ref={boardRef} onPointerMove={handlePointerMove} onPointerUp={() => setDraggingId(null)} onPointerLeave={() => setDraggingId(null)} 
-                 className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
-                 style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: '100% 100%' }}>
+            <div 
+                ref={boardRef} 
+                onPointerMove={handlePointerMove} 
+                onPointerUp={() => setDraggingId(null)} 
+                onPointerLeave={() => setDraggingId(null)} 
+                className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
+                style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: '100% 100%' }}
+            >
                 {playersOnPitch.map((player) => (
-                    <div key={player.id} onPointerDown={() => handlePointerDown(player.id)} onDoubleClick={() => setPlayersOnPitch(prev => prev.filter(p => p.id !== player.id))}
-                        className="absolute w-12 h-12 md:w-24 lg:w-28 md:h-24 lg:h-28 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing"
-                        style={{ left: `${player.x}%`, top: `${player.y}%`, zIndex: player.zIndex, transition: draggingId === player.id ? 'none' : 'transform 0.1s' }}>
-                        
-                        {/* Se ajustó este contenedor: se agregó bg, border evidente y overflow-hidden para que respete el rounded-xl */}
-                        <div className="relative w-full h-full drop-shadow-2xl rounded-xl border-[3px] border-white/30 bg-black/40 overflow-hidden flex items-center justify-center backdrop-blur-sm">
+                    <div 
+                        key={player.id} 
+                        onPointerDown={() => handlePointerDown(player.id)} 
+                        onDoubleClick={() => setPlayersOnPitch(prev => prev.filter(p => p.id !== player.id))}
+                        className="absolute w-10 h-10 md:w-20 lg:w-24 md:h-20 lg:h-24 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing"
+                        style={{ left: `${player.x}%`, top: `${player.y}%`, zIndex: player.zIndex, transition: draggingId === player.id ? 'none' : 'transform 0.1s' }}
+                    >
+                        <div className="relative w-full h-full drop-shadow-xl">
                             <Image 
                                 src={player.fileName === "Nuevo.png" ? "/Nuevo.png" : `/jugadores/${player.team}/${player.fileName}`} 
                                 alt="jugador" 
                                 fill 
-                                sizes="(max-width: 768px) 48px, 112px"
-                                className="object-cover pointer-events-none select-none" 
+                                className="object-contain pointer-events-none select-none" 
                             />
                         </div>
                     </div>
