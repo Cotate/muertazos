@@ -15,11 +15,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen`}>
-        {/* Sin header aquí, cada página pondrá el suyo */}
+      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen overflow-x-hidden`}>
         <main>{children}</main>
-
-        {/* Analytics de Vercel */}
         <Analytics />
       </body>
     </html>
