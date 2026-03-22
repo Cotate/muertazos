@@ -891,7 +891,7 @@ function SimulatorView() {
     );
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
-/* COMPONENTE DE RANKING REESTRUCTURADO (VERSIÓN INFALIBLE) */
+/* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
 function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{ users: any[], days: any[] }>({ users: [], days: [] })
     const [showFull, setShowFull] = useState(false)
@@ -901,167 +901,164 @@ function RankingView({ user }: { user: any }) {
 
     useEffect(() => {
         const fetchRanking = async () => {
-            setLoading(true);
+            // 1. Obtenemos TODOS los partidos que YA TIENEN un ganador asignado
+            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').not('winner_team_id', 'is', null)
             
-            // 1. Traer todos los partidos que tengan un ganador (SIN LÍMITE CORTO)
-            const { data: matches } = await supabase
-                .from('matches')
-                .select('id, winner_team_id, matchday_id')
-                .not('winner_team_id', 'is', null);
-            
-            if (!matches || matches.length === 0) {
-                setRankingData({ users: [], days: [] });
-                setLoading(false);
-                return;
+            if (!matches || matches.length === 0) { 
+                setRankingData({ users: [], days: [] }); 
+                setLoading(false); 
+                return 
             }
 
-            const matchIds = matches.map(m => m.id);
-            const matchdayIds = [...new Set(matches.map(m => m.matchday_id))];
+            // 2. Extraemos los IDs únicos de las jornadas que tienen partidos terminados
+            const validMatchdayIds = [...new Set(matches.map(m => m.matchday_id))]
 
-            // 2. Traer TODAS las predicciones (Aumentamos el rango para evitar el límite de 1000 de Supabase)
-            const { data: predictions } = await supabase
-                .from('predictions')
-                .select('user_id, match_id, predicted_team_id')
-                .in('match_id', matchIds)
-                .range(0, 5000); // Aseguramos traer todo el volumen de votos
+            // 3. Obtenemos solo esas jornadas para las columnas de desglose
+            const { data: matchdays } = await supabase.from('matchdays').select('id, name, competition_key').in('id', validMatchdayIds).order('display_order')
+            
+            // 4. Obtenemos las predicciones de los partidos válidos
+            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches.map(m => m.id))
+            
+            // 5. Obtenemos a los usuarios
+            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
 
-            // 3. Traer Usuarios y Jornadas
-            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin');
-            const { data: matchdays } = await supabase.from('matchdays')
-                .select('id, name, competition_key')
-                .in('id', matchdayIds)
-                .order('display_order');
-
-            // 4. CREAR UN MAPA DE PREDICCIONES PARA ACCESO INSTANTÁNEO
-            // Esto evita que el .find() falle o se salte registros
-            const predMap = new Map();
-            predictions?.forEach(p => {
-                predMap.set(`${p.user_id}_${p.match_id}`, String(p.predicted_team_id));
-            });
-
-            // 5. CÁLCULO DE PUNTOS
             const userScores = appUsers?.map(u => {
-                let total = 0;
-                const dayBreakdown: Record<number, number> = {};
-
+                let total = 0; 
+                const dayBreakdown: any = {}
+                
                 matchdays?.forEach(day => {
-                    const matchesInDay = matches.filter(m => m.matchday_id === day.id);
-                    let dayHits = 0;
-
+                    const matchesInDay = matches.filter(m => m.matchday_id === day.id)
+                    let dayHits = 0
                     matchesInDay.forEach(m => {
-                        const predictedId = predMap.get(`${u.id}_${m.id}`);
-                        const actualWinnerId = String(m.winner_team_id);
-
-                        if (predictedId && predictedId === actualWinnerId) {
-                            dayHits++;
+                        const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
+                        
+                        // FIX: Convertimos a String para evitar errores de tipo (int vs string)
+                        if (userPred && String(userPred.predicted_team_id) === String(m.winner_team_id)) {
+                            dayHits++
                         }
-                    });
+                    })
+                    dayBreakdown[day.id] = dayHits; 
+                    total += dayHits
+                })
+                return { username: u.username, total, dayBreakdown }
+            })
 
-                    dayBreakdown[day.id] = dayHits;
-                    total += dayHits;
-                });
-
-                return { username: u.username, total, dayBreakdown };
-            });
-
-            // 6. ORDENACIÓN (Puntos desc, luego nombre asc)
             userScores?.sort((a, b) => {
                 if (b.total !== a.total) return b.total - a.total;
                 return a.username.localeCompare(b.username);
             });
 
-            setRankingData({ users: userScores || [], days: matchdays || [] });
-            setLoading(false);
-        };
+            setRankingData({ users: userScores || [], days: matchdays || [] }); 
+            setLoading(false)
+        }
         
-        fetchRanking();
-    }, []);
+        fetchRanking()
+    }, [])
 
-    if (loading) return (
-        <div className="py-40 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-[#FFD300] mb-4"></div>
-            <p className="text-slate-500 font-black italic uppercase tracking-widest">Sincronizando votos...</p>
-        </div>
-    );
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
 
-    // --- Lógica de Paginación ---
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
-    const itemsPerPage = 15;
-    const totalPages = Math.ceil(totalUsers / itemsPerPage) || 1;
-    const paginatedUsers = allUsers.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+    const pageChunks: number[][] = [];
+    for (let i = 0; i < totalUsers; i += 15) {
+        pageChunks.push([i, Math.min(i + 15, totalUsers)]);
+    }
+
+    const totalPages = pageChunks.length || 1;
+    const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+    const currentChunk = pageChunks[safeCurrentPage] || [0, 0];
+    const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1]);
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
+            {/* Header Responsivo */}
             <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
+                
+                {/* Columna Izquierda: Botón */}
                 <div className="w-full flex justify-center md:justify-start">
                     <button
                         onClick={() => setShowFull(!showFull)}
-                        className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
                     >
-                        {showFull ? '← VOLVER' : 'VER DESGLOSE'}
+                        {showFull ? '← VOLVER' : 'DESGLOSE'}
                     </button>
                 </div>
 
+                {/* Columna Central: Título */}
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
 
+                {/* Columna Derecha: Paginación */}
                 <div className="w-full flex justify-center md:justify-end">
                     {totalPages > 1 && (
                         <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                            <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="px-5 py-2 text-xs font-black disabled:opacity-20 text-[#FFD300]">◀</button>
-                            <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className="px-5 py-2 text-xs font-black disabled:opacity-20 text-[#FFD300]">▶</button>
+                            <button
+                                disabled={safeCurrentPage === 0}
+                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ◀
+                            </button>
+                            <button
+                                disabled={safeCurrentPage === totalPages - 1}
+                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ▶
+                            </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="w-fit mx-auto max-w-full overflow-x-auto">
-                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl">
-                    <table className="border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/10 bg-black/20 text-[9px] text-slate-500 font-bold uppercase">
-                                <th className="px-4 py-2">Pos</th>
-                                <th className="px-4 py-2 text-left">Usuario</th>
-                                {showFull && rankingData.days.map(d => (
-                                    <th key={d.id} className="px-2 py-2 w-10">{d.name.split(' ')[1] || 'J'}</th>
-                                ))}
-                                <th className="px-6 py-2 text-[#FFD300]">Total</th>
-                            </tr>
-                        </thead>
+            {/* Contenedor de Tabla */}
+            <div className="w-fit mx-auto">
+                <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+                    <table className="border-collapse table-auto">
                         <tbody>
                             {paginatedUsers.map((u, idx) => {
-                                const globalPos = (currentPage * itemsPerPage) + idx + 1;
+                                const globalPos = currentChunk[0] + idx + 1;
+                                const isFirst = globalPos === 1;
                                 const isMe = u.username === user?.username;
+                                const hasError = imageErrors[u.username];
 
                                 return (
-                                    <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] ${isMe ? 'bg-blue-500/10' : ''}`}>
-                                        <td className="px-4 py-2 text-center font-black italic text-xs text-slate-500">
-                                            {globalPos === 1 ? '👑' : globalPos}
+                                    <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
+                                        <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[11px]">
+                                            {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
-                                        <td className="px-4 py-2">
+
+                                        <td className="w-[120px] px-3 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-3">
-                                                <div className="relative w-7 h-7 rounded-full overflow-hidden border border-white/10 bg-slate-800 shrink-0">
-                                                    <Image 
-                                                        src={`/usuarios/${u.username}.jpg`} 
-                                                        alt="" fill className="object-cover" 
-                                                        onError={(e:any) => e.target.src = "https://via.placeholder.com/100"}
-                                                    />
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
+                                                    {!hasError ? (
+                                                        <Image 
+                                                            src={`/usuarios/${u.username}.jpg`} 
+                                                            alt={u.username} 
+                                                            fill 
+                                                            className="object-cover"
+                                                            onError={() => setImageErrors(prev => ({...prev, [u.username]: true}))}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-white uppercase">
+                                                            {u.username.charAt(0)}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider ${isMe ? 'text-white' : 'text-slate-300'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black' : 'text-slate-300'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
+
                                         {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className="px-2 py-2 text-center text-[10px] font-mono border-l border-white/5">
-                                                <span className={u.dayBreakdown[day.id] > 0 ? 'text-white' : 'text-slate-700'}>
-                                                    {u.dayBreakdown[day.id] || 0}
-                                                </span>
+                                            <td key={day.id} className={`px-2 py-1 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                                <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
                                             </td>
                                         ))}
-                                        <td className={`px-6 py-2 text-center font-black text-base italic ${globalPos === 1 ? 'text-[#FFD300]' : 'text-white'}`}>
+
+                                        <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
