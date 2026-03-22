@@ -891,7 +891,7 @@ function SimulatorView() {
     );
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
-/* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
+/* COMPONENTE DE RANKING OPTIMIZADO */
 function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{ users: any[], days: any[] }>({ users: [], days: [] })
     const [showFull, setShowFull] = useState(false)
@@ -901,61 +901,67 @@ function RankingView({ user }: { user: any }) {
 
     useEffect(() => {
         const fetchRanking = async () => {
-            // 1. Obtenemos TODOS los partidos que YA TIENEN un ganador asignado
-            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').not('winner_team_id', 'is', null)
-            
-            if (!matches || matches.length === 0) { 
-                setRankingData({ users: [], days: [] }); 
-                setLoading(false); 
-                return 
+            setLoading(true);
+
+            // 1. Obtenemos los usuarios reales
+            const { data: appUsers } = await supabase
+                .from('app_users')
+                .select('id, username')
+                .neq('role', 'admin');
+
+            // 2. Obtenemos todas las jornadas configuradas
+            const { data: matchdays } = await supabase
+                .from('matchdays')
+                .select('id, name, competition_key')
+                .order('display_order');
+
+            // 3. Consultamos la tabla de puntos pre-calculados
+            const { data: pointsData } = await supabase
+                .from('user_points')
+                .select('user_id, matchday_id, points');
+
+            if (!appUsers) {
+                setLoading(false);
+                return;
             }
 
-            // 2. Extraemos los IDs únicos de las jornadas que tienen partidos terminados
-            const validMatchdayIds = [...new Set(matches.map(m => m.matchday_id))]
+            // 4. Construimos el desglose por usuario
+            const userScores = appUsers.map(u => {
+                let total = 0;
+                const dayBreakdown: Record<number, number> = {};
 
-            // 3. Obtenemos solo esas jornadas para las columnas de desglose
-            const { data: matchdays } = await supabase.from('matchdays').select('id, name, competition_key').in('id', validMatchdayIds).order('display_order')
-            
-            // 4. Obtenemos las predicciones de los partidos válidos
-            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches.map(m => m.id))
-            
-            // 5. Obtenemos a los usuarios
-            const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
+                // Filtramos los puntos que pertenecen a este usuario
+                const userPicks = pointsData?.filter(p => p.user_id === u.id) || [];
 
-            const userScores = appUsers?.map(u => {
-                let total = 0; 
-                const dayBreakdown: any = {}
-                
-                matchdays?.forEach(day => {
-                    const matchesInDay = matches.filter(m => m.matchday_id === day.id)
-                    let dayHits = 0
-                    matchesInDay.forEach(m => {
-                        const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
-                        
-                        // FIX: Convertimos a String para evitar errores de tipo (int vs string)
-                        if (userPred && String(userPred.predicted_team_id) === String(m.winner_team_id)) {
-                            dayHits++
-                        }
-                    })
-                    dayBreakdown[day.id] = dayHits; 
-                    total += dayHits
-                })
-                return { username: u.username, total, dayBreakdown }
-            })
+                userPicks.forEach(p => {
+                    dayBreakdown[p.matchday_id] = p.points;
+                    total += p.points;
+                });
 
-            userScores?.sort((a, b) => {
+                return { 
+                    username: u.username, 
+                    total, 
+                    dayBreakdown 
+                };
+            });
+
+            // 5. Ordenamos por puntos totales desc y luego alfabético
+            userScores.sort((a, b) => {
                 if (b.total !== a.total) return b.total - a.total;
                 return a.username.localeCompare(b.username);
             });
 
-            setRankingData({ users: userScores || [], days: matchdays || [] }); 
-            setLoading(false)
-        }
-        
-        fetchRanking()
-    }, [])
+            setRankingData({ 
+                users: userScores, 
+                days: matchdays || [] 
+            });
+            setLoading(false);
+        };
 
-    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Generando tabla...</div>
+        fetchRanking();
+    }, []);
+
+    if (loading) return <div className="py-20 text-center animate-pulse text-slate-500 font-black italic uppercase">Sincronizando posiciones...</div>
 
     const allUsers = rankingData.users;
     const totalUsers = allUsers.length;
@@ -973,8 +979,6 @@ function RankingView({ user }: { user: any }) {
         <div className="w-full flex flex-col items-center py-2 px-2">
             {/* Header Responsivo */}
             <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
-                
-                {/* Columna Izquierda: Botón */}
                 <div className="w-full flex justify-center md:justify-start">
                     <button
                         onClick={() => setShowFull(!showFull)}
@@ -984,12 +988,10 @@ function RankingView({ user }: { user: any }) {
                     </button>
                 </div>
 
-                {/* Columna Central: Título */}
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
 
-                {/* Columna Derecha: Paginación */}
                 <div className="w-full flex justify-center md:justify-end">
                     {totalPages > 1 && (
                         <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
@@ -1033,11 +1035,10 @@ function RankingView({ user }: { user: any }) {
                                             <div className="flex items-center gap-3">
                                                 <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
                                                     {!hasError ? (
-                                                        <Image 
+                                                        <img 
                                                             src={`/usuarios/${u.username}.jpg`} 
                                                             alt={u.username} 
-                                                            fill 
-                                                            className="object-cover"
+                                                            className="object-cover w-full h-full"
                                                             onError={() => setImageErrors(prev => ({...prev, [u.username]: true}))}
                                                         />
                                                     ) : (
