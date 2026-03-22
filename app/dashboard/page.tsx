@@ -891,6 +891,7 @@ function SimulatorView() {
     );
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
+/* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
 function RankingView({ user }: { user: any }) {
     const [rankingData, setRankingData] = useState<{ users: any[], days: any[] }>({ users: [], days: [] })
     const [showFull, setShowFull] = useState(false)
@@ -900,23 +901,44 @@ function RankingView({ user }: { user: any }) {
 
     useEffect(() => {
         const fetchRanking = async () => {
-            const { data: lockedDays } = await supabase.from('matchdays').select('id, name, competition_key').eq('is_locked', true).order('display_order')
-            if (!lockedDays || lockedDays.length === 0) { setRankingData({ users: [], days: [] }); setLoading(false); return }
+            // 1. Obtenemos TODOS los partidos que YA TIENEN un ganador asignado
+            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').not('winner_team_id', 'is', null)
+            
+            if (!matches || matches.length === 0) { 
+                setRankingData({ users: [], days: [] }); 
+                setLoading(false); 
+                return 
+            }
 
-            const { data: matches } = await supabase.from('matches').select('id, winner_team_id, matchday_id').in('matchday_id', lockedDays.map(d => d.id)).not('winner_team_id', 'is', null)
-            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches?.map(m => m.id) || [])
+            // 2. Extraemos los IDs únicos de las jornadas que tienen partidos terminados
+            const validMatchdayIds = [...new Set(matches.map(m => m.matchday_id))]
+
+            // 3. Obtenemos solo esas jornadas para las columnas de desglose
+            const { data: matchdays } = await supabase.from('matchdays').select('id, name, competition_key').in('id', validMatchdayIds).order('display_order')
+            
+            // 4. Obtenemos las predicciones de los partidos válidos
+            const { data: predictions } = await supabase.from('predictions').select('user_id, match_id, predicted_team_id').in('match_id', matches.map(m => m.id))
+            
+            // 5. Obtenemos a los usuarios
             const { data: appUsers } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
 
             const userScores = appUsers?.map(u => {
-                let total = 0; const dayBreakdown: any = {}
-                lockedDays.forEach(day => {
-                    const matchesInDay = matches?.filter(m => m.matchday_id === day.id) || []
+                let total = 0; 
+                const dayBreakdown: any = {}
+                
+                matchdays?.forEach(day => {
+                    const matchesInDay = matches.filter(m => m.matchday_id === day.id)
                     let dayHits = 0
                     matchesInDay.forEach(m => {
                         const userPred = predictions?.find(p => p.user_id === u.id && p.match_id === m.id)
-                        if (userPred && userPred.predicted_team_id === m.winner_team_id) dayHits++
+                        
+                        // FIX: Convertimos a String para evitar errores de tipo (int vs string)
+                        if (userPred && String(userPred.predicted_team_id) === String(m.winner_team_id)) {
+                            dayHits++
+                        }
                     })
-                    dayBreakdown[day.id] = dayHits; total += dayHits
+                    dayBreakdown[day.id] = dayHits; 
+                    total += dayHits
                 })
                 return { username: u.username, total, dayBreakdown }
             })
@@ -926,8 +948,10 @@ function RankingView({ user }: { user: any }) {
                 return a.username.localeCompare(b.username);
             });
 
-            setRankingData({ users: userScores || [], days: lockedDays }); setLoading(false)
+            setRankingData({ users: userScores || [], days: matchdays || [] }); 
+            setLoading(false)
         }
+        
         fetchRanking()
     }, [])
 
@@ -947,46 +971,46 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
-{/* Header Responsivo */}
-<div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
-    
-    {/* Columna Izquierda: Botón */}
-    <div className="w-full flex justify-center md:justify-start">
-        <button
-            onClick={() => setShowFull(!showFull)}
-            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
-        >
-            {showFull ? '← VOLVER' : 'DESGLOSE'}
-        </button>
-    </div>
+            {/* Header Responsivo */}
+            <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
+                
+                {/* Columna Izquierda: Botón */}
+                <div className="w-full flex justify-center md:justify-start">
+                    <button
+                        onClick={() => setShowFull(!showFull)}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
+                    >
+                        {showFull ? '← VOLVER' : 'DESGLOSE'}
+                    </button>
+                </div>
 
-    {/* Columna Central: Título */}
-    <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
-        <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
-    </h2>
+                {/* Columna Central: Título */}
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
+                    <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
+                </h2>
 
-    {/* Columna Derecha: Paginación */}
-    <div className="w-full flex justify-center md:justify-end">
-        {totalPages > 1 && (
-            <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                <button
-                    disabled={safeCurrentPage === 0}
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                    className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                >
-                    ◀
-                </button>
-                <button
-                    disabled={safeCurrentPage === totalPages - 1}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                >
-                    ▶
-                </button>
+                {/* Columna Derecha: Paginación */}
+                <div className="w-full flex justify-center md:justify-end">
+                    {totalPages > 1 && (
+                        <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+                            <button
+                                disabled={safeCurrentPage === 0}
+                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ◀
+                            </button>
+                            <button
+                                disabled={safeCurrentPage === totalPages - 1}
+                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                            >
+                                ▶
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
-        )}
-    </div>
-</div>
 
             {/* Contenedor de Tabla */}
             <div className="w-fit mx-auto">
