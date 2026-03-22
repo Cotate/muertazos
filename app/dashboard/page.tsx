@@ -1,5 +1,5 @@
 /******************************************************************************
-PRUEBA
+EL ULTIMO CODIGO BUENO QUE SIRVE DE USUARIO
 *******************************************************************************/
 'use client'
 import { useEffect, useState, useRef } from 'react'
@@ -371,7 +371,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
         setAllPreds(pData || [])
 
         if (fetchedUsers.length > 0) {
-            const targetPerPage = 12;
+            // Validación para asignar 8 por página en móviles o 12 en PC
+            const targetPerPage = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 12;
             const pages = Math.ceil(fetchedUsers.length / targetPerPage);
             let chunks = [];
             for(let i=0; i<pages; i++) {
@@ -396,12 +397,14 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
     return (
         <div className="w-full flex flex-col items-center">
             {/* BARRA DE NAVEGACIÓN DE JORNADAS (Diseño 1) */}
-            {/* Se redujo el py-6 a py-2 para eliminar el espacio raro */}
             <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-4 bg-black/40 border-b border-white/5">
                 {matchdays.map(day => (
                     <button
                         key={day.id}
-                        onClick={() => setActiveMatchdayId(day.id)}
+                        onClick={() => {
+                            setActiveMatchdayId(day.id)
+                            setCurrentPage(0) // Reiniciar la página al cambiar de jornada por si acaso
+                        }}
                         className={`px-4 py-2 text-[12px] font-black italic uppercase tracking-wider transition-all rounded-lg border ${
                             activeMatchdayId === day.id
                                 ? (competitionKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300] scale-105 shadow-[0_0_15px_rgba(255,211,0,0.3)]' : 'bg-[#01d6c3] text-black border-[#01d6c3] scale-105 shadow-[0_0_15px_rgba(1,214,195,0.3)]')
@@ -416,9 +419,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
             {activeMatchday && (
                 <div className="w-full">
                     {/* TÍTULO DE LA JORNADA Y PAGINACIÓN DE USUARIOS */}
-                    {/* Se cambió a flex-row para alinear los botones a la izquierda del título */}
                     <div className="w-full px-6 py-8 flex flex-row justify-center items-center gap-4 md:gap-8 bg-gradient-to-b from-black/20 to-transparent relative">
-                        {/* Controles de Paginación Flotantes (Funcionalidad 2) */}
+                        {/* Controles de Paginación Flotantes (Solo flechas) */}
                         {totalPages > 1 && (
                             <div className="flex items-center bg-black/60 rounded-xl border border-white/10 overflow-hidden shadow-2xl">
                                 <button 
@@ -428,9 +430,6 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                                 >
                                     ◀
                                 </button>
-                                <span className="px-4 text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                                    Página {currentPage + 1} de {totalPages}
-                                </span>
                                 <button 
                                     disabled={currentPage === totalPages - 1} 
                                     onClick={() => setCurrentPage(prev => prev + 1)} 
@@ -441,14 +440,13 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                             </div>
                         )}
 
-                        {/* Letra más pequeña adaptada (text-3xl md:text-4xl) */}
                         <h3 style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }} 
                             className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter drop-shadow-2xl">
                             {activeMatchday.name}
                         </h3>
                     </div>
 
-                    {/* TABLA DE CONTENIDO (Funcionalidad 2) */}
+                    {/* TABLA DE CONTENIDO */}
                     <div className="w-full overflow-x-auto pb-10">
                         <table className="w-full border-collapse table-fixed text-center min-w-[800px]">
                             <thead>
@@ -501,7 +499,8 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                                                                 width={getLogoSize(pred.predicted_team.logo_file)} 
                                                                 height={getLogoSize(pred.predicted_team.logo_file)} 
                                                                 alt="p" 
-                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_12px_rgba(255,211,0,0.5)] scale-110' : 'opacity-10 grayscale scale-75') : 'opacity-100'}`} 
+                                                                // Aquí se bajó la intensidad del brillo (drop-shadow) en isHit
+                                                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_4px_rgba(255,211,0,0.3)] scale-110' : 'opacity-10 grayscale scale-75') : 'opacity-100'}`} 
                                                             />
                                                         </div>
                                                     ) : <span className="text-slate-800 text-xs">-</span>}
