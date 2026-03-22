@@ -1,12 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --color-kings: #ffd300;
-  --color-queens: #01d6c3;
-  --header-h: 4rem;      /* 64px  mobile  */
-  --header-h-md: 5rem;   /* 80px  desktop */
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 @theme inline {
@@ -16,21 +12,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* ── Ocultar scrollbars en todos los navegadores ── */
-* {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-*::-webkit-scrollbar {
-  display: none;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
 }
 
-/* ── Base ── */
-html,
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overflow-x: hidden;   /* nunca scroll horizontal */
-  width: 100%;
 }
