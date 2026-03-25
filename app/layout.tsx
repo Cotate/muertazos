@@ -7,8 +7,8 @@ import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Muertazos - Predicciones',
-  description: 'Liga de predicciones Kings & Queens',
+  title: 'Muertazos',
+  description: 'Herramientas Kings & Queens',
   icons: { icon: '/Muertazos.png?v=1', apple: '/Muertazos.png?v=1' },
 }
 
