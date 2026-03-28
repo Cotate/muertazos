@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
-import Script from 'next/script'
+import DonateButton from './DonateButton'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,33 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* FOOTER GLOBAL — Solo botón de donación */}
         <footer className="h-10 shrink-0 flex items-center justify-center bg-slate-950 border-t border-slate-800/60 z-40">
-          <div
-            id="donate-button-global"
-            className="flex items-center justify-center"
-            style={{ transform: 'scale(0.75)', transformOrigin: 'center' }}
-          />
+          <DonateButton />
         </footer>
 
         <Analytics />
-
-        {/* SDK de PayPal — cargado una sola vez de forma global */}
-        <Script
-          src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js"
-          strategy="lazyOnload"
-          onLoad={() => {
-            if ((window as any).PayPal) {
-              (window as any).PayPal.Donation.Button({
-                env: 'production',
-                hosted_button_id: 'PE6W2EWS2SJFW',
-                image: {
-                  src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_SM.gif',
-                  alt: 'Donar con el botón PayPal',
-                  title: 'PayPal - The safer, easier way to pay online!',
-                },
-              }).render('#donate-button-global')
-            }
-          }}
-        />
       </body>
     </html>
   )
