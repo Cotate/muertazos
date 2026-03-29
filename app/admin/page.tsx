@@ -105,6 +105,11 @@ function TabBtn({ label, active, onClick, activeColor }: any) {
     )
 }
 
+import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
+// Asegúrate de importar tu cliente de supabase correctamente según la ruta de tu proyecto
+// import { supabase } from '@/lib/supabase' 
+
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
@@ -119,8 +124,19 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
     // 1. CARGA INICIAL (Solo Jornadas y Usuarios)
     const load = async () => {
-        const { data: mData } = await supabase.from('matchdays').select('*, matches(*, home:home_team_id(*), away:away_team_id(*))').eq('competition_key', competitionKey).order('display_order')
-        const { data: uData } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
+        const { data: mData } = await supabase
+            .from('matchdays')
+            .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
+            .eq('competition_key', competitionKey)
+            .order('display_order')
+            
+        // Agregamos un limit alto por si tienes más de 1000 usuarios
+        const { data: uData } = await supabase
+            .from('app_users')
+            .select('id, username')
+            .neq('role', 'admin')
+            .order('username')
+            .limit(5000) 
         
         if (mData) { 
             mData.forEach(day => { 
@@ -165,29 +181,34 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     }
     
     useEffect(() => { load() }, [competitionKey])
-        // 2. NUEVO HOOK: Cargar predicciones SOLO de la jornada activa
+
+    // 2. NUEVO HOOK: Cargar predicciones de la jornada activa Y página actual
     useEffect(() => {
         const fetchPredictions = async () => {
-            // Si no hay jornada activa o aún no cargan las jornadas, salimos
             if (!activeMatchdayId || matchdays.length === 0) return;
 
-            // Buscamos los datos de la jornada que estamos viendo
             const activeDay = matchdays.find(d => d.id === activeMatchdayId);
             
-            // Si la jornada no tiene partidos, limpiamos las predicciones
             if (!activeDay || !activeDay.matches || activeDay.matches.length === 0) {
                 setAllPreds([]);
                 return;
             }
 
-            // Extraemos un arreglo solo con los IDs de los partidos de ESTA jornada
+            // Calculamos qué usuarios estamos viendo en la pantalla AHORA
+            const currentUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : [];
+            const userIds = currentUsers.map(u => u.id);
+
+            if (userIds.length === 0) return;
+
             const matchIds = activeDay.matches.map((m: any) => m.id);
 
-            // Le pedimos a Supabase las predicciones donde el match_id esté en nuestra lista
+            // Filtramos las predicciones tanto por partido como por los usuarios visibles
+            // Esto evita sobrecargar la BD y saltarse el límite de Supabase
             const { data: pData, error } = await supabase
                 .from('predictions')
                 .select('*, predicted_team:predicted_team_id(logo_file)')
-                .in('match_id', matchIds); // <--- ESTA ES LA MAGIA
+                .in('match_id', matchIds)
+                .in('user_id', userIds); 
 
             if (!error && pData) {
                 setAllPreds(pData);
@@ -195,7 +216,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
         };
 
         fetchPredictions();
-    }, [activeMatchdayId, matchdays]); // Se ejecuta cada que cambias de pestaña de jornada
+    }, [activeMatchdayId, matchdays, currentPage, pageChunks, users]); // Se ejecuta al cambiar jornada o página
 
     const toggleVisible = async (id: number, currentVal: boolean) => {
         if (!id) return;
@@ -294,33 +315,40 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                                     <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                                         <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.home_team_id ? null : m.home_team_id)} 
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id == m.home_team_id ? null : m.home_team_id)} 
                                                     className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                      m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}>
+                                                    ${m.winner_team_id == m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                      m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={getLogoSize(m.home.logo_file)} height={getLogoSize(m.home.logo_file)} alt="h" />}
                                                 </button>
                                                 <span className="text-[9px] font-black text-slate-600 italic">VS</span>
-                                                <button onClick={() => setWinner(m.id, m.winner_team_id === m.away_team_id ? null : m.away_team_id)} 
+                                                <button onClick={() => setWinner(m.id, m.winner_team_id == m.away_team_id ? null : m.away_team_id)} 
                                                     className={`w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center 
-                                                    ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
-                                                      m.winner_team_id === null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}>
+                                                    ${m.winner_team_id == m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 
+                                                      m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}>
                                                     {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={getLogoSize(m.away.logo_file)} height={getLogoSize(m.away.logo_file)} alt="a" />}
                                                 </button>
                                             </div>
                                         </td>
                                         {paginatedUsers.map(u => {
-                                            const pred = allPreds.find(p => p.user_id === u.id && p.match_id === m.id)
-                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
+                                            // 3. USO DE "==" Y PROTECCIÓN DE ARREGLOS
+                                            const pred = allPreds.find(p => p.user_id == u.id && p.match_id == m.id)
+                                            const isHit = m.winner_team_id && pred && pred.predicted_team_id == m.winner_team_id
                                             const hasWinner = m.winner_team_id !== null
+                                            
+                                            // Supabase puede devolver la tabla anidada como un array o como objeto. Nos preparamos para ambos:
+                                            const logoFile = Array.isArray(pred?.predicted_team) 
+                                                ? pred?.predicted_team[0]?.logo_file 
+                                                : pred?.predicted_team?.logo_file;
+
                                             return (
                                                 <td key={u.id} className="p-1 border-r border-white/5">
-                                                    {pred?.predicted_team?.logo_file ? (
+                                                    {logoFile ? (
                                                         <div className="flex justify-center">
                                                             <Image 
-                                                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`} 
-                                                                width={getLogoSize(pred.predicted_team.logo_file)} 
-                                                                height={getLogoSize(pred.predicted_team.logo_file)} 
+                                                                src={`/logos/${folder}/${logoFile}`} 
+                                                                width={getLogoSize(logoFile)} 
+                                                                height={getLogoSize(logoFile)} 
                                                                 alt="p" 
                                                                 className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`} 
                                                             />
