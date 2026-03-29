@@ -105,11 +105,6 @@ function TabBtn({ label, active, onClick, activeColor }: any) {
     )
 }
 
-import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
-// Asegúrate de importar tu cliente de supabase correctamente según la ruta de tu proyecto
-// import { supabase } from '@/lib/supabase' 
-
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     const [matchdays, setMatchdays] = useState<any[]>([])
     const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
