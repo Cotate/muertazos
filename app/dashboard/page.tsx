@@ -891,9 +891,13 @@ function SimulatorView() {
     );
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
-/* COMPONENTE DE RANKING OPTIMIZADO */
 function RankingView({ user }: { user: any }) {
-    const [rankingData, setRankingData] = useState<{ users: any[], days: any[] }>({ users: [], days: [] })
+    // Agregamos activeDays al estado para saber qué jornadas ya pasaron/tienen predicciones
+    const [rankingData, setRankingData] = useState<{ users: any[], days: any[], activeDays: Set<number> }>({ 
+        users: [], 
+        days: [],
+        activeDays: new Set()
+    })
     const [showFull, setShowFull] = useState(false)
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(0)
@@ -925,6 +929,10 @@ function RankingView({ user }: { user: any }) {
                 return;
             }
 
+            // Recopilamos los IDs de las jornadas que ya tienen al menos un registro de puntos
+            // (Para no marcar a la gente en rojo por jornadas del futuro que aún no se juegan)
+            const activeDays = new Set<number>(pointsData?.map(p => p.matchday_id) || []);
+
             // 4. Construimos el desglose por usuario
             const userScores = appUsers.map(u => {
                 let total = 0;
@@ -953,7 +961,8 @@ function RankingView({ user }: { user: any }) {
 
             setRankingData({ 
                 users: userScores, 
-                days: matchdays || [] 
+                days: matchdays || [],
+                activeDays
             });
             setLoading(false);
         };
@@ -1024,6 +1033,20 @@ function RankingView({ user }: { user: any }) {
                                 const isFirst = globalPos === 1;
                                 const isMe = u.username === user?.username;
                                 const hasError = imageErrors[u.username];
+                                
+                                // Evaluamos si el usuario faltó en alguna jornada que YA está activa
+                                const missedAny = rankingData.days.some(day => 
+                                    rankingData.activeDays.has(day.id) && u.dayBreakdown[day.id] === undefined
+                                );
+
+                                // Determinamos el color del nombre de usuario
+                                const usernameColor = missedAny 
+                                    ? 'text-red-500' 
+                                    : isFirst 
+                                        ? 'text-[#FFD300]' 
+                                        : isMe 
+                                            ? 'text-white' 
+                                            : 'text-slate-300';
 
                                 return (
                                     <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
@@ -1047,17 +1070,30 @@ function RankingView({ user }: { user: any }) {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className={`uppercase text-[10px] tracking-[0.1em] ${isFirst ? 'text-[#FFD300] font-black' : isMe ? 'text-white font-black' : 'text-slate-300'}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] font-black ${usernameColor}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
                                         </td>
 
-                                        {showFull && rankingData.days.map(day => (
-                                            <td key={day.id} className={`px-2 py-1 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
-                                                <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>{u.dayBreakdown[day.id] || 0}</span>
-                                            </td>
-                                        ))}
+                                        {showFull && rankingData.days.map(day => {
+                                            const isActive = rankingData.activeDays.has(day.id);
+                                            const didNotSubmit = isActive && u.dayBreakdown[day.id] === undefined;
+
+                                            return (
+                                                <td key={day.id} className={`px-2 py-1 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
+                                                    {didNotSubmit ? (
+                                                        // Si no envió en una jornada pasada, ponemos una marca roja
+                                                        <span className="text-red-500 font-bold">-</span>
+                                                    ) : (
+                                                        // Si envió (incluso si fue 0 puntos), o si es jornada futura, muestra sus puntos o vacío
+                                                        <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>
+                                                            {u.dayBreakdown[day.id] !== undefined ? u.dayBreakdown[day.id] : ''}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
 
                                         <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
