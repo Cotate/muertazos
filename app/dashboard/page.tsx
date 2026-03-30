@@ -892,7 +892,6 @@ function SimulatorView() {
 }
 /* COMPONENTE DE RANKING ADAPTADO PARA EL USUARIO */
 function RankingView({ user }: { user: any }) {
-    // Agregamos activeDays al estado para saber qué jornadas ya pasaron/tienen predicciones
     const [rankingData, setRankingData] = useState<{ users: any[], days: any[], activeDays: Set<number> }>({ 
         users: [], 
         days: [],
@@ -907,19 +906,16 @@ function RankingView({ user }: { user: any }) {
         const fetchRanking = async () => {
             setLoading(true);
 
-            // 1. Obtenemos los usuarios reales
             const { data: appUsers } = await supabase
                 .from('app_users')
                 .select('id, username')
                 .neq('role', 'admin');
 
-            // 2. Obtenemos todas las jornadas configuradas
             const { data: matchdays } = await supabase
                 .from('matchdays')
                 .select('id, name, competition_key')
                 .order('display_order');
 
-            // 3. Consultamos la tabla de puntos pre-calculados
             const { data: pointsData } = await supabase
                 .from('user_points')
                 .select('user_id, matchday_id, points');
@@ -929,16 +925,11 @@ function RankingView({ user }: { user: any }) {
                 return;
             }
 
-            // Recopilamos los IDs de las jornadas que ya tienen al menos un registro de puntos
-            // (Para no marcar a la gente en rojo por jornadas del futuro que aún no se juegan)
             const activeDays = new Set<number>(pointsData?.map(p => p.matchday_id) || []);
 
-            // 4. Construimos el desglose por usuario
             const userScores = appUsers.map(u => {
                 let total = 0;
                 const dayBreakdown: Record<number, number> = {};
-
-                // Filtramos los puntos que pertenecen a este usuario
                 const userPicks = pointsData?.filter(p => p.user_id === u.id) || [];
 
                 userPicks.forEach(p => {
@@ -946,27 +937,17 @@ function RankingView({ user }: { user: any }) {
                     total += p.points;
                 });
 
-                return { 
-                    username: u.username, 
-                    total, 
-                    dayBreakdown 
-                };
+                return { username: u.username, total, dayBreakdown };
             });
 
-            // 5. Ordenamos por puntos totales desc y luego alfabético
             userScores.sort((a, b) => {
                 if (b.total !== a.total) return b.total - a.total;
                 return a.username.localeCompare(b.username);
             });
 
-            setRankingData({ 
-                users: userScores, 
-                days: matchdays || [],
-                activeDays
-            });
+            setRankingData({ users: userScores, days: matchdays || [], activeDays });
             setLoading(false);
         };
-
         fetchRanking();
     }, []);
 
@@ -986,7 +967,7 @@ function RankingView({ user }: { user: any }) {
 
     return (
         <div className="w-full flex flex-col items-center py-2 px-2">
-            {/* Header Responsivo */}
+            {/* Header */}
             <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-6 px-2 md:px-8 gap-4">
                 <div className="w-full flex justify-center md:justify-start">
                     <button
@@ -996,34 +977,20 @@ function RankingView({ user }: { user: any }) {
                         {showFull ? '← VOLVER' : 'DESGLOSE'}
                     </button>
                 </div>
-
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
                     <span className="text-white">TABLA DE</span> <span className="text-[#FFD300]">POSICIONES</span>
                 </h2>
-
                 <div className="w-full flex justify-center md:justify-end">
                     {totalPages > 1 && (
                         <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                            <button
-                                disabled={safeCurrentPage === 0}
-                                onClick={() => setCurrentPage(prev => prev - 1)}
-                                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ◀
-                            </button>
-                            <button
-                                disabled={safeCurrentPage === totalPages - 1}
-                                onClick={() => setCurrentPage(prev => prev + 1)}
-                                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-                            >
-                                ▶
-                            </button>
+                            <button disabled={safeCurrentPage === 0} onClick={() => setCurrentPage(prev => prev - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                            <button disabled={safeCurrentPage === totalPages - 1} onClick={() => setCurrentPage(prev => prev + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Contenedor de Tabla */}
+            {/* Tabla */}
             <div className="w-fit mx-auto">
                 <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
                     <table className="border-collapse table-auto">
@@ -1034,43 +1001,37 @@ function RankingView({ user }: { user: any }) {
                                 const isMe = u.username === user?.username;
                                 const hasError = imageErrors[u.username];
                                 
-                                // Evaluamos si el usuario faltó en alguna jornada que YA está activa
                                 const missedAny = rankingData.days.some(day => 
                                     rankingData.activeDays.has(day.id) && u.dayBreakdown[day.id] === undefined
                                 );
 
-                                // Determinamos el color del nombre de usuario
-                                const usernameColor = missedAny 
-                                    ? 'text-red-500' 
-                                    : isFirst 
-                                        ? 'text-[#FFD300]' 
-                                        : isMe 
-                                            ? 'text-white' 
-                                            : 'text-slate-300';
+                                // Clases de la fila según estado
+                                // Usamos shadow-inner y ring para crear el efecto de brillo en toda la fila
+                                let rowClass = "border-b border-white/5 hover:bg-white/[0.03] transition-all duration-300 ";
+                                if (missedAny) {
+                                    rowClass += "bg-red-500/10 shadow-[inset_0_0_15px_rgba(239,68,68,0.2)]";
+                                } else if (isFirst) {
+                                    rowClass += "bg-[#FFD300]/5 shadow-[inset_0_0_15px_rgba(255,211,0,0.1)]";
+                                } else if (isMe) {
+                                    rowClass += "bg-blue-500/10 shadow-[inset_0_0_15px_rgba(59,130,246,0.15)]";
+                                }
 
                                 return (
-                                    <tr key={u.username} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors group ${isFirst ? 'bg-[#FFD300]/5' : ''} ${isMe ? 'bg-blue-500/10' : ''}`}>
+                                    <tr key={u.username} className={rowClass}>
                                         <td className="w-10 px-2 py-1 text-center border-r border-white/5 font-black italic text-[11px]">
                                             {isFirst ? <span className="text-xl">👑</span> : <span className={`${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                                         </td>
 
                                         <td className="w-[120px] px-3 py-1 border-r border-white/5">
                                             <div className="flex items-center gap-3">
-                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
+                                                <div className={`relative w-7 h-7 rounded-full overflow-hidden border shrink-0 shadow-md flex items-center justify-center bg-slate-800 ${missedAny ? 'border-red-500' : isFirst ? 'border-[#FFD300]' : isMe ? 'border-white' : 'border-white/10'}`}>
                                                     {!hasError ? (
-                                                        <img 
-                                                            src={`/usuarios/${u.username}.jpg`} 
-                                                            alt={u.username} 
-                                                            className="object-cover w-full h-full"
-                                                            onError={() => setImageErrors(prev => ({...prev, [u.username]: true}))}
-                                                        />
+                                                        <img src={`/usuarios/${u.username}.jpg`} alt={u.username} className="object-cover w-full h-full" onError={() => setImageErrors(prev => ({...prev, [u.username]: true}))} />
                                                     ) : (
-                                                        <span className="text-[10px] font-bold text-white uppercase">
-                                                            {u.username.charAt(0)}
-                                                        </span>
+                                                        <span className="text-[10px] font-bold text-white uppercase">{u.username.charAt(0)}</span>
                                                     )}
                                                 </div>
-                                                <span className={`uppercase text-[10px] tracking-[0.1em] font-black ${usernameColor}`}>
+                                                <span className={`uppercase text-[10px] tracking-[0.1em] font-black ${isFirst ? 'text-[#FFD300]' : isMe ? 'text-white' : 'text-slate-300'}`}>
                                                     {u.username}
                                                 </span>
                                             </div>
@@ -1079,14 +1040,11 @@ function RankingView({ user }: { user: any }) {
                                         {showFull && rankingData.days.map(day => {
                                             const isActive = rankingData.activeDays.has(day.id);
                                             const didNotSubmit = isActive && u.dayBreakdown[day.id] === undefined;
-
                                             return (
                                                 <td key={day.id} className={`px-2 py-1 text-center border-l border-white/5 text-[10px] font-mono w-9 ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}>
                                                     {didNotSubmit ? (
-                                                        // Si no envió en una jornada pasada, ponemos una marca roja
-                                                        <span className="text-red-500 font-bold">-</span>
+                                                        <span className="text-red-500 font-black animate-pulse">!</span>
                                                     ) : (
-                                                        // Si envió (incluso si fue 0 puntos), o si es jornada futura, muestra sus puntos o vacío
                                                         <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-800'}>
                                                             {u.dayBreakdown[day.id] !== undefined ? u.dayBreakdown[day.id] : ''}
                                                         </span>
@@ -1095,7 +1053,7 @@ function RankingView({ user }: { user: any }) {
                                             );
                                         })}
 
-                                        <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
+                                        <td className={`w-16 px-4 py-1 text-center border-l border-white/10 font-black text-[14px] italic ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : missedAny ? 'bg-red-500/20 text-red-500' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
                                             {u.total}
                                         </td>
                                     </tr>
