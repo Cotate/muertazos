@@ -1,15 +1,42 @@
-// inicio sesion
 'use client'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import Script from 'next/script' // 1. Importamos el componente Script
+import Script from 'next/script'
 
-export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+// Definimos la información de cada tarjeta para mapearla fácilmente
+const features = [
+  {
+    id: 'login',
+    title: 'Iniciar Sesión',
+    description: 'Accede a tu cuenta para guardar tu progreso, estadísticas y gestionar tu perfil.',
+    route: '/login', // Asegúrate de mover tu código anterior a esta ruta
+    color: '#01d6c3' // Cyan
+  },
+  {
+    id: 'simulador',
+    title: 'Simulador',
+    description: 'Prueba diferentes estrategias, builds y escenarios en tiempo real.',
+    route: '/simulador',
+    color: '#FFD300' // Amarillo
+  },
+  {
+    id: 'pizarra',
+    title: 'Pizarra',
+    description: 'Dibuja, planea y comparte tus tácticas de juego con tu equipo.',
+    route: '/pizarra',
+    color: '#FF4B4B' // Rojo/Coral
+  },
+  {
+    id: 'tierlist',
+    title: 'Tier List',
+    description: 'Clasifica, vota y descubre los mejores elementos del meta actual.',
+    route: '/tierlist',
+    color: '#B829FF' // Morado
+  }
+]
+
+export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
@@ -17,112 +44,85 @@ export default function Login() {
     return () => { document.body.style.backgroundColor = '' }
   }, [])
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    const { data, error: dbError } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('username', username)
-      .eq('password', password)
-      .single()
-
-    if (dbError || !data) {
-      setError('Datos incorrectos')
-      return
-    }
-
-    localStorage.setItem('muertazos_user', JSON.stringify(data))
-
-    if (data.role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/dashboard')
-    }
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       
-      {/* HEADER INTEGRADO (ESTILO ORIGINAL) */}
+      {/* HEADER INTEGRADO */}
       <header className="w-full h-24 flex justify-center items-center bg-slate-950 border-b border-slate-800 shadow-lg relative z-50">
-          <div className="relative w-48 h-16">
-              <Image 
-                src="/Muertazos.png" 
-                alt="Muertazos Logo" 
-                fill 
-                className="object-contain"
-                priority 
-              />
-          </div>
+        <div className="relative w-48 h-16 cursor-pointer" onClick={() => router.push('/')}>
+          <Image 
+            src="/Muertazos.png" 
+            alt="Muertazos Logo" 
+            fill 
+            className="object-contain"
+            priority 
+          />
+        </div>
       </header>
 
-      {/* CONTENIDO DE LOGIN */}
-      <div className="flex-1 flex flex-col items-center pt-20 px-4">
+      {/* CONTENIDO PRINCIPAL: GRID DE TARJETAS */}
+      <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 md:px-8">
         
-        {/* TARJETA DE LOGIN */}
-        <div className="bg-slate-900/40 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-800 backdrop-blur-sm">
-          
-          <h1 className="text-3xl font-black italic text-center mb-8 tracking-tighter uppercase leading-none">
-              <span style={{ color: '#FFFFFF' }}>INICIAR</span> 
-              <span className="ml-2" style={{ color: '#FFD300' }}>SESIÓN</span>
-          </h1>
+        <h1 className="text-3xl md:text-5xl font-black italic text-center mb-12 tracking-tighter uppercase leading-none text-white drop-shadow-lg">
+          SELECCIONA UNA <span style={{ color: '#FFD300' }}>FUNCIÓN</span>
+        </h1>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 ml-2 uppercase tracking-widest">Usuario</label>
-              <input
-                type="text"
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:outline-none focus:border-[#ffd300] transition-all font-bold"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 ml-2 uppercase tracking-widest">Contraseña</label>
-              <input
-                type="password"
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:outline-none focus:border-[#01d6c3] transition-all font-bold"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-xl">
-                  <p className="text-red-500 text-[11px] font-bold text-center uppercase italic">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-[#01d6c3] hover:scale-[1.02] active:scale-95 text-slate-900 font-black italic py-4 rounded-2xl transition-all uppercase tracking-tighter"
+        {/* Contenedor Grid responsivo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
+          {features.map((feature) => (
+            /* Contenedor principal de la tarjeta: define la perspectiva 3D y agrupa los estados de hover */
+            <div 
+              key={feature.id} 
+              className="group h-64 w-full perspective-[1000px] cursor-pointer"
+              onClick={() => router.push(feature.route)}
             >
-              ENTRAR
-            </button>
-          </form>
-        </div>
+              {/* Contenedor animado: maneja el giro y el escalado al hacer hover */}
+              <div className="relative h-full w-full rounded-3xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] group-hover:scale-105 shadow-xl">
+                
+                {/* LADO FRONTAL DE LA TARJETA */}
+                <div className="absolute inset-0 h-full w-full rounded-3xl bg-slate-900/40 border border-slate-800 backdrop-blur-sm [backface-visibility:hidden] flex flex-col items-center justify-center p-6 shadow-2xl">
+                  <h2 
+                    className="text-2xl font-black italic text-center uppercase tracking-tighter"
+                    style={{ color: feature.color }}
+                  >
+                    {feature.title}
+                  </h2>
+                </div>
 
-        {/* 2. FOOTER ACTUALIZADO CON BOTÓN DE DONACIÓN */}
-        <div className="mt-8 flex flex-col items-center gap-4 pb-8">
-          <div id="donate-button-container">
-            <div id="donate-button" className="hover:scale-105 transition-transform"></div>
-          </div>
-          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
-            MUERTAZOS © 2026
-          </p>
-        </div>
+                {/* LADO TRASERO DE LA TARJETA (Oculto inicialmente, girado 180 grados) */}
+                <div className="absolute inset-0 h-full w-full rounded-3xl bg-slate-950 border border-slate-700 [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col items-center justify-center p-6 text-center shadow-2xl">
+                  <p className="text-slate-300 text-sm font-medium mb-6">
+                    {feature.description}
+                  </p>
+                  <span 
+                    className="text-[11px] font-black uppercase tracking-widest border-b-2 pb-1 transition-all"
+                    style={{ borderColor: feature.color, color: feature.color }}
+                  >
+                    Entrar &rarr;
+                  </span>
+                </div>
 
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* 3. CARGA DEL SDK DE PAYPAL */}
+      {/* FOOTER CON BOTÓN DE DONACIÓN */}
+      <div className="mt-auto flex flex-col items-center gap-4 pb-8 pt-12">
+        <div id="donate-button-container">
+          <div id="donate-button" className="hover:scale-105 transition-transform"></div>
+        </div>
+        <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
+          MUERTAZOS © 2026
+        </p>
+      </div>
+
+      {/* CARGA DEL SDK DE PAYPAL */}
       <Script
         src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js"
         strategy="lazyOnload"
         onLoad={() => {
-          // Usamos (window as any) para evitar errores de TypeScript con el objeto global de PayPal
           if ((window as any).PayPal) {
             (window as any).PayPal.Donation.Button({
               env: 'production',
