@@ -3,9 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 interface HeaderProps {
-  /** Botón de acción derecho opcional (ej: "SALIR") */
   rightAction?: React.ReactNode
-  /** Botón de acción izquierdo opcional (ej: "← VOLVER") */
   leftAction?: React.ReactNode
 }
 
@@ -15,11 +13,9 @@ export default function Header({ rightAction, leftAction }: HeaderProps) {
       <div className="flex-1 flex justify-start">
         {leftAction ?? <span />}
       </div>
-
       <Link href="/" className="relative w-28 h-8 hover:opacity-80 transition-opacity flex-shrink-0">
         <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" priority />
       </Link>
-
       <div className="flex-1 flex justify-end">
         {rightAction ?? <span />}
       </div>
