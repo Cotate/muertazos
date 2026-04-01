@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import Script from 'next/script' // 1. Importamos el componente Script
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -34,39 +33,24 @@ export default function Login() {
     }
 
     localStorage.setItem('muertazos_user', JSON.stringify(data))
-
-    if (data.role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/dashboard')
-    }
+    router.push(data.role === 'admin' ? '/admin' : '/dashboard')
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
-      
-      {/* HEADER INTEGRADO (ESTILO ORIGINAL) */}
+      {/* HEADER */}
       <header className="w-full h-24 flex justify-center items-center bg-slate-950 border-b border-slate-800 shadow-lg relative z-50">
-          <div className="relative w-48 h-16">
-              <Image 
-                src="/Muertazos.png" 
-                alt="Muertazos Logo" 
-                fill 
-                className="object-contain"
-                priority 
-              />
-          </div>
+        <div className="relative w-48 h-16">
+          <Image src="/Muertazos.png" alt="Muertazos Logo" fill className="object-contain" priority />
+        </div>
       </header>
 
-      {/* CONTENIDO DE LOGIN */}
-      <div className="flex-1 flex flex-col items-center pt-20 px-4">
-        
-        {/* TARJETA DE LOGIN */}
+      {/* LOGIN CARD */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
         <div className="bg-slate-900/40 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-800 backdrop-blur-sm">
-          
           <h1 className="text-3xl font-black italic text-center mb-8 tracking-tighter uppercase leading-none">
-              <span style={{ color: '#FFFFFF' }}>INICIAR</span> 
-              <span className="ml-2" style={{ color: '#FFD300' }}>SESIÓN</span>
+            <span className="text-white">INICIAR</span>
+            <span className="ml-2 text-[#FFD300]">SESIÓN</span>
           </h1>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -79,7 +63,6 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
-
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 ml-2 uppercase tracking-widest">Contraseña</label>
               <input
@@ -92,7 +75,7 @@ export default function Login() {
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-xl">
-                  <p className="text-red-500 text-[11px] font-bold text-center uppercase italic">{error}</p>
+                <p className="text-red-500 text-[11px] font-bold text-center uppercase italic">{error}</p>
               </div>
             )}
 
@@ -104,38 +87,7 @@ export default function Login() {
             </button>
           </form>
         </div>
-
-        {/* 2. FOOTER ACTUALIZADO CON BOTÓN DE DONACIÓN */}
-        <div className="mt-8 flex flex-col items-center gap-4 pb-8">
-          <div id="donate-button-container">
-            <div id="donate-button" className="hover:scale-105 transition-transform"></div>
-          </div>
-          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
-            MUERTAZOS © 2026
-          </p>
-        </div>
-
       </div>
-
-      {/* 3. CARGA DEL SDK DE PAYPAL */}
-      <Script
-        src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js"
-        strategy="lazyOnload"
-        onLoad={() => {
-          // Usamos (window as any) para evitar errores de TypeScript con el objeto global de PayPal
-          if ((window as any).PayPal) {
-            (window as any).PayPal.Donation.Button({
-              env: 'production',
-              hosted_button_id: 'PE6W2EWS2SJFW',
-              image: {
-                src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_LG.gif',
-                alt: 'Donar con el botón PayPal',
-                title: 'PayPal - The safer, easier way to pay online!',
-              }
-            }).render('#donate-button')
-          }
-        }}
-      />
     </div>
   )
 }
