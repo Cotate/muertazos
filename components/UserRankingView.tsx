@@ -219,3 +219,4 @@ export default function UserRankingView({ user }: { user: any }) {
             </div>
         </div>
     );
+}
