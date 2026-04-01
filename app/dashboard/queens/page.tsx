@@ -1,6 +1,6 @@
 // app/dashboard/queens/page.tsx
 'use client'
-import {{ useEffect, useState }} from 'react'
+import { useEffect, useState } from 'react'
 import UserPicks from '@/components/UserPicks'
 
 export default function QueensPage() {{
