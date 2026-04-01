@@ -42,7 +42,7 @@ export default function UserDashboard() {
   useEffect(() => {
     const storedUser = localStorage.getItem('muertazos_user')
     if (!storedUser) {
-      router.push('/')
+      router.push('/login')
     } else {
       setUser(JSON.parse(storedUser))
     }
@@ -142,7 +142,7 @@ export default function UserDashboard() {
     const isActive = view === targetView && (!targetLeague || league === targetLeague);
     
     const classFinal = `
-      h-full px-2 text-[11px] lg:text-lg font-black italic tracking-widest whitespace-nowrap transition-all
+      h-full px-2 text-[10px] lg:text-base font-black italic tracking-widest whitespace-nowrap transition-all
       ${isActive && (targetLeague === 'kings' || league === 'kings') ? 'text-[#ffd300]' : 
         isActive && (targetLeague === 'queens' || league === 'queens') ? 'text-[#01d6c3]' : 
         isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'}
@@ -151,7 +151,7 @@ export default function UserDashboard() {
     return (
       <button 
         onClick={() => { setView(targetView); if(targetLeague) setLeague(targetLeague); setMenuOpen(false); }}
-        style={{ borderBottom: isActive ? `3px solid ${isActive && (targetLeague === 'queens' || (!targetLeague && league === 'queens')) ? '#01d6c3' : isActive && (targetLeague === 'kings' || (!targetLeague && league === 'kings')) ? '#ffd300' : '#ffffff'}` : '3px solid transparent' }}
+        style={{ borderBottom: isActive ? `2px solid ${isActive && (targetLeague === 'queens' || (!targetLeague && league === 'queens')) ? '#01d6c3' : isActive && (targetLeague === 'kings' || (!targetLeague && league === 'kings')) ? '#ffd300' : '#ffffff'}` : '2px solid transparent' }}
         className={classFinal}
       >
         {label}
@@ -163,7 +163,7 @@ export default function UserDashboard() {
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       
       {/* HEADER ADAPTATIVO */}
-      <header className="w-full h-16 md:h-24 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 md:px-10 sticky top-0 z-50">
+      <header className="w-full h-12 md:h-14 flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 md:px-10 sticky top-0 z-50">
         
         <div className="flex items-center flex-1">
           <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-white p-2">
@@ -177,7 +177,7 @@ export default function UserDashboard() {
           </nav>
         </div>
 
-        <div className="relative w-28 h-8 md:w-44 md:h-12 flex-shrink-0">
+        <div className="relative w-24 h-7 md:w-36 md:h-9 flex-shrink-0">
             <Image src="/Muertazos.png" alt="Logo" fill className="object-contain" priority />
         </div>
 
@@ -192,7 +192,7 @@ export default function UserDashboard() {
             <div className="relative w-8 h-8 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-xl">
                 <Image src={`/usuarios/${user.username}.jpg`} alt={user.username} fill className="object-cover" />
             </div>
-            <button onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/')}} className="text-[9px] md:text-xs font-black text-red-500 border border-red-500/20 px-3 py-1 md:px-5 md:py-2 rounded-full hover:bg-red-500 hover:text-white transition-all italic">SALIR</button>
+            <button onClick={() => {localStorage.removeItem('muertazos_user'); router.push('/login')}} className="text-[9px] md:text-xs font-black text-red-500 border border-red-500/20 px-3 py-1 md:px-5 md:py-2 rounded-full hover:bg-red-500 hover:text-white transition-all italic">SALIR</button>
           </div>
         </div>
       </header>
@@ -212,7 +212,7 @@ export default function UserDashboard() {
         </div>
       )}
 
-    <main className={`mx-auto pt-6 pb-20 ${view === 'all-picks' ? 'w-full' : 'max-w-5xl px-4'}`}>
+    <main className={`mx-auto pt-6 pb-20 ${view === 'all-picks' || view === 'pizarra' ? 'w-full' : 'max-w-5xl px-4'}`}>
         {view === 'picks' ? (
             <div className="max-w-2xl mx-auto bg-slate-900/40 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur-sm">
                 {matchdays.length === 0 ? (
@@ -613,7 +613,7 @@ function PizarraView() {
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
+        <div className="w-full px-2 md:px-4 flex flex-col gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap gap-4 items-end shadow-xl">
                 <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipo</label>
@@ -642,8 +642,8 @@ function PizarraView() {
                 onPointerMove={handlePointerMove} 
                 onPointerUp={() => setDraggingId(null)} 
                 onPointerLeave={() => setDraggingId(null)} 
-                className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 shadow-2xl touch-none"
-                style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: '100% 100%' }}
+                className="relative w-full aspect-video overflow-hidden touch-none"
+                style={{ backgroundImage: 'url(/Campo.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
             >
                 {playersOnPitch.map((player) => (
                     <div 

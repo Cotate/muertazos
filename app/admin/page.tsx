@@ -14,7 +14,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('muertazos_user') || '{}')
         if (user.role !== 'admin') {
-            router.push('/')
+            router.push('/login')
             return
         }
         document.body.style.backgroundColor = '#0a0a0a'
@@ -23,8 +23,8 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
-            <header className="w-full flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-8 lg:px-12 h-24 sticky top-0 z-50">
-                <div className="flex gap-10 lg:gap-20 flex-1 justify-end pr-8 lg:pr-16">
+            <header className="w-full flex justify-between items-center bg-slate-950 border-b border-slate-800 shadow-lg px-4 lg:px-8 h-14 sticky top-0 z-50">
+                <div className="flex gap-4 lg:gap-10 flex-1 justify-end pr-4 lg:pr-8">
                     <TabBtn 
                         label="KINGS" 
                         active={tab === 'kings'} 
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex-shrink-0 flex justify-center items-center">
-                    <div className="relative w-40 h-14 lg:w-48 lg:h-16 hover:scale-105 transition-transform duration-500 cursor-pointer">
+                    <div className="relative w-24 h-8 lg:w-32 lg:h-9 hover:scale-105 transition-transform duration-500 cursor-pointer">
                         <Image
                             src="/Muertazos.png"
                             alt="Muertazos Logo" 
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                <div className="flex gap-10 lg:gap-20 flex-1 pl-8 lg:pl-16 items-center">
+                <div className="flex gap-4 lg:gap-10 flex-1 pl-4 lg:pl-8 items-center">
                     <TabBtn 
                         label="RANKING" 
                         active={tab === 'ranking'} 
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
                     <button
                         onClick={() => {
                             localStorage.removeItem('muertazos_user');
-                            router.push('/');
+                            router.push('/login');
                         }} 
                         className="ml-auto bg-red-600/10 text-red-500 border border-red-500/30 px-6 py-2 rounded-md font-black hover:bg-red-600 hover:text-white transition-all text-[10px] uppercase italic tracking-[0.2em]"
                     >
@@ -96,9 +96,9 @@ function TabBtn({ label, active, onClick, activeColor }: any) {
             onClick={onClick}
             style={{ 
                 color: active ? activeColor : '#475569',
-                borderBottom: active ? `4px solid ${activeColor}` : '4px solid transparent'
+                borderBottom: active ? `3px solid ${activeColor}` : '3px solid transparent'
             }}
-            className="h-24 px-2 lg:px-6 font-black italic tracking-tighter transition-all uppercase text-lg lg:text-xl hover:text-white"
+            className="h-14 px-2 lg:px-4 font-black italic tracking-tighter transition-all uppercase text-sm lg:text-base hover:text-white"
         >
             {label}
         </button>
