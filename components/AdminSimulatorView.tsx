@@ -2,7 +2,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import {{ supabase }} from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function AdminSimulatorView() {
     const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings');
