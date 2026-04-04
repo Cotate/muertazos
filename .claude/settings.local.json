@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__aidesigner__generate_design",
+      "Bash(npx -y @aidesigner/agent-skills capture --html-file .aidesigner/mcp-latest.html --prompt \"Dark sports prediction platform - app shell, login/landing page with scoreboard strip, predictions dashboard with country tabs and match cards\" --transport mcp --remote-run-id \"50278b54-846d-4d25-9cd4-f5e95013b60d\")",
+      "Bash(npx -y @aidesigner/agent-skills capture --html-file .aidesigner/mcp-design1.html --prompt \"Dark sports prediction platform - app shell, login/landing page with scoreboard strip, predictions dashboard with country tabs and match cards\" --transport mcp --remote-run-id \"50278b54-846d-4d25-9cd4-f5e95013b60d\")",
+      "Bash(npx -y @aidesigner/agent-skills capture --html-file .aidesigner/mcp-design1.html --prompt \"Tier List Maker - 3-step wizard selector + drag-and-drop tier board with bench pool for Kings/Queens League teams, players, jerseys\" --transport mcp --remote-run-id \"059de057-2a26-4185-9f74-f5f4b55f575d\")",
+      "Bash(npm run:*)",
+      "mcp__aidesigner__get_credit_status",
+      "Bash(npx -y @aidesigner/agent-skills capture --html-file .aidesigner/mcp-latest.html --prompt \"Dark sports predictions web app home page: large centered logo, split hero ranking teaser + login form, public tools bento grid, gold collaborators marquee. Brand: #0a0a0a, #FFD300, #01d6c3. Ultra-premium HUD sports editorial.\" --transport mcp --remote-run-id \"aa89dfb3-dc94-48fd-8b83-fd7539c1ca11\")"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "aidesigner"
+  ]
+}
