@@ -418,11 +418,6 @@ export default function TierListPage() {
                           <ImageChip key={chip.id} chip={chip} index={idx} />
                         ))}
                         {provided.placeholder}
-                        {tier.chips.length === 0 && !snapshot.isDraggingOver && (
-                          <div className="flex-1 flex items-center justify-center text-slate-800 text-[10px] font-black italic uppercase tracking-widest">
-                            Arrastra aquí
-                          </div>
-                        )}
                       </div>
                     )}
                   </Droppable>
