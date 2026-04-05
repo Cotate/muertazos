@@ -10,7 +10,6 @@ interface Donor {
 export default function AppFooter() {
   const [donors, setDonors] = useState<Donor[]>([])
 
-  /* Carga donadores desde Supabase (tabla opcional: 'donors') */
   useEffect(() => {
     const fetchDonors = async () => {
       const { data } = await supabase
@@ -23,7 +22,6 @@ export default function AppFooter() {
     fetchDonors().catch(() => {/* tabla inexistente — OK */})
   }, [])
 
-  /* Carga el SDK de PayPal y renderiza el botón */
   useEffect(() => {
     const scriptId = 'paypal-donate-sdk'
     if (document.getElementById(scriptId)) {
@@ -47,7 +45,7 @@ export default function AppFooter() {
       env: 'production',
       hosted_button_id: 'PE6W2EWS2SJFW',
       image: {
-        src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_LG.gif',
+        src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_SM.gif',
         alt: 'Donar con PayPal',
         title: 'PayPal — The safer, easier way to pay online!',
       },
@@ -61,19 +59,19 @@ export default function AppFooter() {
   }
 
   return (
-    <footer className="w-full bg-slate-950 mt-4">
+    <footer className="w-full bg-slate-950 border-t border-white/5">
 
-      {/* Donadores */}
+      {/* Donors wall — only when there are donors */}
       {donors.length > 0 && (
-        <div className="max-w-4xl mx-auto px-6 pt-10 pb-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-5">
+        <div className="max-w-4xl mx-auto px-6 pt-6 pb-3">
+          <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-3">
             ★ MURO DE DONADORES ★
           </h3>
           <div className="flex flex-wrap justify-center gap-2">
             {donors.map((d, i) => (
               <span
                 key={i}
-                className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border 
+                className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border
                   ${tierStyles[d.tier ?? 'bronze'] ?? tierStyles.bronze}`}
               >
                 {d.username}
@@ -83,13 +81,10 @@ export default function AppFooter() {
         </div>
       )}
 
-      {/* Donación + copyright */}
-      <div className="flex flex-col items-center gap-4 py-8 px-4">
-        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 text-center">
-          ¿Te gusta la app? Dale de comer a una panchita
-        </p>
-        <div id="footer-donate-button" className="hover:scale-105 transition-transform" />
-        <p className="text-slate-700 text-[9px] font-black uppercase tracking-[0.35em] mt-2">
+      {/* Thin main bar */}
+      <div className="flex items-center justify-center h-12 px-4 gap-5">
+        <div id="footer-donate-button" className="hover:scale-105 transition-transform flex-shrink-0" />
+        <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.35em] whitespace-nowrap pointer-events-none">
           MUERTAZOS © 2026
         </p>
       </div>

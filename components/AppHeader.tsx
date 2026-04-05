@@ -23,6 +23,8 @@ interface AppHeaderProps {
   variant?: 'minimal' | 'nav'
   /** When set and no username, shows a "Volver" back button instead of the hamburger */
   backTo?: string
+  /** Minimal variant only: shows an "Iniciar Sesión" button on the right */
+  onLoginClick?: () => void
 }
 
 // ── Role-based fixed menu ─────────────────────────────────────────────────
@@ -35,18 +37,18 @@ type MenuEntry =
 const USER_MENU: MenuEntry[] = [
   { type: 'route',  label: 'KINGS',       href: '/dashboard?tab=kings' },
   { type: 'route',  label: 'QUEENS',      href: '/dashboard?tab=queens' },
-  { type: 'route',  label: 'RANKING',     href: '/dashboard?tab=ranking' },
+  { type: 'route',  label: 'RANKING',     href: '/ranking' },
   { type: 'route',  label: 'PICKS',       href: '/dashboard?tab=picks' },
-  { type: 'route',  label: 'PIZARRA',     href: '/dashboard?tab=pizarra' },
+  { type: 'route',  label: 'PIZARRA',     href: '/pizarra' },
   { type: 'route',  label: 'TIER LIST',   href: '/tierlist' },
-  { type: 'route',  label: 'SIMULADOR',   href: '/dashboard?tab=simulator' },
+  { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
 ]
 
 const ADMIN_MENU: MenuEntry[] = [
   { type: 'route',  label: 'KINGS',       href: '/admin?tab=kings' },
   { type: 'route',  label: 'QUEENS',      href: '/admin?tab=queens' },
-  { type: 'route',  label: 'RANKING',     href: '/admin?tab=ranking' },
-  { type: 'route',  label: 'SIMULADOR',   href: '/admin?tab=simulator' },
+  { type: 'route',  label: 'RANKING',     href: '/ranking' },
+  { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -59,6 +61,7 @@ export default function AppHeader({
   userRole,
   variant = 'nav',
   backTo,
+  onLoginClick,
 }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
@@ -66,9 +69,20 @@ export default function AppHeader({
   /* ── MINIMAL (login page) ── */
   if (variant === 'minimal') {
     return (
-      <header className="w-full h-16 flex justify-center items-center bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+      <header className="w-full h-16 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+        <div className="w-24 md:w-32" />
         <div className="relative w-36 h-10">
           <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" priority />
+        </div>
+        <div className="w-24 md:w-32 flex justify-end">
+          {onLoginClick && (
+            <button
+              onClick={onLoginClick}
+              className="px-3 py-1.5 bg-[#FFD300] text-black font-black italic uppercase text-xs tracking-tight rounded-xl hover:bg-white transition-colors whitespace-nowrap"
+            >
+              Iniciar Sesión
+            </button>
+          )}
         </div>
       </header>
     )
@@ -106,27 +120,14 @@ export default function AppHeader({
         )}
 
         {/* CENTER: logo */}
-        <Link href={userRole === 'admin' ? '/admin' : username ? '/dashboard' : '/'} className="absolute left-1/2 -translate-x-1/2">
+        <a href="https://polymarket.com?via=muertazos" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2">
           <div className="relative w-28 h-9 hover:scale-105 transition-transform duration-200">
             <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" priority />
           </div>
-        </Link>
+        </a>
 
-        {/* RIGHT: user avatar */}
-        {username && (
-          <div className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
-              {userAvatar && (
-                <Image src={userAvatar} alt={username} fill className="object-cover"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }} />
-              )}
-              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-400">
-                {username.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          </div>
-        )}
-        {!username && <div className="w-10" />}
+        {/* RIGHT: spacer for layout balance */}
+        <div className="w-10" />
       </header>
 
       {/* ── DRAWER ── */}
@@ -203,13 +204,13 @@ export default function AppHeader({
                 {username && (
                   <div className="flex items-center gap-3 mb-3 px-2">
                     <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
-                      {userAvatar && (
-                        <Image src={userAvatar} alt={username} fill className="object-cover"
-                          onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                      )}
                       <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-slate-400">
                         {username.charAt(0).toUpperCase()}
                       </span>
+                      {userAvatar && (
+                        <Image src={userAvatar} alt={username} fill className="object-cover z-10"
+                          onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                      )}
                     </div>
                     <span className="text-sm font-black uppercase text-slate-300 tracking-wider">{username}</span>
                   </div>

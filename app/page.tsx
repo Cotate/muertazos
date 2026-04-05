@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 
-const COLLABORATORS = ['Ivanx', 'Chavez6', 'Gaby Velazco', 'Lucholuna', 'Ahmazee']
+const COLLABORATORS = ['Ivanx', 'Chavez6', 'Gaby Velazco', 'Lucholuna', 'Ahmazee', 'Shall']
 
 export default function Home() {
   const router = useRouter()
+  const [showLogin, setShowLogin] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -45,106 +46,131 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-white overflow-x-hidden">
 
-      <AppHeader variant="minimal" />
+      <AppHeader variant="minimal" onLoginClick={() => { setError(''); setShowLogin(true) }} />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-
-        {/* ── Login card ── */}
-        <div className="w-full max-w-sm">
-          <div className="relative bg-slate-900/70 backdrop-blur-md border border-white/8 rounded-2xl p-7">
-            <div className="h-0.5 w-full bg-gradient-to-r from-[#ffd300] via-[#01d6c3] to-[#FF5733] rounded-full mb-7 opacity-50" />
-
-            <h2 className="font-black italic uppercase text-3xl tracking-tight mb-6">
-              Inicia <span style={{ color: '#01d6c3' }}>Sesión</span>
-            </h2>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Usuario</label>
-                <input
-                  type="text"
-                  autoComplete="username"
-                  required
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  placeholder="Usuario"
-                  className="w-full px-4 py-3 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#ffd300] focus:ring-1 focus:ring-[#ffd300]/15 transition-all placeholder:text-slate-700"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Contraseña</label>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#01d6c3] focus:ring-1 focus:ring-[#01d6c3]/15 transition-all"
-                />
-              </div>
-              {error && (
-                <p className="text-red-400 text-[11px] font-bold text-center uppercase bg-red-500/8 border border-red-500/20 rounded-xl py-2.5">
-                  {error}
-                </p>
-              )}
+      {/* ── Login modal ── */}
+      {showLogin && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-black/75 backdrop-blur-sm"
+          onClick={e => { if (e.target === e.currentTarget) setShowLogin(false) }}
+        >
+          <div className="w-full max-w-sm">
+            <div className="relative bg-slate-900 border border-white/10 rounded-2xl p-7 shadow-2xl">
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-[#FFD300] text-black font-black italic uppercase tracking-tight rounded-xl hover:bg-white hover:scale-[1.02] active:scale-95 transition-all text-base disabled:opacity-50 shadow-[0_4px_24px_rgba(255,211,0,0.12)] mt-2"
+                onClick={() => setShowLogin(false)}
+                className="absolute top-3 right-3 text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
               >
-                {loading ? 'Cargando...' : 'Entrar →'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            </form>
+
+              <div className="h-0.5 w-full bg-gradient-to-r from-[#ffd300] via-[#01d6c3] to-[#FF5733] rounded-full mb-7 opacity-50" />
+
+              <h2 className="font-black italic uppercase text-3xl tracking-tight mb-6">
+                Inicia <span style={{ color: '#01d6c3' }}>Sesión</span>
+              </h2>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Usuario</label>
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    required
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="Usuario"
+                    className="w-full px-4 py-3 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#ffd300] focus:ring-1 focus:ring-[#ffd300]/15 transition-all placeholder:text-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Contraseña</label>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#01d6c3] focus:ring-1 focus:ring-[#01d6c3]/15 transition-all"
+                  />
+                </div>
+                {error && (
+                  <p className="text-red-400 text-[11px] font-bold text-center uppercase bg-red-500/8 border border-red-500/20 rounded-xl py-2.5">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-[#FFD300] text-black font-black italic uppercase tracking-tight rounded-xl hover:bg-white hover:scale-[1.02] active:scale-95 transition-all text-base disabled:opacity-50 shadow-[0_4px_24px_rgba(255,211,0,0.12)] mt-2"
+                >
+                  {loading ? 'Cargando...' : 'Entrar →'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
+      )}
+
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-10">
 
         {/* ── Public tools ── */}
-        <div className="w-full max-w-3xl mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Tier List */}
           <Link href="/tierlist"
-            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-xl p-6 hover:border-[#FFD300]/35 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1">
-            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#FFD300]/8 rounded-full blur-2xl group-hover:bg-[#FFD300]/20 transition-colors duration-500" />
-            <div className="relative z-10 mb-4">
-              <div className="bg-[#FFD300]/10 text-[#FFD300] p-3 rounded-xl border border-[#FFD300]/15 group-hover:scale-110 transition-transform duration-300 w-fit">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#FFD300]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#FFD300]/8 rounded-full blur-3xl group-hover:bg-[#FFD300]/20 transition-colors duration-500" />
+            <div className="relative z-10">
+              <div className="bg-[#FFD300]/10 text-[#FFD300] p-4 rounded-xl border border-[#FFD300]/15 group-hover:scale-110 transition-transform duration-300 w-fit mb-5">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18" />
                 </svg>
               </div>
+              <h4 className="font-black italic uppercase text-2xl text-white mb-2 group-hover:text-[#FFD300] transition-colors">Tier List</h4>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">Crea tu propia tier list de jugadores, equipos y más.</p>
             </div>
-            <h4 className="font-black italic uppercase text-xl text-white mb-2 group-hover:text-[#FFD300] transition-colors relative z-10">Tier List</h4>
-            <p className="text-sm text-slate-500 font-medium relative z-10">Crea tu propia tier list de jugadores, equipos y más.</p>
+            <div className="relative z-10 mt-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FFD300]/40 group-hover:text-[#FFD300]/70 transition-colors">Abrir →</span>
+            </div>
           </Link>
 
           {/* Pizarra */}
-          <Link href="/dashboard?tab=pizarra"
-            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-xl p-6 hover:border-purple-500/35 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1">
-            <div className="absolute inset-0 bg-purple-500/2 group-hover:bg-purple-500/5 transition-colors duration-500 rounded-xl" />
-            <div className="relative z-10 mb-4">
-              <div className="bg-purple-500/10 text-purple-400 p-3 rounded-xl border border-purple-500/15 group-hover:scale-110 transition-transform duration-300 w-fit">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <Link href="/pizarra"
+            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-purple-500/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
+            <div className="absolute inset-0 bg-purple-500/2 group-hover:bg-purple-500/5 transition-colors duration-500 rounded-2xl" />
+            <div className="relative z-10">
+              <div className="bg-purple-500/10 text-purple-400 p-4 rounded-xl border border-purple-500/15 group-hover:scale-110 transition-transform duration-300 w-fit mb-5">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
+              <h4 className="font-black italic uppercase text-2xl text-white mb-2 group-hover:text-purple-400 transition-colors">Pizarra</h4>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">Diseña estrategias y arma alineaciones para tus partidos.</p>
             </div>
-            <h4 className="font-black italic uppercase text-xl text-white mb-2 group-hover:text-purple-400 transition-colors relative z-10">Pizarra</h4>
-            <p className="text-sm text-slate-500 font-medium relative z-10">Diseña estrategias y arma alineaciones para tus partidos.</p>
+            <div className="relative z-10 mt-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-purple-400/40 group-hover:text-purple-400/70 transition-colors">Abrir →</span>
+            </div>
           </Link>
 
           {/* Simulador */}
-          <Link href="/dashboard?tab=simulator"
-            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-xl p-6 hover:border-[#FF5733]/35 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1">
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FF5733]/10 rounded-full blur-2xl group-hover:bg-[#FF5733]/25 transition-colors duration-500" />
-            <div className="relative z-10 mb-4">
-              <div className="bg-[#FF5733]/10 text-[#FF5733] p-3 rounded-xl border border-[#FF5733]/15 group-hover:scale-110 transition-transform duration-300 w-fit">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <Link href="/simulator"
+            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#FF5733]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
+            <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#FF5733]/10 rounded-full blur-3xl group-hover:bg-[#FF5733]/25 transition-colors duration-500" />
+            <div className="relative z-10">
+              <div className="bg-[#FF5733]/10 text-[#FF5733] p-4 rounded-xl border border-[#FF5733]/15 group-hover:scale-110 transition-transform duration-300 w-fit mb-5">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
+              <h4 className="font-black italic uppercase text-2xl text-white mb-2 group-hover:text-[#FF5733] transition-colors">Simulador</h4>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">Simula resultados de las jornadas y visualiza la clasificación de tu equipo.</p>
             </div>
-            <h4 className="font-black italic uppercase text-xl text-white mb-2 group-hover:text-[#FF5733] transition-colors relative z-10">Simulador</h4>
-            <p className="text-sm text-slate-500 font-medium relative z-10">Simula resultados de las jornadas y visualiza la clasificación de tu equipo.</p>
+            <div className="relative z-10 mt-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5733]/40 group-hover:text-[#FF5733]/70 transition-colors">Abrir →</span>
+            </div>
           </Link>
 
         </div>

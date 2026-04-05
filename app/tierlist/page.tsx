@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -95,12 +95,15 @@ export default function TierListPage() {
 
   // Wizard
   const [step, setStep]         = useState<1 | 2 | 3 | 4>(1)
-  const [comp, setComp]         = useState<Competition>('kings')
+  const [comp, setComp]         = useState<Competition | null>(null)
   const [country, setCountry]   = useState<Country>('spain')
   const [cat, setCat]           = useState<Category>('teams')
   // Players sub-step
   const [playerScope, setPlayerScope] = useState<PlayerScope>('league')
   const [playerTeam, setPlayerTeam]   = useState<string>('')
+
+  // Accent color driven by competition
+  const accent = comp === 'queens' ? '#01d6c3' : '#FFD300'
 
   // Board
   const [generated, setGenerated]       = useState(false)
@@ -108,6 +111,9 @@ export default function TierListPage() {
   const [bench, setBench]               = useState<Chip[]>([])
   const [editingTierId, setEditingTierId] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId]     = useState<string | null>(null)
+  const [isSharing, setIsSharing]       = useState(false)
+  const captureRef = useRef<HTMLDivElement>(null)
+  const shareTicketRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('muertazos_user')
@@ -116,6 +122,7 @@ export default function TierListPage() {
 
   // Resolve chips from wizard selections
   function resolveChips(): Chip[] | null {
+    if (!comp) return null
     if (country !== 'spain') return null
     if (cat === 'jerseys') return null
     if (cat === 'teams') return comp === 'kings' ? KINGS_TEAMS : QUEENS_TEAMS
@@ -138,10 +145,49 @@ export default function TierListPage() {
   function handleReset() {
     setGenerated(false)
     setStep(1)
+    setComp(null)
     setTiers(freshTiers())
     setBench([])
     setPlayerScope('league')
     setPlayerTeam('')
+  }
+
+  // Convert any CSS color (incl. oklch/lab) to rgb() via canvas — html2canvas safe
+  function toSafeRgb(color: string): string {
+    try {
+      const cv = document.createElement('canvas')
+      cv.width = cv.height = 1
+      const ctx = cv.getContext('2d')!
+      ctx.fillStyle = '#000'
+      ctx.fillStyle = color
+      ctx.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+      return a === 0 ? 'rgba(0,0,0,0)' : `rgb(${r},${g},${b})`
+    } catch {
+      return color
+    }
+  }
+
+  async function handleShareTierList() {
+    if (!shareTicketRef.current || isSharing) return
+    setIsSharing(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const origEl = shareTicketRef.current
+      const canvas = await html2canvas(origEl, {
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+      })
+      const link = document.createElement('a')
+      link.download = 'tierlist-muertazos.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } finally {
+      setIsSharing(false)
+    }
   }
 
   function addRow() {
@@ -210,7 +256,7 @@ export default function TierListPage() {
   const needsPlayerStep = cat === 'players' && comp === 'kings'
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className={`${generated ? 'h-screen' : 'min-h-screen'} bg-[#0a0a0a] text-white flex flex-col overflow-hidden`}>
       <AppHeader
         onLogout={user ? () => { localStorage.removeItem('muertazos_user'); router.push('/') } : undefined}
         username={user?.username}
@@ -221,7 +267,7 @@ export default function TierListPage() {
 
       {/* ── WIZARD (full-screen, shown until generated) ── */}
       {!generated && (
-        <div className="flex-1 flex flex-col items-center overflow-y-auto py-10 px-4">
+        <div className="flex-1 flex flex-col items-center overflow-y-auto min-h-0 py-10 px-4">
           <div className="w-full max-w-lg flex flex-col gap-8">
 
             <div>
@@ -234,7 +280,7 @@ export default function TierListPage() {
             </div>
 
             {/* STEP 1: Competition */}
-            <Step num={1} activeStep={step} title="Competición" onStepClick={() => setStep(1)}>
+            <Step num={1} activeStep={step} title="Competición" accent={accent} onStepClick={() => setStep(1)}>
               <div className="grid grid-cols-2 gap-3">
                 <SelectCard active={comp === 'kings'} accent="#FFD300" label="Kings"
                   icon={
@@ -259,80 +305,93 @@ export default function TierListPage() {
             </Step>
 
             {/* STEP 2: Country */}
-            <Step num={2} activeStep={step} title="País" onStepClick={() => { if (step >= 2) setStep(2) }}>
+            <Step num={2} activeStep={step} title="País" accent={accent} onStepClick={() => { if (step >= 2) setStep(2) }}>
               <div className="flex flex-col gap-2">
                 {([
                   { key: 'spain'  as Country, code: 'ES', name: 'España',  soon: false },
                   { key: 'mexico' as Country, code: 'MX', name: 'México',  soon: true  },
                   { key: 'brazil' as Country, code: 'BR', name: 'Brasil',  soon: true  },
-                ]).map(({ key, code, name, soon }) => (
-                  <button
-                    key={key}
-                    disabled={soon}
-                    onClick={() => { setCountry(key); setStep(3) }}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border font-black italic uppercase tracking-tight transition-all text-sm
-                      ${country === key && step > 2 ? 'border-[#ffd300] bg-[#ffd300]/10 text-[#ffd300]' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}
-                      ${soon ? 'opacity-30 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-[10px] font-black border border-current/30 rounded px-1 py-0.5 not-italic">{code}</span>
-                      {name}
-                    </span>
-                    {soon && <span className="text-[9px] font-black text-slate-600 not-italic tracking-widest">PRÓXIMAMENTE</span>}
-                  </button>
-                ))}
+                ]).filter(c => comp === 'queens' ? c.key === 'spain' : true).map(({ key, code, name, soon }) => {
+                  const isActive = country === key && step > 2
+                  return (
+                    <button
+                      key={key}
+                      disabled={soon}
+                      onClick={() => { setCountry(key); setStep(3) }}
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl border font-black italic uppercase tracking-tight transition-all text-sm
+                        ${soon ? 'opacity-30 cursor-not-allowed border-slate-800 text-slate-400' : isActive ? 'border-current' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}`}
+                      style={isActive ? { borderColor: accent, color: accent, backgroundColor: accent + '18' } : {}}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-[10px] font-black border border-current/30 rounded px-1 py-0.5 not-italic">{code}</span>
+                        {name}
+                      </span>
+                      {soon && <span className="text-[9px] font-black text-slate-600 not-italic tracking-widest">PRÓXIMAMENTE</span>}
+                    </button>
+                  )
+                })}
               </div>
             </Step>
 
             {/* STEP 3: Category */}
-            <Step num={3} activeStep={step} title="Categoría" onStepClick={() => { if (step >= 3) setStep(3) }}>
+            <Step num={3} activeStep={step} title="Categoría" accent={accent} onStepClick={() => { if (step >= 3) setStep(3) }}>
               <div className="grid grid-cols-3 gap-2">
-                {(['teams','players','jerseys'] as const).map(c => (
-                  <button
-                    key={c}
-                    onClick={() => { setCat(c); setStep(c === 'players' && comp === 'kings' ? 4 : 3) }}
-                    className={`py-3 px-2 rounded-xl border font-black italic uppercase text-xs tracking-tight transition-all
-                      ${cat === c ? 'border-[#ffd300] bg-[#ffd300]/10 text-[#ffd300]' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
-                  >
-                    {c === 'teams' ? 'Equipos' : c === 'players' ? 'Jugadores' : 'Camisetas'}
-                  </button>
-                ))}
+                {(['teams','players','jerseys'] as const).map(c => {
+                  const isActive = cat === c
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => { setCat(c); setStep(c === 'players' && comp === 'kings' ? 4 : 3) }}
+                      className={`py-3 px-2 rounded-xl border font-black italic uppercase text-xs tracking-tight transition-all
+                        ${isActive ? 'border-current' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
+                      style={isActive ? { borderColor: accent, color: accent, backgroundColor: accent + '18' } : {}}
+                    >
+                      {c === 'teams' ? 'Equipos' : c === 'players' ? (comp === 'queens' ? 'Jugadoras' : 'Jugadores') : 'Camisetas'}
+                    </button>
+                  )
+                })}
               </div>
             </Step>
 
             {/* STEP 4: Player scope (only for Kings players) */}
             {needsPlayerStep && (
-              <Step num={4} activeStep={step} title="¿Qué jugadores?" onStepClick={() => {}}>
+              <Step num={4} activeStep={step} title="¿Qué jugadores?" accent={accent} onStepClick={() => {}}>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => { setPlayerScope('league'); setPlayerTeam('') }}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border font-black italic uppercase text-sm tracking-tight transition-all
-                      ${playerScope === 'league' ? 'border-[#ffd300] bg-[#ffd300]/10 text-[#ffd300]' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}`}
+                      ${playerScope === 'league' ? 'border-current' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}`}
+                    style={playerScope === 'league' ? { borderColor: accent, color: accent, backgroundColor: accent + '18' } : {}}
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-                    Liga Entera
+                    Liga
                   </button>
                   <button
                     onClick={() => setPlayerScope('team')}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border font-black italic uppercase text-sm tracking-tight transition-all
-                      ${playerScope === 'team' ? 'border-[#ffd300] bg-[#ffd300]/10 text-[#ffd300]' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}`}
+                      ${playerScope === 'team' ? 'border-current' : 'border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white'}`}
+                    style={playerScope === 'team' ? { borderColor: accent, color: accent, backgroundColor: accent + '18' } : {}}
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    Equipo Específico
+                    Equipo
                   </button>
 
                   {playerScope === 'team' && (
                     <div className="grid grid-cols-2 gap-1 mt-1 max-h-52 overflow-y-auto pr-1">
-                      {Object.keys(PLAYERS_DATA).map(team => (
-                        <button
-                          key={team}
-                          onClick={() => setPlayerTeam(team)}
-                          className={`text-left px-3 py-2 rounded-lg border text-[10px] font-black italic uppercase tracking-tight transition-all
-                            ${playerTeam === team ? 'border-[#ffd300] text-[#ffd300] bg-[#ffd300]/10' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
-                        >
-                          {team}
-                        </button>
-                      ))}
+                      {Object.keys(PLAYERS_DATA).map(team => {
+                        const isActive = playerTeam === team
+                        return (
+                          <button
+                            key={team}
+                            onClick={() => setPlayerTeam(team)}
+                            className={`text-left px-3 py-2 rounded-lg border text-[10px] font-black italic uppercase tracking-tight transition-all
+                              ${isActive ? 'border-current' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
+                            style={isActive ? { borderColor: accent, color: accent, backgroundColor: accent + '18' } : {}}
+                          >
+                            {team}
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -350,7 +409,8 @@ export default function TierListPage() {
                 <button
                   onClick={handleGenerate}
                   disabled={needsPlayerStep && playerScope === 'team' && !playerTeam}
-                  className="w-full h-14 bg-[#FFD300] text-slate-900 font-black italic uppercase tracking-tighter text-lg rounded-2xl hover:bg-white hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100"
+                  className="w-full h-14 font-black italic uppercase tracking-tighter text-lg rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100"
+                  style={{ backgroundColor: accent, color: '#0f172a' }}
                 >
                   GENERAR TIER LIST →
                 </button>
@@ -362,7 +422,7 @@ export default function TierListPage() {
 
       {/* ── BOARD (full-screen, shown after generate) ── */}
       {generated && (
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6 pb-2">
           <DragDropContext onDragEnd={onDragEnd}>
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -376,33 +436,57 @@ export default function TierListPage() {
               </div>
               <div className="flex gap-2">
                 <button
+                  onClick={handleShareTierList}
+                  disabled={isSharing}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50"
+                >
+                  {isSharing ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  )}
+                  Compartir
+                </button>
+                <button
                   onClick={handleReset}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-500 hover:border-slate-500 hover:text-white font-black italic uppercase text-xs tracking-tight transition-all"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                  Reconfigurar
+                  Nueva Tier List
                 </button>
               </div>
             </div>
 
             {/* Tier rows */}
-            <div className="border border-slate-800 rounded-2xl overflow-hidden mb-4">
-              {tiers.map(tier => (
+            <div ref={captureRef} className="border border-slate-800 rounded-2xl overflow-hidden mb-4">
+              {tiers.map((tier, tierIdx) => (
                 <div key={tier.id} className="flex min-h-[104px] border-b border-slate-800 last:border-b-0">
 
                   {/* Label */}
-                  <div className="w-16 shrink-0 flex items-center justify-center border-r border-slate-800"
+                  <div className="w-[6rem] shrink-0 self-stretch flex items-center justify-center border-r border-slate-800 px-1 py-1"
                     style={{ backgroundColor: tier.color + '22' }}>
                     {editingTierId === tier.id ? (
                       <input autoFocus
-                        className="w-12 text-center bg-transparent border-b border-white/30 font-black text-2xl text-white outline-none"
+                        className="w-full text-center bg-transparent border-b border-white/30 font-black text-xl text-white outline-none"
                         defaultValue={tier.label}
                         onBlur={e => { setTiers(p => p.map(t => t.id === tier.id ? { ...t, label: e.target.value || tier.id } : t)); setEditingTierId(null) }}
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                       />
                     ) : (
-                      <button onClick={() => setEditingTierId(tier.id)}
-                        className="font-black text-2xl italic hover:opacity-80 transition-opacity" style={{ color: tier.color }}>
+                      <button
+                        onClick={() => setEditingTierId(tier.id)}
+                        className="font-black italic hover:opacity-80 transition-opacity text-center w-full leading-tight"
+                        style={{
+                          color: tier.color,
+                          fontSize: tier.label.length <= 2 ? '1.5rem'
+                            : tier.label.length <= 5 ? '1.1rem'
+                            : tier.label.length <= 10 ? '0.85rem'
+                            : '0.7rem',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
                         {tier.label}
                       </button>
                     )}
@@ -423,15 +507,16 @@ export default function TierListPage() {
                   </Droppable>
 
                   {/* Kebab menu */}
-                  <div className="w-10 shrink-0 flex items-center justify-center border-l border-slate-800 relative">
+                  <div className="w-10 shrink-0 flex items-center justify-center border-l border-slate-800 bg-slate-900/60 relative">
                     <button
                       onClick={() => setOpenMenuId(openMenuId === tier.id ? null : tier.id)}
-                      className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-white hover:bg-white/10 rounded-lg transition-all text-lg leading-none"
+                      className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all font-bold text-xl leading-none"
                     >
                       ⋮
                     </button>
                     {openMenuId === tier.id && (
-                      <div className="absolute right-10 top-0 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 w-48 py-1 overflow-hidden">
+                      <div className={`absolute right-10 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 w-48 py-1 overflow-hidden
+                        ${tierIdx >= tiers.length - 2 ? 'bottom-0' : 'top-0'}`}>
                         {/* Color picker row */}
                         <label className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/5 cursor-pointer transition-colors">
                           <span className="w-4 h-4 rounded-full border border-slate-600 shrink-0 overflow-hidden relative" style={{ backgroundColor: tier.color }}>
@@ -441,13 +526,6 @@ export default function TierListPage() {
                           </span>
                           Cambiar color
                         </label>
-                        <button
-                          onClick={() => { setEditingTierId(tier.id); setOpenMenuId(null) }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/5 transition-colors text-left"
-                        >
-                          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125L18 9" /></svg>
-                          Cambiar nombre
-                        </button>
                         <button
                           onClick={() => { addRowBelow(tier.id); setOpenMenuId(null) }}
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/5 transition-colors text-left"
@@ -474,7 +552,7 @@ export default function TierListPage() {
             <div className="border border-slate-800 rounded-2xl overflow-hidden">
               <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-950">
                 <h3 className="font-black italic uppercase text-sm text-slate-400 tracking-tighter">
-                  Banquillo <span className="text-[#FFD300]">/ {bench.length} restantes</span>
+                  Banquillo
                 </h3>
               </div>
               <Droppable droppableId={BENCH_ID} direction="horizontal">
@@ -498,21 +576,99 @@ export default function TierListPage() {
           </DragDropContext>
         </main>
       )}
+
+      {/* ── HIDDEN SHARE TICKET (off-screen, captured by html2canvas) ── */}
+      {generated && (
+        <div className="absolute top-[-9999px] left-[-9999px]">
+          <div ref={shareTicketRef} style={{ width: '580px', backgroundColor: '#060d1a', padding: '36px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
+            {/* Header: logo + username + title */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <img src="/Muertazos.png" alt="Muertazos" style={{ width: '140px', height: '40px', objectFit: 'contain' }} />
+              <div style={{ textAlign: 'right' }}>
+                {user?.username && (
+                  <div style={{ color: '#ffffff', fontWeight: 900, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.12em', opacity: 0.45 }}>
+                    {user.username}
+                  </div>
+                )}
+                <div style={{ color: accent, fontWeight: 900, fontStyle: 'italic', fontSize: '20px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: '4px' }}>
+                  {comp === 'kings' ? 'Kings' : 'Queens'} · {cat === 'teams' ? 'Equipos' : cat === 'players' ? (playerScope === 'team' && playerTeam ? playerTeam : 'Jugadores') : 'Camisetas'}
+                </div>
+              </div>
+            </div>
+
+            {/* Tier rows — unified solid table */}
+            <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+              {tiers.filter(t => t.chips.length > 0).map((tier, i, arr) => (
+                <div key={tier.id} style={{
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  minHeight: '72px',
+                  borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                }}>
+                  {/* Left accent bar */}
+                  <div style={{ width: '5px', flexShrink: 0, backgroundColor: tier.color }} />
+                  {/* Label column */}
+                  <div style={{
+                    width: '64px', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: tier.color + '1a',
+                    borderRight: '1px solid rgba(255,255,255,0.07)',
+                    color: tier.color, fontWeight: 900, fontStyle: 'italic',
+                    fontSize: tier.label.length <= 2 ? '26px' : tier.label.length <= 5 ? '15px' : '11px',
+                    textAlign: 'center',
+                    lineHeight: 1.2,
+                    wordBreak: 'break-word',
+                    padding: '8px 6px',
+                  }}>
+                    {tier.label}
+                  </div>
+                  {/* Chips area */}
+                  <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px 10px', alignItems: 'center', alignContent: 'center', backgroundColor: '#0a1525' }}>
+                    {tier.chips.map(chip => (
+                      <img
+                        key={chip.id}
+                        src={chip.imageSrc}
+                        alt={chip.name}
+                        title={chip.name}
+                        style={{ width: '56px', height: '56px', objectFit: 'contain' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {tiers.every(t => t.chips.length === 0) && (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#334155', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.2em', backgroundColor: '#0a1525' }}>
+                  Sin clasificar
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ marginTop: '20px', textAlign: 'center', color: '#2d4a6b', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
+              MUERTAZOS.COM
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function Step({ num, activeStep, title, children, onStepClick }: {
-  num: number; activeStep: number; title: string; children: React.ReactNode; onStepClick: () => void
+function Step({ num, activeStep, title, children, onStepClick, accent = '#FFD300' }: {
+  num: number; activeStep: number; title: string; children: React.ReactNode; onStepClick: () => void; accent?: string
 }) {
   const isActive = activeStep >= num
   return (
     <div className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
       <button onClick={onStepClick} className="flex items-center gap-3 mb-3 w-full text-left group">
-        <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-black shrink-0
-          ${activeStep === num ? 'bg-[#ffd300] text-slate-900' : 'bg-slate-800 text-slate-500'}`}>
+        <span
+          className="w-6 h-6 rounded flex items-center justify-center text-xs font-black shrink-0 transition-colors"
+          style={activeStep === num
+            ? { backgroundColor: accent, color: '#0f172a' }
+            : { backgroundColor: '#1e293b', color: '#64748b' }}
+        >
           {num}
         </span>
         <h2 className="font-black italic uppercase text-base tracking-tight text-slate-300 group-hover:text-white transition-colors">
