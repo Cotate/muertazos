@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { getCompFolder, getLogoSize } from '@/lib/utils'
 
 interface Props {
-  /** When true, shows save/delete buttons and uses smaller logo sizes */
   isAdmin?: boolean
 }
 
@@ -144,7 +143,6 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Competition + matchday selector */}
       <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-4 border-b border-white/5">
         <div className="flex gap-2 border-r border-white/10 pr-4">
           <button
@@ -176,7 +174,6 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col xl:flex-row gap-8 xl:items-start">
-          {/* Matches grid — title left-aligned, matches in 2-col grid */}
           <div className="flex-1 flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
               <h3 className="text-2xl font-black italic uppercase tracking-tighter">
@@ -200,8 +197,8 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                     <div className="flex flex-col items-center">
                       {m.home && (
                         <button
-                          onClick={() => isAdmin && isTie && togglePenaltyWinner(m.id, m.home_team_id)}
-                          className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''} ${isAdmin ? '' : 'cursor-default'}`}
+                          onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
+                          className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                         >
                           <Image src={`/logos/${folder}/${m.home.logo_file}`} width={size} height={size} alt="home" />
                         </button>
@@ -211,33 +208,31 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                       <input
                         type="text"
                         value={s.hg}
-                        readOnly={!isAdmin}
-                        onChange={e => isAdmin && handleLocalScoreChange(m.id, 'hg', e.target.value)}
-                        className={`w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none ${!isAdmin ? 'cursor-default' : ''}`}
+                        onChange={e => handleLocalScoreChange(m.id, 'hg', e.target.value)}
+                        className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
                         maxLength={2}
                       />
                       <span className="text-xs font-black text-white italic">VS</span>
                       <input
                         type="text"
                         value={s.ag}
-                        readOnly={!isAdmin}
-                        onChange={e => isAdmin && handleLocalScoreChange(m.id, 'ag', e.target.value)}
-                        className={`w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none ${!isAdmin ? 'cursor-default' : ''}`}
+                        onChange={e => handleLocalScoreChange(m.id, 'ag', e.target.value)}
+                        className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
                         maxLength={2}
                       />
                     </div>
                     <div className="flex flex-col items-center">
                       {m.away && (
                         <button
-                          onClick={() => isAdmin && isTie && togglePenaltyWinner(m.id, m.away_team_id)}
-                          className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''} ${isAdmin ? '' : 'cursor-default'}`}
+                          onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
+                          className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                         >
                           <Image src={`/logos/${folder}/${m.away.logo_file}`} width={size} height={size} alt="away" />
                         </button>
                       )}
                     </div>
                   </div>
-                  {isAdmin && isTie && (
+                  {isTie && (
                     <p className="text-[9px] font-black text-yellow-500 uppercase animate-pulse">Clic en el escudo del ganador</p>
                   )}
                 </div>
@@ -246,7 +241,6 @@ export default function SimulatorView({ isAdmin = false }: Props) {
             </div>
           </div>
 
-          {/* Standings table */}
           <div className="w-full xl:w-[480px]">
             <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl overflow-x-auto">
               <table className="w-full text-center text-sm">

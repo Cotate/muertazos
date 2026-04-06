@@ -18,7 +18,6 @@ const PLAYERS_DATA: Record<string, string[]> = {
 }
 
 interface Props {
-  /** When true, pitch fills remaining viewport height instead of using aspect-video */
   fillViewport?: boolean
 }
 

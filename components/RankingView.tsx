@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface Props {
-  /** When provided, highlights this user's row in blue */
   currentUser?: string
 }
 

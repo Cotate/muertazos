@@ -48,7 +48,6 @@ export default function Home() {
 
       <AppHeader variant="minimal" onLoginClick={() => { setError(''); setShowLogin(true) }} />
 
-      {/* ── Login modal ── */}
       {showLogin && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-black/75 backdrop-blur-sm"
@@ -116,10 +115,8 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-10">
 
-        {/* ── Public tools ── */}
         <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* Tier List */}
           <Link href="/tierlist"
             className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#FFD300]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
             <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#FFD300]/8 rounded-full blur-3xl group-hover:bg-[#FFD300]/20 transition-colors duration-500" />
@@ -137,7 +134,6 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Pizarra */}
           <Link href="/pizarra"
             className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-purple-500/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
             <div className="absolute inset-0 bg-purple-500/2 group-hover:bg-purple-500/5 transition-colors duration-500 rounded-2xl" />
@@ -155,7 +151,6 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Simulador */}
           <Link href="/simulator"
             className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#FF5733]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
             <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#FF5733]/10 rounded-full blur-3xl group-hover:bg-[#FF5733]/25 transition-colors duration-500" />
@@ -176,7 +171,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ── COLLABORATORS MARQUEE ── */}
       <section className="bg-black/40 backdrop-blur-md py-3 overflow-hidden relative">
         <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#0a0a0a] to-transparent z-10 pointer-events-none" />
         <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#0a0a0a] to-transparent z-10 pointer-events-none" />

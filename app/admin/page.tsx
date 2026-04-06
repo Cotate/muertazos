@@ -1,6 +1,3 @@
-/******************************************************************************
-ADMIN
-*******************************************************************************/
 'use client'
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -46,7 +43,6 @@ function AdminDashboardInner() {
         variant="nav"
       />
 
-      {/* Country tabs — Kings only */}
       {isKingsTab && (
         <div className="flex gap-2 px-4 pt-4 max-w-5xl mx-auto overflow-x-auto pb-1">
           {COUNTRIES.map(({ key, flag, name }) => (
@@ -87,8 +83,6 @@ function AdminDashboardInner() {
     </div>
   )
 }
-
-// ── Competition admin panel (predictions grid + matchday controls) ─────────────
 
 function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
   const [matchdays, setMatchdays] = useState<any[]>([])
@@ -203,7 +197,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Matchday tabs */}
       <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-4 md:px-6 border-b border-white/5 bg-slate-900/20">
         {matchdays.map(day => (
           <button
@@ -222,7 +215,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
 
       {activeMatchday && (
         <div className="relative group w-full mb-8">
-          {/* Controls bar */}
           <div className="w-full px-4 md:px-10 py-4 grid grid-cols-1 sm:grid-cols-3 items-center gap-3 bg-slate-900/40 border-b border-white/5">
             <div className="flex justify-center sm:justify-start">
               {totalPages > 1 && (
@@ -250,7 +242,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
             </div>
           </div>
 
-          {/* Predictions table */}
           <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse table-fixed text-center">
               <thead>

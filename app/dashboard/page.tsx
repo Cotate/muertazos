@@ -1,6 +1,3 @@
-/******************************************************************************
-USUARIO
-*******************************************************************************/
 'use client'
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -163,7 +160,7 @@ function UserDashboardInner() {
     if (league === 'queens') return 'from-[#01d6c3] via-[#01d6c3]/50 to-[#01d6c3]'
     if (country === 'mexico') return 'from-[#006847] via-white to-[#ce1126]'
     if (country === 'brazil') return 'from-[#009c3b] via-[#ffdf00] to-[#009c3b]'
-    return 'from-[#c60b1e] via-[#ffd300] to-[#c60b1e]' // spain
+    return 'from-[#c60b1e] via-[#ffd300] to-[#c60b1e]'
   }
 
   return (
@@ -179,7 +176,6 @@ function UserDashboardInner() {
 
       <main className={`mx-auto pt-6 pb-2 ${view === 'all-picks' || view === 'pizarra' ? 'w-full px-4' : 'max-w-5xl px-4'}`}>
 
-        {/* Country selector — only in picks view for Kings */}
         {showCountrySelector && (
           <div className="flex gap-2 mb-5 max-w-2xl mx-auto overflow-x-auto pb-1">
             {COUNTRIES.map(({ key, flag, name }) => {
@@ -291,7 +287,6 @@ function UserDashboardInner() {
         )}
       </main>
 
-      {/* Hidden ticket for sharing */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && user && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
@@ -329,8 +324,6 @@ function UserDashboardInner() {
   )
 }
 
-// ── Team pick button ──────────────────────────────────────────────────────────
-
 function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
   const folder = getCompFolder(league)
   const appearanceClass = isSelected
@@ -350,8 +343,6 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
     </button>
   )
 }
-
-// ── Read-only picks table (locked + hidden matchdays) ─────────────────────────
 
 function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
   const [matchdays, setMatchdays] = useState<any[]>([])
@@ -430,7 +421,6 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Matchday tabs */}
       <div className="w-full flex justify-center flex-wrap gap-2 py-2 px-4 md:px-6 border-b border-white/5 bg-slate-900/20">
         {matchdays.map(day => (
           <button
@@ -451,7 +441,6 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
 
       {activeMatchday && (
         <div className="relative group w-full mb-8">
-          {/* Controls bar — mirrors admin layout */}
           <div className="w-full px-4 md:px-10 py-4 grid grid-cols-1 sm:grid-cols-3 items-center gap-3 bg-slate-900/40 border-b border-white/5">
             <div className="flex justify-center sm:justify-start">
               {totalPages > 1 && (
@@ -472,7 +461,6 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
             <div />
           </div>
 
-          {/* Predictions table */}
           <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse table-fixed text-center">
               <thead>

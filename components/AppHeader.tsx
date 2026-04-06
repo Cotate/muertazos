@@ -4,8 +4,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
 export interface NavItem {
   label: string
   active?: boolean
@@ -14,20 +12,15 @@ export interface NavItem {
 }
 
 interface AppHeaderProps {
-  /** Passed from parent page for view switching (shown in drawer under "Vista") */
   navItems?: NavItem[]
   onLogout?: () => void
   userAvatar?: string
   username?: string
   userRole?: string
   variant?: 'minimal' | 'nav'
-  /** When set and no username, shows a "Volver" back button instead of the hamburger */
   backTo?: string
-  /** Minimal variant only: shows an "Iniciar Sesión" button on the right */
   onLoginClick?: () => void
 }
-
-// ── Role-based fixed menu ─────────────────────────────────────────────────
 
 type MenuEntry =
   | { type: 'route'; label: string; href: string }
@@ -51,8 +44,6 @@ const ADMIN_MENU: MenuEntry[] = [
   { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
 ]
 
-// ── Component ─────────────────────────────────────────────────────────────
-
 export default function AppHeader({
   navItems = [],
   onLogout,
@@ -66,7 +57,6 @@ export default function AppHeader({
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
 
-  /* ── MINIMAL (login page) ── */
   if (variant === 'minimal') {
     return (
       <header className="w-full h-16 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
@@ -91,12 +81,10 @@ export default function AppHeader({
   const menuEntries = userRole === 'admin' ? ADMIN_MENU : USER_MENU
   const isPublicOnly = !username && !!backTo
 
-  /* ── NAV COMPLETO ── */
   return (
     <>
       <header className="w-full h-14 flex items-center justify-between bg-slate-950/95 border-b border-slate-800 px-3 md:px-5 sticky top-0 z-50 backdrop-blur-md">
 
-        {/* LEFT: back button (public) or hamburger (authenticated) */}
         {isPublicOnly ? (
           <Link
             href={backTo}
@@ -119,25 +107,21 @@ export default function AppHeader({
           </button>
         )}
 
-        {/* CENTER: logo */}
         <a href="https://polymarket.com?via=muertazos" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2">
           <div className="relative w-28 h-9 hover:scale-105 transition-transform duration-200">
             <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" priority />
           </div>
         </a>
 
-        {/* RIGHT: spacer for layout balance */}
         <div className="w-10" />
       </header>
 
-      {/* ── DRAWER ── */}
       {!isPublicOnly && menuOpen && (
         <div className="fixed inset-0 z-[60]">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
 
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
-            {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
               <div className="relative w-28 h-9">
                 <Image src="/Muertazos.png" alt="Muertazos" fill className="object-contain" />
@@ -152,13 +136,12 @@ export default function AppHeader({
               </button>
             </div>
 
-            {/* Fixed role-based nav */}
             <nav className="flex flex-col p-3 gap-0.5 flex-1 overflow-y-auto">
               {menuEntries.map((entry, i) => {
                 if (entry.type !== 'route') return null
                 const isActive = pathname === entry.href.split('?')[0]
                   && (entry.href.includes('?')
-                    ? false  // let page handle active state via navItems
+                    ? false
                     : true)
                 return (
                   <Link
@@ -176,7 +159,6 @@ export default function AppHeader({
                 )
               })}
 
-              {/* Extra view-specific items passed from parent (e.g. league tabs) */}
               {navItems.length > 0 && (
                 <>
                   <div className="my-2 border-t border-slate-800/60" />
@@ -198,7 +180,6 @@ export default function AppHeader({
               )}
             </nav>
 
-            {/* Footer: user + logout */}
             {(username || onLogout) && (
               <div className="p-4 border-t border-slate-800">
                 {username && (

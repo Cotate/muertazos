@@ -19,7 +19,7 @@ export default function AppFooter() {
         .limit(50)
       if (data) setDonors(data)
     }
-    fetchDonors().catch(() => {/* tabla inexistente — OK */})
+    fetchDonors().catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -61,7 +61,6 @@ export default function AppFooter() {
   return (
     <footer className="w-full bg-slate-950 border-t border-white/5">
 
-      {/* Donors wall — only when there are donors */}
       {donors.length > 0 && (
         <div className="max-w-4xl mx-auto px-6 pt-6 pb-3">
           <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-3">
@@ -81,7 +80,6 @@ export default function AppFooter() {
         </div>
       )}
 
-      {/* Thin main bar */}
       <div className="flex items-center justify-center h-12 px-4 gap-5">
         <div id="footer-donate-button" className="hover:scale-105 transition-transform flex-shrink-0" />
         <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.35em] whitespace-nowrap pointer-events-none">
