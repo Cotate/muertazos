@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import RankingView from '@/components/RankingView'
-import { Country, COUNTRIES, getCompFolder, getLogoSize } from '@/lib/utils'
+import { Country, COUNTRIES, getCompFolder, getLogoSize, getTeamLogoPath } from '@/lib/utils'
 
 export default function AdminDashboard() {
   return <Suspense><AdminDashboardInner /></Suspense>
@@ -100,6 +100,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', competitionKey)
+      .eq('country', 'spain')
       .order('display_order')
 
     const { data: uData } = await supabase
@@ -271,7 +272,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             ${m.winner_team_id == m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                               : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
                         >
-                          {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
+                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
                         </button>
                         <span className="text-[9px] font-black text-slate-600 italic">VS</span>
                         <button
@@ -280,7 +281,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             ${m.winner_team_id == m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                               : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
                         >
-                          {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
+                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
                         </button>
                       </div>
                     </td>
@@ -297,7 +298,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                           {logoFile ? (
                             <div className="flex justify-center">
                               <Image
-                                src={`/logos/${folder}/${logoFile}`}
+                                src={getTeamLogoPath(competitionKey, logoFile)}
                                 width={logoSize(logoFile)}
                                 height={logoSize(logoFile)}
                                 alt="p"

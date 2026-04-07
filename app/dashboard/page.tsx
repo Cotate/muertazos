@@ -8,7 +8,7 @@ import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import RankingView from '@/components/RankingView'
 import PizarraView from '@/components/PizarraView'
-import { Country, COUNTRIES, getCompFolder, getLogoSize, sortMatchesByOrder } from '@/lib/utils'
+import { Country, COUNTRIES, getCompFolder, getLogoSize, getTeamLogoPath, sortMatchesByOrder } from '@/lib/utils'
 
 export default function UserDashboard() {
   return <Suspense><UserDashboardInner /></Suspense>
@@ -250,9 +250,9 @@ function UserDashboardInner() {
                       const anyPick = myPick !== undefined
                       return (
                         <div key={match.id} className="flex justify-between items-center bg-slate-950/40 p-4 sm:p-6 rounded-2xl border border-slate-800/50 hover:border-slate-700 transition-colors">
-                          <TeamButton team={match.home} league={league} isSelected={myPick === match.home_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.home_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
+                          <TeamButton team={match.home} league={league} country={country} isSelected={myPick === match.home_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.home_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
                           <span className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter mx-2 sm:mx-4">VS</span>
-                          <TeamButton team={match.away} league={league} isSelected={myPick === match.away_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.away_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
+                          <TeamButton team={match.away} league={league} country={country} isSelected={myPick === match.away_team_id} anyPickInMatch={anyPick} onClick={() => handlePredict(match.id, match.away_team_id)} disabled={(hasSavedInDB && !isEditing) || isLocked} />
                         </div>
                       )
                     })}
@@ -279,7 +279,7 @@ function UserDashboardInner() {
         ) : view === 'ranking' ? (
           <RankingView currentUser={user?.username} />
         ) : view === 'all-picks' ? (
-          <CompetitionReadOnly competitionKey={league} />
+          <CompetitionReadOnly competitionKey={league} country={country} />
         ) : view === 'simulator' ? (
           <SimulatorView />
         ) : (
@@ -292,7 +292,7 @@ function UserDashboardInner() {
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
             <div className="flex justify-between items-center mb-8">
               <div className="relative w-36 h-10">
-                <img src="/Muertazos.png" alt="Logo" className="object-contain w-full h-full" />
+                <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Logo" className="object-contain w-full h-full" />
               </div>
               <div className="text-right">
                 <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">{user.username}</div>
@@ -307,11 +307,11 @@ function UserDashboardInner() {
                 return (
                   <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
                     <div className={`relative w-24 h-24 flex items-center justify-center ${pickId === match.home_team_id ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                      <img src={`/logos/${folder}/${match.home.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                      <img src={getTeamLogoPath(league, match.home.logo_file, 'spain')} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
                     </div>
                     <div className="text-2xl font-black italic text-white">VS</div>
                     <div className={`relative w-24 h-24 flex items-center justify-center ${pickId === match.away_team_id ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                      <img src={`/logos/${folder}/${match.away.logo_file}`} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                      <img src={getTeamLogoPath(league, match.away.logo_file, 'spain')} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
                     </div>
                   </div>
                 )
@@ -324,8 +324,7 @@ function UserDashboardInner() {
   )
 }
 
-function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disabled }: any) {
-  const folder = getCompFolder(league)
+function TeamButton({ team, league, country = 'spain', isSelected, anyPickInMatch, onClick, disabled }: any) {
   const appearanceClass = isSelected
     ? 'scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)] grayscale-0 opacity-100 z-10'
     : anyPickInMatch
@@ -338,13 +337,13 @@ function TeamButton({ team, league, isSelected, anyPickInMatch, onClick, disable
       className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}
     >
       <div className="relative w-20 h-20 sm:w-28 sm:h-28">
-        <Image src={`/logos/${folder}/${team.logo_file}`} alt={team.name} fill className="object-contain" />
+        <Image src={getTeamLogoPath(league, team.logo_file, country)} alt={team.name} fill className="object-contain" />
       </div>
     </button>
   )
 }
 
-function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
+function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitionKey: string; country?: string }) {
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [users, setUsers] = useState<any[]>([])
@@ -352,7 +351,6 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
 
-  const folder = getCompFolder(competitionKey)
   const logoSize = (filename: string) => getLogoSize(filename)
 
   const load = async () => {
@@ -360,6 +358,7 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', competitionKey)
+      .eq('country', country)
       .eq('is_visible', false)
       .eq('is_locked', true)
       .order('display_order')
@@ -485,11 +484,11 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                     <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
                       <div className="flex items-center justify-center gap-2">
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                          {m.home && <Image src={`/logos/${folder}/${m.home.logo_file}`} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
+                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, country)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
                         </div>
                         <span className="text-[9px] font-black text-slate-600 italic">VS</span>
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                          {m.away && <Image src={`/logos/${folder}/${m.away.logo_file}`} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
+                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, country)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
                         </div>
                       </div>
                     </td>
@@ -502,7 +501,7 @@ function CompetitionReadOnly({ competitionKey }: { competitionKey: string }) {
                           {pred?.predicted_team?.logo_file ? (
                             <div className="flex justify-center">
                               <Image
-                                src={`/logos/${folder}/${pred.predicted_team.logo_file}`}
+                                src={getTeamLogoPath(competitionKey, pred.predicted_team.logo_file, country)}
                                 width={logoSize(pred.predicted_team.logo_file)}
                                 height={logoSize(pred.predicted_team.logo_file)}
                                 alt="p"

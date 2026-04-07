@@ -2,7 +2,15 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { getCompFolder, getLogoSize } from '@/lib/utils'
+import { getCompFolder, getLogoSize, getTeamLogoPath } from '@/lib/utils'
+
+type SplitKey = 'spain' | 'brazil' | 'mexico'
+
+const SPLIT_OPTIONS: { key: SplitKey; label: string; flag: string; accentColor: string }[] = [
+  { key: 'spain',  label: 'SPLIT 6 ESPAÑA',  flag: '🇪🇸', accentColor: '#c60b1e' },
+  { key: 'brazil', label: 'SPLIT 2 BRASIL',  flag: '🇧🇷', accentColor: '#009c3b' },
+  { key: 'mexico', label: 'SPLIT 4 MÉXICO',  flag: '🇲🇽', accentColor: '#006847' },
+]
 
 interface Props {
   isAdmin?: boolean
@@ -10,13 +18,14 @@ interface Props {
 
 export default function SimulatorView({ isAdmin = false }: Props) {
   const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings')
+  const [splitCountry, setSplitCountry] = useState<SplitKey>('spain')
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [teams, setTeams] = useState<any[]>([])
   const [scores, setScores] = useState<Record<number, { hg: string; ag: string; penaltyWinnerId: number | null }>>({})
 
-  const folder = getCompFolder(compKey)
   const logoSize = (filename: string) => getLogoSize(filename, !isAdmin)
+  const activeSplit = SPLIT_OPTIONS.find(s => s.key === splitCountry) ?? SPLIT_OPTIONS[0]
 
   const getRowColor = (idx: number) => {
     if (idx === 0) return 'bg-yellow-500'
@@ -27,18 +36,25 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
   useEffect(() => {
     const load = async () => {
-      const { data: tData } = await supabase.from('teams').select('*').eq('competition_key', compKey)
-      if (tData) setTeams(tData)
+      // Try to load teams from DB (with country column after migration)
+      const { data: tData } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('competition_key', compKey)
+        .eq('country', splitCountry)
+
+      setTeams(tData ?? [])
 
       const { data: mData } = await supabase
         .from('matchdays')
         .select(`*, matches (*, home:home_team_id(*), away:away_team_id(*))`)
         .eq('competition_key', compKey)
+        .eq('country', splitCountry)
         .order('display_order')
 
       const { data: rData } = await supabase.from('match_results').select('*')
 
-      if (mData) {
+      if (mData && mData.length > 0) {
         const loadedScores: any = {}
         if (rData) {
           const allMatches = mData.flatMap((d: any) => d.matches)
@@ -58,11 +74,15 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         }
         setScores(loadedScores)
         setMatchdays(mData)
-        if (mData.length > 0) setActiveMatchdayId(mData[0].id)
+        setActiveMatchdayId(mData[0].id)
+      } else {
+        setMatchdays([])
+        setActiveMatchdayId(null)
+        setScores({})
       }
     }
     load()
-  }, [compKey])
+  }, [compKey, splitCountry])
 
   const activeMatchday = matchdays.find(d => d.id === activeMatchdayId)
 
@@ -141,106 +161,153 @@ export default function SimulatorView({ isAdmin = false }: Props) {
     })
     .sort((a, b) => b.w - a.w || b.dg - a.dg || b.gf - a.gf)
 
+  const isNonSpainKings = compKey === 'kings' && splitCountry !== 'spain' && matchdays.length === 0
+
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-4 border-b border-white/5">
-        <div className="flex gap-2 border-r border-white/10 pr-4">
-          <button
-            onClick={() => { setCompKey('kings'); setActiveMatchdayId(null) }}
-            className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
-          >Kings</button>
-          <button
-            onClick={() => { setCompKey('queens'); setActiveMatchdayId(null) }}
-            className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
-          >Queens</button>
+      {/* Top bar: competition + split selectors */}
+      <div className="w-full flex flex-col border-b border-white/5">
+        {/* Row 1: Kings / Queens + matchday tabs */}
+        <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-4">
+          <div className="flex gap-2 border-r border-white/10 pr-4">
+            <button
+              onClick={() => { setCompKey('kings'); setActiveMatchdayId(null) }}
+              className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+            >Kings</button>
+            {splitCountry !== 'brazil' && (
+              <button
+                onClick={() => { setCompKey('queens'); setSplitCountry('spain'); setActiveMatchdayId(null) }}
+                className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+              >Queens</button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {matchdays.map(day => {
+              const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '')
+              const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`
+              return (
+                <button
+                  key={day.id}
+                  onClick={() => setActiveMatchdayId(day.id)}
+                  className={`px-2 py-1.5 text-[11px] font-black italic uppercase border-b-2 transition-colors ${activeMatchdayId === day.id
+                    ? compKey === 'kings' ? 'border-[#FFD300] text-[#FFD300]' : 'border-[#01d6c3] text-[#01d6c3]'
+                    : 'border-transparent text-slate-400 hover:text-white'}`}
+                >{label}</button>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {matchdays.map(day => {
-            const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '')
-            const label = shortName.includes('J') ? shortName : `J${day.display_order || ''}`
-            return (
-              <button
-                key={day.id}
-                onClick={() => setActiveMatchdayId(day.id)}
-                className={`px-2 py-1.5 text-[11px] font-black italic uppercase border-b-2 transition-colors ${activeMatchdayId === day.id
-                  ? compKey === 'kings' ? 'border-[#FFD300] text-[#FFD300]' : 'border-[#01d6c3] text-[#01d6c3]'
-                  : 'border-transparent text-slate-400 hover:text-white'}`}
-              >{label}</button>
-            )
-          })}
-        </div>
+        {/* Row 2: Split selector (Kings only) */}
+        {compKey === 'kings' && (
+          <div className="flex justify-center gap-2 px-4 pb-3">
+            {SPLIT_OPTIONS.map(opt => {
+              const isActive = splitCountry === opt.key
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => { setSplitCountry(opt.key); if (opt.key === 'brazil') setCompKey('kings'); setActiveMatchdayId(null) }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black italic uppercase tracking-tight whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'text-black border-transparent'
+                      : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
+                  }`}
+                  style={isActive ? { backgroundColor: opt.accentColor, borderColor: opt.accentColor } : {}}
+                >
+                  <span className="not-italic">{opt.flag}</span>
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col xl:flex-row gap-8 xl:items-start">
+          {/* Match containers */}
           <div className="flex-1 flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
               <h3 className="text-2xl font-black italic uppercase tracking-tighter">
-                {activeMatchday?.name}
+                {isNonSpainKings
+                  ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
+                  : activeMatchday?.name}
               </h3>
-              {isAdmin && (
+              {isAdmin && !isNonSpainKings && (
                 <div className="flex gap-2">
                   <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
                   <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeMatchday?.matches?.map((m: any) => {
-              const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
-              const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-              const size = isAdmin ? logoSize(m.home?.logo_file || '') : 96
-              return (
-                <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3 flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center">
-                      {m.home && (
-                        <button
-                          onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
-                          className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
-                        >
-                          <Image src={`/logos/${folder}/${m.home.logo_file}`} width={size} height={size} alt="home" />
-                        </button>
+
+            {isNonSpainKings ? (
+              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-2xl gap-3">
+                <span className="text-3xl not-italic">{activeSplit.flag}</span>
+                <p className="text-slate-500 font-black italic uppercase text-sm tracking-widest">
+                  Jornadas {splitCountry === 'brazil' ? 'Brasil' : 'México'} próximamente
+                </p>
+                <p className="text-slate-700 text-xs">Los datos de partidos se añadirán cuando estén disponibles</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeMatchday?.matches?.map((m: any) => {
+                  const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
+                  const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
+                  const size = isAdmin ? logoSize(m.home?.logo_file || '') : 96
+                  return (
+                    <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3 flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-center">
+                          {m.home && (
+                            <button
+                              onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
+                              className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
+                            >
+                              <Image src={getTeamLogoPath(compKey, m.home.logo_file, splitCountry)} width={size} height={size} alt="home" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={s.hg}
+                            onChange={e => handleLocalScoreChange(m.id, 'hg', e.target.value)}
+                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
+                            maxLength={2}
+                          />
+                          <span className="text-xs font-black text-white italic">VS</span>
+                          <input
+                            type="text"
+                            value={s.ag}
+                            onChange={e => handleLocalScoreChange(m.id, 'ag', e.target.value)}
+                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
+                            maxLength={2}
+                          />
+                        </div>
+                        <div className="flex flex-col items-center">
+                          {m.away && (
+                            <button
+                              onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
+                              className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
+                            >
+                              <Image src={getTeamLogoPath(compKey, m.away.logo_file, splitCountry)} width={size} height={size} alt="away" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {isTie && (
+                        <p className="text-[9px] font-black text-yellow-500 uppercase animate-pulse">Clic en el escudo del ganador</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={s.hg}
-                        onChange={e => handleLocalScoreChange(m.id, 'hg', e.target.value)}
-                        className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
-                        maxLength={2}
-                      />
-                      <span className="text-xs font-black text-white italic">VS</span>
-                      <input
-                        type="text"
-                        value={s.ag}
-                        onChange={e => handleLocalScoreChange(m.id, 'ag', e.target.value)}
-                        className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
-                        maxLength={2}
-                      />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      {m.away && (
-                        <button
-                          onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
-                          className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
-                        >
-                          <Image src={`/logos/${folder}/${m.away.logo_file}`} width={size} height={size} alt="away" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {isTie && (
-                    <p className="text-[9px] font-black text-yellow-500 uppercase animate-pulse">Clic en el escudo del ganador</p>
-                  )}
-                </div>
-              )
-            })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
+          {/* Standings table */}
           <div className="w-full xl:w-[480px]">
             <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl overflow-x-auto">
               <table className="w-full text-center text-sm">
@@ -264,7 +331,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                       </td>
                       <td className="py-2.5 pl-2 text-left">
                         <div className="flex items-center gap-2">
-                          <Image src={`/logos/${folder}/${t.logo_file}`} width={22} height={22} alt={t.name} />
+                          <Image src={getTeamLogoPath(compKey, t.logo_file, splitCountry)} width={22} height={22} alt={t.name} />
                           <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
                         </div>
                       </td>

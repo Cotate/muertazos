@@ -18,58 +18,119 @@ interface TierRow { id: string; label: string; color: string; chips: Chip[] }
 
 const BENCH_ID = '__bench__'
 
-// ── Full PLAYERS_DATA (all Kings Spain teams) ────────────────────────────────
-const PLAYERS_DATA: Record<string, string[]> = {
-  '1K FC': ['Achraf Laiti', 'Cristian Faura', 'Erik Beattie', 'Gerard Verge', 'Isma Reguia', 'Iván Rivera', 'Joel Paredes', 'Joel Navas', 'Karim Moya', 'Michel Owono', "Pau 'ZZ' Ruiz", 'Pol Lechuga'],
-  'El Barrio': ['Carlos Val', 'Cristian Ubón', 'Haitam Babia', 'Gerard Puigvert', 'Hugo Eyre', 'Joel Bañuls', 'Pablo Saborido', 'Pau Fernández', 'Pol Molés', 'Robert Vallribera', 'Sergio Fernández', 'Sergio Herrero', 'Ñito Martín', 'Marçal Ros'],
-  'Jijantes FC': ['Cristian Lobato', 'Dani Martí', 'Daniel Plaza', 'Iker Hernández', 'Ion Vázquez', 'José Segovia', 'Juanpe Nzo', 'Mario León', 'Michel Herrero', 'Pau Fer', 'Sergi Torres', 'Víctor Pérez Bello', 'Álex Cañero'],
+// ── Full SPAIN_PLAYERS_DATA (all Kings Spain teams — Split 6) ──────────────────────
+const SPAIN_PLAYERS_DATA: Record<string, string[]> = {
+  '1K FC': ['Achraf Laiti', 'Cristian Faura', 'Eric Jiménez', 'Erik Beattie', 'Gerard Verge', 'Guelmi Pons', 'Isma Reguia', 'Iván Rivera', 'Joel Navas', 'Joel Paredes', 'Karim Moya', 'Michel Owono', "Pau 'ZZ' Ruiz", 'Pol Lechuga'],
+  'El Barrio': ['Carlos Val', 'Cristian Ubón', 'Gerard Puigvert', 'Haitam Babia', 'Hugo Eyre', 'Joel Bañuls', 'Ñito Martín', 'Pablo Saborido', 'Pau Fernández', 'Pol Molés', 'Robert Vallribera', 'Sergio Fernández', 'Sergio Herrero'],
+  'Jijantes FC': ['Álex Cañero', 'Cristian Gómez', 'Cristian Lobato', 'Dani Martí', 'Daniel Plaza', 'David Toro', 'Iker Hernández', 'Ion Vázquez', 'José Segovia', 'Juanpe Nzo', 'Marc Montejo', 'Mario León', 'Michel Herrero', 'Pau Fer', 'Sergi Torres', 'Víctor Pérez Bello'],
   'La Capital CF': ['Antoni Hernández', 'Daniel Pérez', 'Daouda Bamma', 'Iñaki Villalba', 'Julen Álvarez', 'Manel Jiménez', 'Manuel Martín', 'Mario Victorio', 'Omar Dambelleh', 'Pablo Beguer', 'Sergi Vives', 'Sohaib Rektout'],
-  'Los Troncos FC': ['Alex Cubedo', 'Carles Planas', 'Carlos Contreras', 'Daniel Tamayo', 'David Reyes', 'Eloy Amoedo', 'Joan Oriol', 'Mark Sorroche', 'Masi Dabo', 'Sagar Escoto Majó', 'Victor Oribe', 'Yaroslav Toporkov', 'Álvaro Arché', 'Aleix Semur'],
-  'PIO FC': ['Adri Espinar', 'Adrián Frutos', 'Manel Beneite', 'Iker Bartolomé', 'Sergio Mulero', 'Joan Luque', 'Luis García', 'Marc Briones', 'Marcos Ibáñez', 'Pol Benito', 'Yeray Muñoz', 'Álex Sánchez'],
-  'Porcinos FC': ['Aitor Vives', 'Dani Pérez', 'Gerard Gómez', 'David Soriano', 'Edgar Alvaro', 'Fouad El Amrani', 'Marc Pelaz', 'Nadir Louah', 'Nico Santos', 'Oscar Coll', 'Ricard Pujol', 'Roger Carbó', 'Tomeu Nadal', 'Victor Nofuentes'],
-  'Rayo de Barcelona': ['Abde Bakkali', 'Adrià Escribano', 'Nil Pradas', 'Carlos Heredia', 'Carlos Omabegho', 'David Moreno', 'Gerard Oliva', "Guillem 'ZZ' Ruiz", 'Ismael González', 'Iván Torres', 'Jordi Gómez', 'Jorge Ibáñez', 'Roc Bancells'],
+  'Los Troncos FC': ['Aleix Semur', 'Alex Cubedo', 'Álvaro Arché', 'Carles Planas', 'Carlos Contreras', 'Daniel Tamayo', 'David Reyes', 'Eloy Amoedo', 'Joan Oriol', 'Mark Sorroche', 'Masi Dabo', 'Sagar Escoto', 'Victor Oribe', 'Yaroslav Toporkov'],
+  'PIO FC': ['Adri Espinar', 'Adrián Frutos', 'Álex Sánchez', 'Fernando Velillas', 'Iker Bartolomé', 'Izan Grande', 'Joan Luque', 'Luis García', 'Marc Briones', 'Marc Grifell', 'Marcos Ibañez', 'Pol Benito', 'Sergio Mulero', 'Yeray Muñoz'],
+  'Porcinos FC': ['Aitor Vives', 'Dani Pérez', 'David Soriano', 'Edgar Alvaro', 'Fouad El Amrani', 'Gerard Gómez', 'Marc Pelaz', 'Nadir Louah', 'Nico Santos', 'Oscar Coll', 'Ricard Pujol', 'Roger Carbó', 'Tomeu Nadal', 'Victor Nofuentes'],
+  'Rayo de Barcelona': ['Abde Bakkali', 'Adrià Escribano', 'Alhagi Marie Touray', 'Carlos Heredia', 'Carlos Omabegho', 'David Moreno', 'Gerard Oliva', "Guillem 'ZZ' Ruiz", 'Ismael González', 'Iván Torres', 'Jordi Gómez', 'Jorge Ibáñez', 'Roc Bancells'],
   'Saiyans FC': ['Albert Garcia', 'Borja Montejo', 'Dani Santiago', 'Diego Jiménez', 'Feliu Torrus', 'Gerard Vacas', 'Gio Ferinu', 'Isaac Maldonado', 'Iván Fajardo', 'Juanan Gallego', 'Pablo Fernández', 'Sergi Gestí'],
-  'Skull FC': ['Alberto Arnalot', 'Dani Santos', 'Samuel Aparicio', 'David Asensio', 'Jorge Escobar', 'Kevin Zárate', 'Nano Modrego', 'Pablo de Castro', 'Raúl Escobar', 'Víctor Mongil', 'Álex Salas', 'José Hermosa', 'Manu García'],
-  'Ultimate Mostoles': ['Aleix Hernando', 'Aleix Lage', 'Aleix Martí', "Alex 'Capi' Domingo", 'David Grifell', 'Eloy Pizarro', 'Ferran Corominas', 'Javi Espinosa', 'Juan Lorente', 'Marc Granero', 'Mikhail Prokopev', 'Víctor Vidal'],
-  'xBuyer Team': ['Aleix Ruiz', 'Eric Sánchez', 'Galde Hugue', 'Jacobo Liencres', 'Javier Comas', 'Joel Espinosa', 'Juanma González', 'Mario Reyes', "Sergio 'Chechi' Costa", 'Víctor Vargas', 'Xavier Cabezas', 'Álex Romero', 'Zaid Saban'],
+  'Skull FC': ['Alberto Arnalot', 'Álex Salas', 'Dani Santos', 'David Asensio', "David 'Burrito' Ruiz", 'Jorge Escobar', 'José Hermosa', 'Kevin Zárate', 'Koke Navares', 'Manu García', 'Nano Modrego', 'Pablo de Castro', 'Raúl Escobar', 'Roberto Tobe', 'Samuel Aparicio', 'Víctor Mongil'],
+  'Ultimate Móstoles': ['Aleix Hernando', 'Aleix Lage', 'Aleix Martí', "Alex 'Capi' Domingo", 'David Grifell', 'Eloy Pizarro', 'Ferran Corominas', 'Javi Espinosa', 'Josep Riart', 'Juan Lorente', 'Marc Granero', 'Mikhail Prokopev', 'Víctor Vidal'],
+  'xBuyer Team': ['Aleix Ruiz', 'Álex Romero', 'Eric Pérez', 'Eric Sánchez', 'Galde Hugue', 'Jacobo Liencres', 'Javier Comas', 'Joel Espinosa', 'Juanma González', 'Mario Reyes', 'Sergio Campos', "Sergio 'Chechi' Costa", 'Víctor Vargas', 'Xavier Cabezas', 'Zaid Saban'],
+}
+
+const BRAZIL_PLAYERS_DATA: Record<string, string[]> = {
+  'Capim FC':             ["Álex Guti", 'Breno Arantes', 'Dani Liñares', "Gabriel 'Dudu'", 'Gerard Nolla', 'Igo Canindé', 'Jeferson Titon', "Lucas 'Caroço'", 'Lucas Hector', "Marcos 'Bolivia'", 'Murillo Donato', 'Rafa Sousa', 'Thiago Santos', 'Wallace Rafael'],
+  'Dendele FC':           ['Bruninho Mandarino', "Cristhian 'Canhoto'", 'Gabriel Repulho', 'Gui Carvalho', 'Gustavo Húngaro', "Leonardo 'Belletti'", "Lucas 'L7'", "Luís Henrique 'Boolt'", 'Lyncoln Oliveira', 'Maikon Santos', 'Marquinhos Samora', 'Nicollas Nascimento', 'Ryan Soares'],
+  'DesimpaiN':            ['Andrey Profeta', 'Christian Santos', 'Danilo Alemão', 'Davi Ilario', 'Douglinha Melo', 'Gabriel Lopes', 'Gui Nascimento', 'Juvenal Oliveira', 'Kaiky Souza', 'Luisinho Alves', "Victor 'Bolt'", "Victor 'VB' Bueno", "Wellinton 'Gigante'", 'William Costa'],
+  'Dibrados FC':          ['Bruno Mota', 'Chay Medeiros', 'Daniel Ferreira', 'Edda Marcelino', 'Etinho Lima', 'Fael Magalhães', 'Gabriel Costa', 'Henrique Wruck', "Jonatas 'Batman'", 'Luan Teles', "Lucas 'Pulguinha'", 'Luiggi Longo', "Marcello 'Marcelinho' Junior", "Matheus 'Índio'", 'Matheus Bueno', 'Raphael Augusto', 'Ricardinho Filipe', 'Ruan Major', 'Sidney Pages'],
+  'Fluxo FC':             ['Bruno Ferreira', "Douglas 'Doth'", 'Gustavinho Henrique', 'Helber Júnior', 'Jheferson Falcão', 'João Pedro', "Marcos 'MV'", "Matheus 'Chaveirinho'", 'Murillo Pulino', "Paulo 'Pinguinho'", 'Renan Augusto', 'Tuco Magalhães', 'Well Andrade'],
+  'Furia FC':             ['Jeffinho Honorato', 'Jhow Love', 'João Pelegrini', 'Kenu Leandro', 'Leleti Garcia', 'Lipão Pinheiro', 'Lucas Nascimento', 'Luiz Camilo', "Matheus 'Dedo'", "Rafael 'Tambinha'", "Thiago 'Major'", 'Tiago Marinho', 'Victor Hugo', "Vitor 'Barba'"],
+  'G3X FC':               ['Andreas Vaz', 'Everton Felipe', 'Gabriel Braga', 'Gabriel Medeiros', 'Gabriel Messias', 'João Guimarães', 'Josildo Barata', 'Kelvin Oliveira', 'Marinho Filho', 'Matheus Rufino', 'Ryan Lima', "Thiago 'TH' Brito", 'Wembley Luiz'],
+  'LOUD SC':              ['Arthur Facas', 'Caio Felipe', 'Daniel Shiraishi', 'Esaú Nascimento', 'Felipe Cassiano', 'Felipe Viana', "Maicon 'Barata'", "Matheus 'Biro'", "Paulo 'Pulão'", 'Rafinha Cunha', 'Sam Silva', 'Walid Jaadi'],
+  'Nyvelados FC':         ['Ailton José', "Bruno 'Gan'", "Carlos 'Ferrão'", 'Daniel Coringa', 'Danilo Belém', 'Dieguinho Assis', "Everton 'Chiclete' Araújo", "Igor 'BB'", "Léo 'Gol'", "Luandrio 'Pé Fino'", "Lucas 'Japa'", 'Luisinho Barreiros', 'Maicon Macabeu', 'Matheus Klynsmann', "Vanderson 'Neguiim Jr'"],
+  'Podpah Funkbol Clube': ['Caio Miranda', 'Gustavo Silva', 'Igor Campos', "João 'Choco'", 'Juninho Antunes', 'Leléo Moura', "Luan 'Mestre'", 'Martín Lara', "Rafão 'Portuga'", 'Ronaldinho Reis', 'Vini Alexandre', 'William Jesus', "Yan 'Coringa'"],
+}
+
+const MEXICO_PLAYERS_DATA: Record<string, string[]> = {
+  'Aniquiladores FC':      ['Axur Quintero', 'Brayan González', 'Brayan Hernández', 'Brihan Gutiérrez', 'Daviz Junco', 'Denilson Lobón', 'Diego Martínez', 'Erik Fraire', "Jacob 'Lobo' Morales", "Martín 'Cani' Rodríguez", 'Nelson Velandia', "Patricio 'Pato' Arias"],
+  'Atlético Parceros FC':  ['Alexis Gómez', 'Andrés Osorno', 'Angellot Caro', 'Cristian Hernández', 'David Loaiza', 'Felipe Urán', 'Juan Tilano', 'Julio Perea', 'Kevin Mejía', 'Maicol Hernández', 'Marlon Ramírez', 'Simón Duque'],
+  'Club de Cuervos':       ['Adriano Nunes', 'Ángel Ayala', 'Armando Chávez', 'Baruc Ochoa', 'Brandon Magaña', 'César Romo', 'Diego Velázquez', 'Edder Vargas', 'Edson González', 'Fausto Alemán', 'Hugo Murga', 'Jorge Escamilla', 'José Askenazi', 'Luis Valdés', 'Roberto Uribe'],
+  'Galácticos del Caribe': ["Alejandro 'Maro' Ortega", 'Daniel Mendoza', 'Diego Franco', 'Erick Guzmán', 'Erick Madrigal', 'Iván Muñoz', 'Jairo Tapie', 'Jesús Carbajal', 'José Hernández', 'Kevin Cardona', 'Pabel Montes', 'Pablo Gómez'],
+  'Guerrilla FC':          ['Abraham Morales', 'Adrián Mora', 'Alain Villanueva', 'Albano Rodríguez', 'Eduardo Velarde', 'Gerardo Ramírez', "Gustavo 'Furby' Guillén", 'Isaac Zepeda', 'Jair Peláez', 'Juan Carlos Silva', 'Miguel Lizardo', 'Morrison Palma', 'Omar Láscari', 'Rafael Cid', 'Said Zamora', 'Yudier Prado'],
+  'KRÜ FC':                ['Aaron Martínez', 'Alberto García', 'Christopher Pedraza', 'Dago Campari', 'Edson Trejo', 'Erik Lugo', 'Facu Romero', 'Gonzalo Lescano', 'Jeancob Ramírez', 'Mauricio Reyna', 'Santiago Rotemberg', 'Tomás Sandoval'],
+  'Los Aliens FC':         ['Alan Mendoza', 'Brayam Nazarit', 'Daniel Ríos', 'David Ortiz', 'Diego Abella', 'Erik Vera', 'James Hernández', "Jesús 'Chuy' Pérez", 'Jorge Meléndez', 'Juan Ramírez', 'Julio Torres', 'Ricardo Valencia'],
+  'Los Chamos FC':         ['Alexis López', 'Álvaro Bocanegra', 'Carlos Escalona', 'Christian Lagunas', 'Cristian Hernández', 'Genaro Castillo', 'Gustavo Miranda', 'Irvin Mojica', 'Jesús López', 'Juan Cisneros', 'Román Ramírez', 'Salvador Navarro', 'Tonatiuh Mejía', 'Uriel Zuart'],
+  'Peluche Caligari':      ['Aarón Del Real', 'Aldair Giorgana', "Ángel 'Curry' Castro", 'César Vallejo', 'Christian Gimenez', 'Daniel Quiroz', 'Eddie Sánchez', 'Eder Giorgana', 'Fernando Morales', 'Hugo Rodríguez', 'Josecarlos Van Rankin', 'Mauricio Huitrón', "Michelle 'Chucky' Castro", 'Moisés Dabbah', 'Pablo Barrera', 'Santiago Lagarde'],
+  'Persas FC':             ['Antonio Monterde', 'Diego Rodríguez', 'Doido Santos', 'Gustavo Ramos', 'Iván Monroy', 'José Rochín', 'Kevin Valdez', 'Luis Amador', 'Marco Granados', 'Obed Martínez', 'Óscar Gómez', 'Rodrigo González', 'Yair Arias'],
+  'Raniza FC':             ['Alexis Silva', 'Alfonso Nieto', 'Donovan Martínez', 'Eder López', 'Ezequiel Luna', 'Héctor de la Fuente', 'Jonathan Sánchez', 'Juan Araya', 'Juande Martínez', 'Lautaro Martínez', 'Mathías Vidangossy', 'Matías Herrera'],
+  'Simios FC':             ['Andrés Suárez', 'Cristian González', 'Erick Sámano', 'George Corral', 'Gerson García', 'Hatzel Roque', 'Jorge Lima', "José 'Shaggy' Martínez", 'Luis Olascoaga', 'Miguel Rebollo', 'Óscar Medina', 'Roberto Pérez', 'Sebastián Sáez'],
 }
 
 const KINGS_TEAMS: Chip[] = [
-  { id: 't-1k',       name: '1K FC',            imageSrc: '/logos/Kings/1K FC.webp' },
-  { id: 't-barrio',   name: 'El Barrio',         imageSrc: '/logos/Kings/El Barrio.webp' },
-  { id: 't-jijantes', name: 'Jijantes FC',       imageSrc: '/logos/Kings/Jijantes FC.webp' },
-  { id: 't-capital',  name: 'La Capital',        imageSrc: '/logos/Kings/La Capital CF.webp' },
-  { id: 't-troncos',  name: 'Los Troncos',       imageSrc: '/logos/Kings/Los Troncos FC.webp' },
-  { id: 't-pio',      name: 'PIO FC',            imageSrc: '/logos/Kings/PIO FC.png' },
-  { id: 't-porcinos', name: 'Porcinos FC',       imageSrc: '/logos/Kings/Porcinos FC.png' },
-  { id: 't-rayo',     name: 'Rayo BCN',          imageSrc: '/logos/Kings/Rayo de Barcelona.png' },
-  { id: 't-saiyans',  name: 'Saiyans FC',        imageSrc: '/logos/Kings/Saiyans FC.webp' },
-  { id: 't-skull',    name: 'Skull FC',          imageSrc: '/logos/Kings/Skull FC.webp' },
-  { id: 't-ultimate', name: 'Ultimate Móstoles', imageSrc: '/logos/Kings/Ultimate Mostoles.webp' },
-  { id: 't-xbuyer',   name: 'xBuyer Team',       imageSrc: '/logos/Kings/xBuyer Team.webp' },
+  { id: 't-1k',       name: '1K FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/1K FC.webp' },
+  { id: 't-barrio',   name: 'El Barrio',         imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/El Barrio.webp' },
+  { id: 't-jijantes', name: 'Jijantes FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Jijantes FC.webp' },
+  { id: 't-capital',  name: 'La Capital',        imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/La Capital CF.webp' },
+  { id: 't-troncos',  name: 'Los Troncos',       imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Los Troncos FC.webp' },
+  { id: 't-pio',      name: 'PIO FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/PIO FC.webp' },
+  { id: 't-porcinos', name: 'Porcinos FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Porcinos FC.webp' },
+  { id: 't-rayo',     name: 'Rayo BCN',          imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Rayo de Barcelona.webp' },
+  { id: 't-saiyans',  name: 'Saiyans FC',        imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Saiyans FC.webp' },
+  { id: 't-skull',    name: 'Skull FC',          imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Skull FC.webp' },
+  { id: 't-ultimate', name: 'Ultimate Móstoles', imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/Ultimate Móstoles.webp' },
+  { id: 't-xbuyer',   name: 'xBuyer Team',       imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/España/Equipos/xBuyer Team.webp' },
 ]
 
 const QUEENS_TEAMS: Chip[] = [
-  { id: 'q-1k',       name: '1K FC',            imageSrc: '/logos/Queens/1K FC.webp' },
-  { id: 'q-barrio',   name: 'El Barrio',         imageSrc: '/logos/Queens/El Barrio.webp' },
-  { id: 'q-jijantas', name: 'Jijantas FC',       imageSrc: '/logos/Queens/Jijantas FC.png' },
-  { id: 'q-pilares',  name: 'Las Pilares FC',    imageSrc: '/logos/Queens/Las Pilares FC.png' },
-  { id: 'q-troncas',  name: 'Las Troncas FC',    imageSrc: '/logos/Queens/Las Troncas FC.png' },
-  { id: 'q-pio',      name: 'PIO FC',            imageSrc: '/logos/Queens/PIO FC.png' },
-  { id: 'q-porcinas', name: 'Porcinas FC',       imageSrc: '/logos/Queens/Porcinas FC.png' },
-  { id: 'q-rayo',     name: 'Rayo BCN',          imageSrc: '/logos/Queens/Rayo de Barcelona.png' },
-  { id: 'q-saiyans',  name: 'Saiyans FC',        imageSrc: '/logos/Queens/Saiyans FC.webp' },
-  { id: 'q-ultimate', name: 'Ultimate Móstoles', imageSrc: '/logos/Queens/Ultimate Mostoles.webp' },
+  { id: 'q-1k',       name: '1K FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/1K FC.webp' },
+  { id: 'q-barrio',   name: 'El Barrio',         imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/El Barrio.webp' },
+  { id: 'q-jijantas', name: 'Jijantas FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Jijantas FC.webp' },
+  { id: 'q-pilares',  name: 'Las Pilares FC',    imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Pilares FC.webp' },
+  { id: 'q-troncas',  name: 'Las Troncas FC',    imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Troncas FC.webp' },
+  { id: 'q-pio',      name: 'PIO FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/PIO FC.webp' },
+  { id: 'q-porcinas', name: 'Porcinas FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Porcinas FC.webp' },
+  { id: 'q-rayo',     name: 'Rayo BCN',          imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Rayo de Barcelona.webp' },
+  { id: 'q-saiyans',  name: 'Saiyans FC',        imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Saiyans FC.webp' },
+  { id: 'q-ultimate', name: 'Ultimate Móstoles', imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Ultimate Móstoles.webp' },
+]
+
+const BRAZIL_KINGS_TEAMS: Chip[] = [
+  { id: 'b-capim',   name: 'Capim FC',              imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Capim FC.webp' },
+  { id: 'b-dend',    name: 'Dendele FC',             imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Dendele FC.webp' },
+  { id: 'b-desp',    name: 'DesimpaiN',              imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/DesimpaiN.webp' },
+  { id: 'b-dibr',    name: 'Dibrados FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Dibrados FC.webp' },
+  { id: 'b-fluxo',   name: 'Fluxo FC',               imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Fluxo FC.webp' },
+  { id: 'b-furia',   name: 'Furia FC',               imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Furia FC.webp' },
+  { id: 'b-g3x',     name: 'G3X FC',                 imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/G3X FC.webp' },
+  { id: 'b-loud',    name: 'LOUD SC',                imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/LOUD SC.webp' },
+  { id: 'b-nyv',     name: 'Nyvelados FC',           imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Nyvelados FC.webp' },
+  { id: 'b-podpah',  name: 'Podpah Funkbol Clube',   imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/Brazil/Equipos/Podpah Funkbol Clube.webp' },
+]
+
+const MEXICO_KINGS_TEAMS: Chip[] = [
+  { id: 'm-ani',   name: 'Aniquiladores FC',      imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Aniquiladores FC.webp' },
+  { id: 'm-parc',  name: 'Atlético Parceros FC',  imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Atlético Parceros FC.webp' },
+  { id: 'm-cuev',  name: 'Club de Cuervos',       imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Club de Cuervos.webp' },
+  { id: 'm-gal',   name: 'Galácticos del Caribe', imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Galácticos del Caribe.webp' },
+  { id: 'm-guer',  name: 'Guerrilla FC',          imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Guerrilla FC.webp' },
+  { id: 'm-kru',   name: 'KRÜ FC',               imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/KRÜ FC.webp' },
+  { id: 'm-ali',   name: 'Los Aliens FC',         imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Los Aliens FC.webp' },
+  { id: 'm-cham',  name: 'Los Chamos FC',         imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Los Chamos FC.webp' },
+  { id: 'm-pel',   name: 'Peluche Caligari',      imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Peluche Caligari.webp' },
+  { id: 'm-per',   name: 'Persas FC',             imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Persas FC.webp' },
+  { id: 'm-ran',   name: 'Raniza FC',             imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Raniza FC.webp' },
+  { id: 'm-sim',   name: 'Simios FC',             imageSrc: '/MUERTAZOS ESTRUCTURA/KINGS/México/Equipos/Simios FC.webp' },
 ]
 
 // Build player chips for a specific team or the full league
-function buildPlayerChips(teamName?: string): Chip[] {
-  const teams = teamName ? { [teamName]: PLAYERS_DATA[teamName] ?? [] } : PLAYERS_DATA
+function buildPlayerChips(country: Country, teamName?: string): Chip[] {
+  const data = country === 'brazil' ? BRAZIL_PLAYERS_DATA
+    : country === 'mexico' ? MEXICO_PLAYERS_DATA
+    : SPAIN_PLAYERS_DATA
+  const countryFolder = country === 'brazil' ? 'Brazil' : country === 'mexico' ? 'México' : 'España'
+  const splitFolder   = country === 'brazil' ? 'Split 2' : country === 'mexico' ? 'Split 4' : 'Split 6'
+  const teams = teamName ? { [teamName]: data[teamName] ?? [] } : data
   return Object.entries(teams).flatMap(([team, players]) =>
     players.map(name => ({
       id: `p-${team}-${name}`.replace(/\s+/g, '-').toLowerCase(),
       name,
-      imageSrc: `/jugadores/${team}/${name}.png`,
+      imageSrc: `/MUERTAZOS ESTRUCTURA/KINGS/${countryFolder}/${splitFolder}/${team}/${name}.webp`,
     }))
   )
 }
@@ -123,13 +184,17 @@ export default function TierListPage() {
   // Resolve chips from wizard selections
   function resolveChips(): Chip[] | null {
     if (!comp) return null
-    if (country !== 'spain') return null
     if (cat === 'jerseys') return null
-    if (cat === 'teams') return comp === 'kings' ? KINGS_TEAMS : QUEENS_TEAMS
+    if (cat === 'teams') {
+      if (comp === 'queens') return QUEENS_TEAMS
+      if (country === 'spain')  return KINGS_TEAMS
+      if (country === 'brazil') return BRAZIL_KINGS_TEAMS
+      if (country === 'mexico') return MEXICO_KINGS_TEAMS
+    }
     if (cat === 'players' && comp === 'kings') {
       return playerScope === 'team' && playerTeam
-        ? buildPlayerChips(playerTeam)
-        : buildPlayerChips()
+        ? buildPlayerChips(country, playerTeam)
+        : buildPlayerChips(country)
     }
     return null // queens players not yet available
   }
@@ -309,8 +374,8 @@ export default function TierListPage() {
               <div className="flex flex-col gap-2">
                 {([
                   { key: 'spain'  as Country, code: 'ES', name: 'España',  soon: false },
-                  { key: 'mexico' as Country, code: 'MX', name: 'México',  soon: true  },
-                  { key: 'brazil' as Country, code: 'BR', name: 'Brasil',  soon: true  },
+                  { key: 'mexico' as Country, code: 'MX', name: 'México',  soon: false },
+                  { key: 'brazil' as Country, code: 'BR', name: 'Brasil',  soon: false },
                 ]).filter(c => comp === 'queens' ? c.key === 'spain' : true).map(({ key, code, name, soon }) => {
                   const isActive = country === key && step > 2
                   return (
@@ -378,7 +443,11 @@ export default function TierListPage() {
 
                   {playerScope === 'team' && (
                     <div className="grid grid-cols-2 gap-1 mt-1 max-h-52 overflow-y-auto pr-1">
-                      {Object.keys(PLAYERS_DATA).map(team => {
+                      {Object.keys(
+                        country === 'brazil' ? BRAZIL_PLAYERS_DATA
+                        : country === 'mexico' ? MEXICO_PLAYERS_DATA
+                        : SPAIN_PLAYERS_DATA
+                      ).map(team => {
                         const isActive = playerTeam === team
                         return (
                           <button
@@ -431,7 +500,7 @@ export default function TierListPage() {
                   {comp === 'kings' ? 'Kings' : 'Queens'}
                 </h2>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">
-                  España · {cat === 'teams' ? 'Equipos' : cat === 'players' ? (playerScope === 'team' ? playerTeam : 'Todos los jugadores') : 'Camisetas'}
+                  {comp === 'queens' ? 'España' : country === 'brazil' ? 'Brasil' : country === 'mexico' ? 'México' : 'España'} · {cat === 'teams' ? 'Equipos' : cat === 'players' ? (playerScope === 'team' ? playerTeam : 'Todos los jugadores') : 'Camisetas'}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -583,7 +652,7 @@ export default function TierListPage() {
           <div ref={shareTicketRef} style={{ width: '580px', backgroundColor: '#060d1a', padding: '36px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
             {/* Header: logo + username + title */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <img src="/Muertazos.png" alt="Muertazos" style={{ width: '140px', height: '40px', objectFit: 'contain' }} />
+              <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" style={{ width: '140px', height: '40px', objectFit: 'contain' }} />
               <div style={{ textAlign: 'right' }}>
                 {user?.username && (
                   <div style={{ color: '#ffffff', fontWeight: 900, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.12em', opacity: 0.45 }}>

@@ -6,8 +6,40 @@ export const COUNTRIES: { key: Country; flag: string; name: string }[] = [
   { key: 'brazil', flag: '🇧🇷', name: 'Brasil' },
 ]
 
+const COUNTRY_FOLDER: Record<string, string> = {
+  spain:  'España',
+  mexico: 'México',
+  brazil: 'Brazil',
+}
+
+const LEAGUE_SPLIT: Record<string, Record<string, string>> = {
+  spain:  { kings: 'Split 6', queens: 'Split 6' },
+  mexico: { kings: 'Split 4' },
+  brazil: { kings: 'Split 2' },
+}
+
 export function getCompFolder(compKey: string): 'Kings' | 'Queens' {
   return compKey === 'queens' ? 'Queens' : 'Kings'
+}
+
+// Normalize known mismatches between DB logo_file values and actual filenames on disk
+const LOGO_FILE_FIXES: Record<string, string> = {
+  'Ultimate Mostoles.webp': 'Ultimate Móstoles.webp',
+}
+
+export function getTeamLogoPath(league: string, logoFile: string, country = 'spain'): string {
+  const leagueFolder = league === 'queens' ? 'QUEENS' : 'KINGS'
+  const countryFolder = COUNTRY_FOLDER[country] ?? 'España'
+  let webpFile = logoFile.replace(/\.(png|jpg|jpeg)$/i, '.webp')
+  webpFile = LOGO_FILE_FIXES[webpFile] ?? webpFile
+  return `/MUERTAZOS ESTRUCTURA/${leagueFolder}/${countryFolder}/Equipos/${webpFile}`
+}
+
+export function getPlayerImagePath(country: string, league: string, team: string, playerName: string): string {
+  const leagueFolder = league === 'queens' ? 'QUEENS' : 'KINGS'
+  const countryFolder = COUNTRY_FOLDER[country] ?? 'España'
+  const split = LEAGUE_SPLIT[country]?.[league] ?? 'Split 6'
+  return `/MUERTAZOS ESTRUCTURA/${leagueFolder}/${countryFolder}/${split}/${team}/${playerName}.webp`
 }
 
 export function isPio(filename: string): boolean {
