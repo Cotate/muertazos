@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 
-const COLLABORATORS = ['Ivanx', 'Chavez6', 'Gaby Velazco', 'Lucholuna', 'Ahmazee', 'Shall']
+const COLLABORATORS = ['Ivanx', 'Chavez6', 'Gaby Velazco', 'Lucholuna', 'Ahmazee', 'Shall', 'Yuli', 'Viri']
 
 export default function Home() {
   const router = useRouter()
