@@ -49,12 +49,14 @@ function UserDashboardInner() {
 
   const loadData = useCallback(async () => {
     if (!user) return
-    if (country !== 'spain') { setMatchdays([]); return }
+    if (league === 'kings' && country !== 'spain') { setMatchdays([]); return }
+    const effectiveCountry = league === 'queens' ? 'spain' : country
 
     const { data: mDays } = await supabase
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', league)
+      .eq('country', effectiveCountry)
       .eq('is_visible', true)
       .order('display_order')
 
@@ -206,7 +208,13 @@ function UserDashboardInner() {
               <div className={`h-0.5 w-full bg-gradient-to-r ${getPicksBorderGradient()} rounded-full mb-4 opacity-60`} />
               {matchdays.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64">
-                  {country !== 'spain' ? (
+                  {league === 'queens' ? (
+                    <>
+                      <p className="text-4xl mb-4">👑</p>
+                      <p className="font-black italic tracking-widest" style={{ color: '#01d6c3' }}>PRÓXIMAMENTE</p>
+                      <p className="text-slate-700 text-xs mt-2">Queens aún no está disponible</p>
+                    </>
+                  ) : country !== 'spain' ? (
                     <>
                       <p className="text-4xl mb-4">🌎</p>
                       <p className="text-slate-600 font-black italic tracking-widest">PRÓXIMAMENTE</p>
@@ -220,7 +228,7 @@ function UserDashboardInner() {
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-between items-center mb-8 px-1 py-4">
+                  <div className="flex justify-between items-center mb-3 px-1 py-2">
                     <button
                       disabled={currentDayIndex === 0}
                       onClick={() => { setCurrentDayIndex(i => i - 1); setIsEditing(false) }}
@@ -264,8 +272,18 @@ function UserDashboardInner() {
                     ) : hasSavedInDB && !isEditing ? (
                       <div className="flex flex-col sm:flex-row gap-4">
                         <button onClick={() => setIsEditing(true)} className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase text-sm">Editar predicción</button>
-                        <button onClick={handleSharePicks} disabled={isGenerating} className="bg-[#218b44] text-white px-8 py-4 rounded-2xl font-black italic uppercase text-sm flex items-center justify-center gap-2">
-                          {isGenerating ? 'GENERANDO...' : 'COMPARTIR PICKS'}
+                        <button
+                          onClick={handleSharePicks}
+                          disabled={isGenerating}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl border font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50"
+                          style={{ backgroundColor: activeColor + '1a', borderColor: activeColor + '66', color: activeColor }}
+                        >
+                          {isGenerating ? (
+                            <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          )}
+                          Compartir
                         </button>
                       </div>
                     ) : (

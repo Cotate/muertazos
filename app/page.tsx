@@ -14,6 +14,7 @@ export default function Home() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('muertazos_user')
@@ -85,15 +86,34 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Contraseña</label>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#01d6c3] focus:ring-1 focus:ring-[#01d6c3]/15 transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 pr-11 bg-[#0a0a0a]/80 border border-slate-800 rounded-xl text-white text-sm font-bold focus:outline-none focus:border-[#01d6c3] focus:ring-1 focus:ring-[#01d6c3]/15 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.477 10.477A3 3 0 0013.5 13.5M6.357 6.357A9.953 9.953 0 003 12c2.087 4.17 6.298 7 9 7a9.96 9.96 0 005.642-1.742M9.878 4.121A9.97 9.97 0 0112 4c2.702 0 6.913 2.83 9 7a9.967 9.967 0 01-1.614 2.386" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 {error && (
                   <p className="text-red-400 text-[11px] font-bold text-center uppercase bg-red-500/8 border border-red-500/20 rounded-xl py-2.5">

@@ -74,7 +74,12 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         }
         setScores(loadedScores)
         setMatchdays(mData)
-        setActiveMatchdayId(mData[0].id)
+        // Auto-select the closest upcoming empty matchday (no results loaded)
+        const matchIdsWithResults = new Set(Object.keys(loadedScores).map(Number))
+        const firstEmpty = mData.find((d: any) =>
+          d.matches?.length > 0 && !d.matches.some((m: any) => matchIdsWithResults.has(m.id))
+        )
+        setActiveMatchdayId((firstEmpty ?? mData[mData.length - 1] ?? mData[0]).id)
       } else {
         setMatchdays([])
         setActiveMatchdayId(null)
@@ -255,7 +260,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                 {activeMatchday?.matches?.map((m: any) => {
                   const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
                   const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-                  const size = isAdmin ? logoSize(m.home?.logo_file || '') : 96
+                  const size = 96
                   return (
                     <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3 flex flex-col items-center gap-2">
                       <div className="flex items-center gap-4">

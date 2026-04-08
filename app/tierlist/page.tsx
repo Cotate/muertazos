@@ -247,8 +247,8 @@ export default function TierListPage() {
         logging: false,
       })
       const link = document.createElement('a')
-      link.download = 'tierlist-muertazos.png'
-      link.href = canvas.toDataURL('image/png')
+      link.download = `tierlist-${user?.username || 'muertazos'}.webp`
+      link.href = canvas.toDataURL('image/webp', 0.92)
       link.click()
     } finally {
       setIsSharing(false)
@@ -694,12 +694,18 @@ export default function TierListPage() {
                   {/* Chips area */}
                   <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px 10px', alignItems: 'center', alignContent: 'center', backgroundColor: '#0a1525' }}>
                     {tier.chips.map(chip => (
-                      <img
+                      <div
                         key={chip.id}
-                        src={chip.imageSrc}
-                        alt={chip.name}
                         title={chip.name}
-                        style={{ width: '56px', height: '56px', objectFit: 'contain' }}
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          backgroundImage: `url(${chip.imageSrc})`,
+                          backgroundSize: 'contain',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'center',
+                          flexShrink: 0,
+                        }}
                       />
                     ))}
                   </div>
@@ -775,6 +781,10 @@ function ImageChip({ chip, index }: { chip: Chip; index: number }) {
           title={chip.name}
           className={`relative w-24 h-24 cursor-grab active:cursor-grabbing select-none transition-all
             ${snapshot.isDragging ? 'scale-110 rotate-2 z-50 opacity-90' : 'hover:scale-110'}`}
+          style={{
+            ...provided.draggableProps.style,
+            ...(snapshot.isDropAnimating ? { transitionDuration: '0.001s' } : {}),
+          }}
         >
           <Image
             src={chip.imageSrc}

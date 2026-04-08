@@ -132,16 +132,9 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     setUsers(fetchedUsers)
 
     if (fetchedUsers.length > 0) {
-      const targetPerPage = 12
-      const pages = Math.ceil(fetchedUsers.length / targetPerPage)
-      const base = Math.floor(fetchedUsers.length / pages)
-      const remainder = fetchedUsers.length % pages
-      let chunks: number[][] = [], start = 0
-      for (let i = 0; i < pages; i++) {
-        const size = base + (i < remainder ? 1 : 0)
-        chunks.push([start, start + size])
-        start += size
-      }
+      const perPage = typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 12
+      const pages = Math.ceil(fetchedUsers.length / perPage)
+      const chunks: number[][] = Array.from({ length: pages }, (_, i) => [i * perPage, (i + 1) * perPage])
       setPageChunks(chunks)
       setCurrentPage(prev => Math.min(prev, Math.max(0, chunks.length - 1)))
     }
@@ -213,6 +206,32 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
           </button>
         ))}
       </div>
+
+      {matchdays.length === 0 && competitionKey === 'queens' && (
+        <div className="flex flex-col items-center justify-center py-24 gap-6 w-full">
+          <div className="relative w-24 h-24 opacity-20">
+            <div className="absolute inset-0 rounded-full border-4 border-[#01d6c3] animate-pulse" />
+            <div className="absolute inset-3 rounded-full border-2 border-[#01d6c3]/60" />
+            <span className="absolute inset-0 flex items-center justify-center text-4xl not-italic">👑</span>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-[#01d6c3] font-black italic uppercase tracking-[0.3em] text-2xl">Próximamente</p>
+            <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Queens · Split 6 España</p>
+            <p className="text-slate-700 text-xs mt-3 max-w-xs mx-auto leading-relaxed">
+              Los datos de la competición Queens se cargarán cuando estén disponibles
+            </p>
+          </div>
+          <div className="flex gap-3 mt-4">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-[#01d6c3]/30 animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {activeMatchday && (
         <div className="relative group w-full mb-8">

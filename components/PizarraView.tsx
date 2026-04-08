@@ -216,8 +216,8 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
                 left: `${player.x}%`,
                 top: `${player.y}%`,
                 zIndex: player.zIndex,
-                width: 'clamp(32px, 8vw, 140px)',
-                height: 'clamp(32px, 8vw, 140px)',
+                width: 'clamp(52px, 10vw, 140px)',
+                height: 'clamp(52px, 10vw, 140px)',
               }}
             >
               <div className="relative w-full h-full drop-shadow-xl">
