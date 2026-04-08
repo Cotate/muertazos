@@ -242,13 +242,33 @@ export default function TierListPage() {
     if (!shareTicketRef.current || isSharing) return
     setIsSharing(true)
     try {
+      const el = shareTicketRef.current
+      const origin = window.location.origin
+
+      // Convert all relative img srcs to absolute so html2canvas can fetch them
+      const allImgs = Array.from(el.querySelectorAll('img'))
+      allImgs.forEach(img => {
+        const src = img.getAttribute('src') || ''
+        if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+          img.src = origin + src
+        }
+      })
+
+      // Wait for every image to finish loading before capturing
+      await Promise.all(allImgs.map(img => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve()
+        return new Promise<void>(resolve => {
+          img.onload = () => resolve()
+          img.onerror = () => resolve() // don't block on broken images
+        })
+      }))
+
       const html2canvas = (await import('html2canvas')).default
-      const origEl = shareTicketRef.current
-      const canvas = await html2canvas(origEl, {
+      const canvas = await html2canvas(el, {
         backgroundColor: '#0a0a0a',
         scale: 2,
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         logging: false,
       })
       const link = document.createElement('a')
@@ -705,13 +725,19 @@ export default function TierListPage() {
                         style={{
                           width: '56px',
                           height: '56px',
-                          backgroundImage: `url(${chip.imageSrc})`,
-                          backgroundSize: 'contain',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'center',
                           flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
-                      />
+                      >
+                        <img
+                          src={chip.imageSrc}
+                          alt={chip.name}
+                          crossOrigin="anonymous"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
