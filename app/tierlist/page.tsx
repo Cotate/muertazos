@@ -78,16 +78,21 @@ const KINGS_TEAMS: Chip[] = [
 ]
 
 const QUEENS_TEAMS: Chip[] = [
-  { id: 'q-1k',       name: '1K FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/1K FC.webp' },
-  { id: 'q-barrio',   name: 'El Barrio',         imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/El Barrio.webp' },
-  { id: 'q-jijantas', name: 'Jijantas FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Jijantas FC.webp' },
-  { id: 'q-pilares',  name: 'Las Pilares FC',    imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Pilares FC.webp' },
-  { id: 'q-troncas',  name: 'Las Troncas FC',    imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Troncas FC.webp' },
-  { id: 'q-pio',      name: 'PIO FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/PIO FC.webp' },
-  { id: 'q-porcinas', name: 'Porcinas FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Porcinas FC.webp' },
-  { id: 'q-rayo',     name: 'Rayo BCN',          imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Rayo de Barcelona.webp' },
-  { id: 'q-saiyans',  name: 'Saiyans FC',        imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Saiyans FC.webp' },
-  { id: 'q-ultimate', name: 'Ultimate Móstoles', imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Ultimate Móstoles.webp' },
+  { id: 'q-1k',          name: '1K FC',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/1K FC.webp' },
+  { id: 'q-balanceadas', name: 'Balanceadas FC',   imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Balanceadas FC.webp' },
+  { id: 'q-barrio',      name: 'El Barrio',        imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/El Barrio.webp' },
+  { id: 'q-flop',        name: 'Flop',             imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Flop.webp' },
+  { id: 'q-funhadas',    name: 'Fun-Hadas',        imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Fun-Hadas.webp' },
+  { id: 'q-jijantas',    name: 'Jijantas FC',      imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Jijantas FC.webp' },
+  { id: 'q-pilares',     name: 'Las Pilares FC',   imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Pilares FC.webp' },
+  { id: 'q-troncas',     name: 'Las Troncas FC',   imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Las Troncas FC.webp' },
+  { id: 'q-madam',       name: 'Madam',            imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Madam.webp' },
+  { id: 'q-pio',         name: 'PIO FC',           imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/PIO FC.webp' },
+  { id: 'q-porcinas',    name: 'Porcinas FC',      imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Porcinas FC.webp' },
+  { id: 'q-rayo',        name: 'Rayo BCN',         imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Rayo de Barcelona.webp' },
+  { id: 'q-saiyans',     name: 'Saiyans FC',       imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Saiyans FC.webp' },
+  { id: 'q-sakura',      name: 'Sakura FC',        imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Sakura FC.webp' },
+  { id: 'q-ultimate',    name: 'Ultimate Móstoles', imageSrc: '/MUERTAZOS ESTRUCTURA/QUEENS/España/Equipos/Ultimate Móstoles.webp' },
 ]
 
 const BRAZIL_KINGS_TEAMS: Chip[] = [

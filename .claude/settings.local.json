@@ -9,7 +9,8 @@
       "mcp__aidesigner__get_credit_status",
       "Bash(npx -y @aidesigner/agent-skills capture --html-file .aidesigner/mcp-latest.html --prompt \"Dark sports predictions web app home page: large centered logo, split hero ranking teaser + login form, public tools bento grid, gold collaborators marquee. Brand: #0a0a0a, #FFD300, #01d6c3. Ultra-premium HUD sports editorial.\" --transport mcp --remote-run-id \"aa89dfb3-dc94-48fd-8b83-fd7539c1ca11\")",
       "Bash(npx tsc:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   },
   "enableAllProjectMcpServers": true,
