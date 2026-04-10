@@ -24,15 +24,36 @@ export function getCompFolder(compKey: string): 'Kings' | 'Queens' {
 
 // Normalize known mismatches between DB logo_file values and actual filenames on disk
 const LOGO_FILE_FIXES: Record<string, string> = {
+  // España
   'Ultimate Mostoles.webp': 'Ultimate Móstoles.webp',
+  // Brasil — casing mismatches
+  'Desimpain.webp': 'DesimpaiN.webp',
+  'DESIMPAIN.webp': 'DesimpaiN.webp',
+  'Loud SC.webp': 'LOUD SC.webp',
+  'loud SC.webp': 'LOUD SC.webp',
+  // México — accent / special-char mismatches
+  'KRU FC.webp': 'KRÜ FC.webp',
+  'Kru FC.webp': 'KRÜ FC.webp',
+  'Atletico Parceros FC.webp': 'Atlético Parceros FC.webp',
+  'Atletico Parceros.webp': 'Atlético Parceros FC.webp',
+  'Galacticos del Caribe.webp': 'Galácticos del Caribe.webp',
 }
 
 export function getTeamLogoPath(league: string, logoFile: string, country = 'spain'): string {
   const leagueFolder = league === 'queens' ? 'QUEENS' : 'KINGS'
-  const countryFolder = COUNTRY_FOLDER[country] ?? 'España'
+  // Normalise the country value: accept both DB keys ('spain','brazil','mexico')
+  // and the folder names themselves ('España','Brazil','México') so that team
+  // rows whose `country` column still holds the default can be passed directly.
+  const countryFolder = COUNTRY_FOLDER[country] ?? country
   let webpFile = logoFile.replace(/\.(png|jpg|jpeg)$/i, '.webp')
   webpFile = LOGO_FILE_FIXES[webpFile] ?? webpFile
   return `/MUERTAZOS ESTRUCTURA/${leagueFolder}/${countryFolder}/Equipos/${webpFile}`
+}
+
+/** Encoded variant for plain <img> tags (share tickets etc.) where the browser
+ *  does NOT go through Next.js image optimisation and needs a valid URL. */
+export function getTeamLogoPathEncoded(league: string, logoFile: string, country = 'spain'): string {
+  return encodeURI(getTeamLogoPath(league, logoFile, country))
 }
 
 export function getPlayerImagePath(country: string, league: string, team: string, playerName: string): string {

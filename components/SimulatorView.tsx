@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { getCompFolder, getLogoSize, getTeamLogoPath } from '@/lib/utils'
+import { getCompFolder, getLogoSize, getTeamLogoPath, getTeamLogoPathEncoded } from '@/lib/utils'
 
 type SplitKey = 'spain' | 'brazil' | 'mexico'
 
@@ -39,6 +39,10 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
   const getRowColor = (idx: number) => {
     if (idx === 0) return 'bg-yellow-500'
+    if (splitCountry === 'brazil') {
+      if (idx >= 1 && idx <= 6) return 'bg-blue-500'
+      return 'bg-transparent'
+    }
     if (idx >= 1 && idx <= 5) return 'bg-blue-500'
     if (idx >= 6 && idx <= 9) return 'bg-red-500'
     return 'bg-transparent'
@@ -257,39 +261,40 @@ export default function SimulatorView({ isAdmin = false }: Props) {
       </div>
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Matchday title — sits above the two-column layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <h3 className="text-2xl font-black italic uppercase tracking-tighter">
+            {isNonSpainKings
+              ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
+              : activeMatchday?.name}
+          </h3>
+          <div className="flex gap-2">
+            {isAdmin && !isNonSpainKings && (
+              <>
+                <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
+                <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
+              </>
+            )}
+            {!isAdmin && !isNonSpainKings && activeMatchday && (
+              <button
+                onClick={handleShare}
+                disabled={isSharing}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50"
+              >
+                {isSharing ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                )}
+                Compartir
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-col xl:flex-row gap-8 xl:items-start">
           {/* Match containers */}
-          <div className="flex-1 flex flex-col gap-3 xl:max-w-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter">
-                {isNonSpainKings
-                  ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
-                  : activeMatchday?.name}
-              </h3>
-              <div className="flex gap-2">
-                {isAdmin && !isNonSpainKings && (
-                  <>
-                    <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
-                    <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
-                  </>
-                )}
-                {!isAdmin && !isNonSpainKings && activeMatchday && (
-                  <button
-                    onClick={handleShare}
-                    disabled={isSharing}
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50"
-                  >
-                    {isSharing ? (
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    )}
-                    Compartir
-                  </button>
-                )}
-              </div>
-            </div>
-
+          <div className="flex-1 flex flex-col gap-3 xl:max-w-[380px]">
             {isNonSpainKings ? (
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-2xl gap-3">
                 <span className="text-3xl not-italic">{activeSplit.flag}</span>
@@ -303,17 +308,17 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                 {activeMatchday?.matches?.map((m: any) => {
                   const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
                   const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-                  const size = 96
+                  const size = 72
                   return (
-                    <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3 flex flex-col items-center gap-2">
-                      <div className="flex items-center gap-4">
+                    <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-3 py-2 flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <div className="flex flex-col items-center">
                           {m.home && (
                             <button
                               onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
                               className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                             >
-                              <Image src={getTeamLogoPath(compKey, m.home.logo_file, splitCountry)} width={size} height={size} alt="home" />
+                              <Image src={getTeamLogoPath(compKey, m.home.logo_file, m.home.country ?? splitCountry)} width={size} height={size} alt="home" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                             </button>
                           )}
                         </div>
@@ -340,7 +345,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                               onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
                               className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                             >
-                              <Image src={getTeamLogoPath(compKey, m.away.logo_file, splitCountry)} width={size} height={size} alt="away" />
+                              <Image src={getTeamLogoPath(compKey, m.away.logo_file, m.away.country ?? splitCountry)} width={size} height={size} alt="away" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                             </button>
                           )}
                         </div>
@@ -379,7 +384,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                       </td>
                       <td className="py-2.5 pl-2 text-left">
                         <div className="flex items-center gap-2">
-                          <Image src={getTeamLogoPath(compKey, t.logo_file, splitCountry)} width={22} height={22} alt={t.name} />
+                          <Image src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)} width={22} height={22} alt={t.name} onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                           <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
                         </div>
                       </td>
@@ -395,8 +400,10 @@ export default function SimulatorView({ isAdmin = false }: Props) {
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] uppercase font-bold text-slate-400 bg-black/20 p-3 rounded-xl border border-white/5">
               <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-yellow-500 rounded-full" /><span>1º Semifinal</span></div>
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full" /><span>2º a 6º Cuartos</span></div>
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-red-500 rounded-full" /><span>7º a 10º Play In</span></div>
+              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full" /><span>2º a {splitCountry === 'brazil' ? '7º' : '6º'} Cuartos</span></div>
+              {splitCountry !== 'brazil' && (
+                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-red-500 rounded-full" /><span>7º a 10º Play In</span></div>
+              )}
             </div>
           </div>
         </div>
@@ -441,7 +448,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                   backgroundColor: '#0f172a',
                 }}>
                   <div style={{ width: logoSz, height: logoSz, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {m.home && <img src={getTeamLogoPath(compKey, m.home.logo_file, splitCountry)} alt={m.home.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
+                    {m.home && <img src={getTeamLogoPathEncoded(compKey, m.home.logo_file, m.home.country ?? splitCountry)} alt={m.home.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', alignSelf: 'center' }}>
                     <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '28px', fontStyle: 'italic', minWidth: '32px', textAlign: 'center', lineHeight: '1', display: 'inline-block', verticalAlign: 'middle' }}>
@@ -453,7 +460,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                     </span>
                   </div>
                   <div style={{ width: logoSz, height: logoSz, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {m.away && <img src={getTeamLogoPath(compKey, m.away.logo_file, splitCountry)} alt={m.away.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
+                    {m.away && <img src={getTeamLogoPathEncoded(compKey, m.away.logo_file, m.away.country ?? splitCountry)} alt={m.away.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
                   </div>
                 </div>
               )

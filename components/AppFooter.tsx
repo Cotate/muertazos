@@ -70,10 +70,15 @@ export default function AppFooter() {
       )}
 
       {/* 3-column bottom bar */}
-      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 
         {/* Col 1: Donate */}
-        <div className="flex justify-center md:justify-start items-center">
+        <div className="flex flex-col items-center gap-2">
+          <h3 className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            APOYA LA PAGINA
+            <Star className="w-2.5 h-2.5 fill-current" />
+          </h3>
           <div id="footer-donate-button" className="hover:scale-105 transition-transform" />
         </div>
 
@@ -106,13 +111,13 @@ export default function AppFooter() {
             <Star className="w-2.5 h-2.5 fill-current" />
           </h3>
           <a href="https://x.com/muertazos_com" target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center group hover:opacity-80 transition-opacity">
+            className="flex items-center justify-center group hover:opacity-80 transition-opacity h-9">
             <Image
               src="/MUERTAZOS ESTRUCTURA/MuertazosX.webp"
               alt="Muertazos en X"
-              width={80}
-              height={28}
-              className="object-contain"
+              width={104}
+              height={36}
+              className="object-contain h-9 w-auto"
             />
           </a>
         </div>

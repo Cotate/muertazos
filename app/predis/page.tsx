@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
-import { COUNTRIES, getTeamLogoPath, sortMatchesByOrder, type Country } from '@/lib/utils'
+import { COUNTRIES, getTeamLogoPath, getTeamLogoPathEncoded, sortMatchesByOrder, type Country } from '@/lib/utils'
 
 export default function PredisPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [userChecked, setUserChecked] = useState(false)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
   const [country, setCountry] = useState<Country>('spain')
   const [matchdays, setMatchdays] = useState<any[]>([])
@@ -20,24 +21,29 @@ export default function PredisPage() {
   useEffect(() => {
     const stored = localStorage.getItem('muertazos_user')
     if (stored) { try { setUser(JSON.parse(stored)) } catch {} }
+    setUserChecked(true)
   }, [])
 
   // Queens is Spain-only; Kings supports all three countries
   const effectiveCountry: Country = league === 'queens' ? 'spain' : country
 
   const loadMatchdays = useCallback(async () => {
+    if (!userChecked) return
+    // Logged-in users see matchdays controlled by is_visible (USUARIO toggle)
+    // Unauthenticated visitors see matchdays controlled by is_public_visible (PÚBLICO toggle)
+    const visibilityField = user ? 'is_visible' : 'is_public_visible'
     const { data } = await supabase
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', league)
       .eq('country', league === 'queens' ? 'spain' : country)
-      .eq('is_visible', true)
+      .eq(visibilityField, true)
       .order('display_order')
 
     setMatchdays(data ? data.map(day => ({ ...day, matches: sortMatchesByOrder(day.matches || []) })) : [])
     setCurrentDayIndex(0)
     setPredictions({})
-  }, [league, country])
+  }, [league, country, user, userChecked])
 
   useEffect(() => { loadMatchdays() }, [loadMatchdays])
 
@@ -93,33 +99,38 @@ export default function PredisPage() {
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-8 pb-10">
 
         {/* League toggle */}
-        <div className="flex gap-2 mb-4">
-          {(['kings', 'queens'] as const).map(lg => (
-            <button
-              key={lg}
-              onClick={() => { setLeague(lg); if (lg === 'queens') setCountry('spain') }}
-              className={`px-5 py-2 rounded-full text-xs font-black italic uppercase border transition-colors ${
-                league === lg
-                  ? lg === 'kings'
-                    ? 'bg-[#FFD300] text-black border-[#FFD300]'
-                    : 'bg-[#01d6c3] text-black border-[#01d6c3]'
-                  : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
-              }`}
-            >
-              {lg === 'kings' ? 'Kings' : 'Queens'}
-            </button>
-          ))}
+        <div className="flex gap-2 mb-4 justify-center">
+          {(['kings', 'queens'] as const)
+            .filter(lg => !(lg === 'queens' && (country === 'mexico' || country === 'brazil')))
+            .map(lg => (
+              <button
+                key={lg}
+                onClick={() => { setLeague(lg); if (lg === 'queens') setCountry('spain') }}
+                className={`px-5 py-2 rounded-full text-xs font-black italic uppercase border transition-colors ${
+                  league === lg
+                    ? lg === 'kings'
+                      ? 'bg-[#FFD300] text-black border-[#FFD300]'
+                      : 'bg-[#01d6c3] text-black border-[#01d6c3]'
+                    : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
+                }`}
+              >
+                {lg === 'kings' ? 'Kings' : 'Queens'}
+              </button>
+            ))}
         </div>
 
         {/* Country selector — Kings only */}
         {league === 'kings' && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-6 justify-center flex-wrap">
             {COUNTRIES.map(({ key, flag, name }) => {
               const isActive = country === key
               return (
                 <button
                   key={key}
-                  onClick={() => setCountry(key)}
+                  onClick={() => {
+                    setCountry(key)
+                    if ((key === 'mexico' || key === 'brazil') && league === 'queens') setLeague('kings')
+                  }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black italic uppercase tracking-tight whitespace-nowrap transition-all ${
                     isActive
                       ? 'border-current'
@@ -262,11 +273,11 @@ export default function PredisPage() {
                     borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                   }}>
                     <div style={{ width: '96px', height: '96px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: pickId === match.home_team_id ? 1 : 0.2, filter: pickId === match.home_team_id ? 'none' : 'grayscale(1)', transform: pickId === match.home_team_id ? 'scale(1.1)' : 'scale(0.9)' }}>
-                      <img src={getTeamLogoPath(league, match.home.logo_file, effectiveCountry)} alt="" loading="eager" style={{ maxWidth: '96px', maxHeight: '96px', width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />
+                      <img src={getTeamLogoPathEncoded(league, match.home.logo_file, match.home.country ?? effectiveCountry)} alt="" loading="eager" style={{ maxWidth: '96px', maxHeight: '96px', width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />
                     </div>
                     <div style={{ color: '#475569', fontWeight: 900, fontSize: '16px', fontStyle: 'italic' }}>VS</div>
                     <div style={{ width: '96px', height: '96px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: pickId === match.away_team_id ? 1 : 0.2, filter: pickId === match.away_team_id ? 'none' : 'grayscale(1)', transform: pickId === match.away_team_id ? 'scale(1.1)' : 'scale(0.9)' }}>
-                      <img src={getTeamLogoPath(league, match.away.logo_file, effectiveCountry)} alt="" loading="eager" style={{ maxWidth: '96px', maxHeight: '96px', width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />
+                      <img src={getTeamLogoPathEncoded(league, match.away.logo_file, match.away.country ?? effectiveCountry)} alt="" loading="eager" style={{ maxWidth: '96px', maxHeight: '96px', width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />
                     </div>
                   </div>
                 )
@@ -299,7 +310,7 @@ function TeamButton({ team, league, country, isSelected, anyPickInMatch, onClick
       className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}
     >
       <div className="relative w-20 h-20 sm:w-28 sm:h-28">
-        <Image src={getTeamLogoPath(league, team.logo_file, country)} alt={team.name} fill className="object-contain" />
+        <Image src={getTeamLogoPath(league, team.logo_file, team.country ?? country)} alt={team.name} fill className="object-contain" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
       </div>
     </button>
   )

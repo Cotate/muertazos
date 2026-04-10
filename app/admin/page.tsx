@@ -2,6 +2,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import { Eye, EyeOff, Globe, GlobeLock, Lock, Unlock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
@@ -68,23 +69,15 @@ function AdminDashboardInner() {
           <RankingView />
         ) : tab === 'simulator' ? (
           <SimulatorView isAdmin />
-        ) : country !== 'spain' ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <p className="text-5xl">🌎</p>
-            <p className="text-slate-600 font-black italic uppercase tracking-widest text-xl">PRÓXIMAMENTE</p>
-            <p className="text-slate-700 text-sm">
-              {tab === 'kings' ? 'Kings' : 'Queens'} {country === 'mexico' ? 'México' : 'Brasil'} aún no está disponible
-            </p>
-          </div>
         ) : (
-          <CompetitionAdmin key={`${tab}-${country}`} competitionKey={tab} />
+          <CompetitionAdmin key={`${tab}-${country}`} competitionKey={tab} country={country} />
         )}
       </div>
     </div>
   )
 }
 
-function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
+function CompetitionAdmin({ competitionKey, country }: { competitionKey: string; country: Country }) {
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [users, setUsers] = useState<any[]>([])
@@ -92,7 +85,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
 
-  const folder = getCompFolder(competitionKey)
   const logoSize = (filename: string) => getLogoSize(filename)
 
   const load = async () => {
@@ -100,7 +92,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', competitionKey)
-      .eq('country', 'spain')
+      .eq('country', country)
       .order('display_order')
 
     const { data: uData } = await supabase
@@ -121,9 +113,12 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
       })
       setMatchdays(mData)
       setActiveMatchdayId(prev => {
-        const publicDay = mData.find(d => d.is_visible === true)
-        if (!prev) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null)
-        if (!mData.find(d => d.id === prev)) return publicDay ? publicDay.id : (mData.length > 0 ? mData[0].id : null)
+        // Auto-select: first matchday with matches but no winner set (closest empty), or first visible, or first
+        const emptyDay = mData.find(d => d.matches?.length > 0 && d.matches.every((m: any) => m.winner_team_id == null))
+        const visibleDay = mData.find(d => d.is_visible === true)
+        const fallback = mData.length > 0 ? mData[0].id : null
+        if (!prev) return emptyDay?.id ?? visibleDay?.id ?? fallback
+        if (!mData.find(d => d.id === prev)) return emptyDay?.id ?? visibleDay?.id ?? fallback
         return prev
       })
     }
@@ -140,7 +135,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     }
   }
 
-  useEffect(() => { load() }, [competitionKey])
+  useEffect(() => { load() }, [competitionKey, country])
 
   useEffect(() => {
     const fetchPredictions = async () => {
@@ -155,7 +150,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
       const matchIds = activeDay.matches.map((m: any) => m.id)
       const { data: pData, error } = await supabase
         .from('predictions')
-        .select('*, predicted_team:predicted_team_id(logo_file)')
+        .select('*, predicted_team:predicted_team_id(logo_file, country)')
         .in('match_id', matchIds)
         .in('user_id', userIds)
 
@@ -164,13 +159,25 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
     fetchPredictions()
   }, [activeMatchdayId, matchdays, currentPage, pageChunks, users])
 
-  const toggleVisible = async (id: number, currentVal: boolean) => {
+  // USUARIO: controls visibility for logged-in users (is_visible)
+  const toggleUserVisible = async (id: number, currentVal: boolean) => {
     if (!id) return
     const newVal = !currentVal
     if (newVal === true) {
-      await supabase.from('matchdays').update({ is_visible: false }).eq('competition_key', competitionKey)
+      await supabase.from('matchdays').update({ is_visible: false }).eq('competition_key', competitionKey).eq('country', country)
     }
     await supabase.from('matchdays').update({ is_visible: newVal }).eq('id', id)
+    load()
+  }
+
+  // PÚBLICO: controls visibility for unauthenticated users (is_public_visible)
+  const togglePublicVisible = async (id: number, currentVal: boolean) => {
+    if (!id) return
+    const newVal = !currentVal
+    if (newVal === true) {
+      await supabase.from('matchdays').update({ is_public_visible: false }).eq('competition_key', competitionKey).eq('country', country)
+    }
+    await supabase.from('matchdays').update({ is_public_visible: newVal }).eq('id', id)
     load()
   }
 
@@ -188,6 +195,8 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
   const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
   const totalPages = pageChunks.length
   const activeMatchday = matchdays.find(d => d.id === activeMatchdayId)
+
+  const accentColor = competitionKey === 'kings' ? '#FFD300' : '#01d6c3'
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -212,7 +221,6 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
           <div className="relative w-24 h-24 opacity-20">
             <div className="absolute inset-0 rounded-full border-4 border-[#01d6c3] animate-pulse" />
             <div className="absolute inset-3 rounded-full border-2 border-[#01d6c3]/60" />
-            <span className="absolute inset-0 flex items-center justify-center text-4xl not-italic">👑</span>
           </div>
           <div className="text-center space-y-2">
             <p className="text-[#01d6c3] font-black italic uppercase tracking-[0.3em] text-2xl">Próximamente</p>
@@ -221,21 +229,13 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
               Los datos de la competición Queens se cargarán cuando estén disponibles
             </p>
           </div>
-          <div className="flex gap-3 mt-4">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-[#01d6c3]/30 animate-pulse"
-                style={{ animationDelay: `${i * 0.2}s` }}
-              />
-            ))}
-          </div>
         </div>
       )}
 
       {activeMatchday && (
         <div className="relative group w-full mb-8">
           <div className="w-full px-4 md:px-10 py-4 grid grid-cols-1 sm:grid-cols-3 items-center gap-3 bg-slate-900/40 border-b border-white/5">
+            {/* Pagination */}
             <div className="flex justify-center sm:justify-start">
               {totalPages > 1 && (
                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
@@ -244,20 +244,56 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                 </div>
               )}
             </div>
+
+            {/* Matchday title */}
             <div className="flex justify-center">
               <h3
-                style={{ color: competitionKey === 'kings' ? '#ffd300' : '#01d6c3' }}
+                style={{ color: accentColor }}
                 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter"
               >
                 {activeMatchday.name}
               </h3>
             </div>
+
+            {/* Toggle buttons */}
             <div className="flex justify-center sm:justify-end gap-2 flex-wrap">
-              <button onClick={() => toggleVisible(activeMatchday.id, activeMatchday.is_visible)} className={`px-4 md:px-6 py-2 text-xs font-black rounded-full border ${activeMatchday.is_visible ? 'bg-green-600 border-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                {activeMatchday.is_visible ? 'PÚBLICO' : 'OCULTO'}
+              {/* USUARIO: ON/OFF — controls is_visible (logged-in users) */}
+              <button
+                onClick={() => toggleUserVisible(activeMatchday.id, activeMatchday.is_visible)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
+                  activeMatchday.is_visible
+                    ? 'bg-emerald-600/80 border-emerald-400 text-white'
+                    : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {activeMatchday.is_visible ? <Eye size={13} /> : <EyeOff size={13} />}
+                USUARIO: {activeMatchday.is_visible ? 'ON' : 'OFF'}
               </button>
-              <button onClick={() => toggleLock(activeMatchday.id, activeMatchday.is_locked)} className={`px-4 md:px-6 py-2 text-xs font-black rounded-full border ${activeMatchday.is_locked ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'}`}>
-                {activeMatchday.is_locked ? 'BLOQUEADO' : 'ABIERTO'}
+
+              {/* PÚBLICO: ON/OFF — controls is_public_visible (unauthenticated) */}
+              <button
+                onClick={() => togglePublicVisible(activeMatchday.id, activeMatchday.is_public_visible)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
+                  activeMatchday.is_public_visible
+                    ? 'bg-sky-600/80 border-sky-400 text-white'
+                    : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {activeMatchday.is_public_visible ? <Globe size={13} /> : <GlobeLock size={13} />}
+                PÚBLICO: {activeMatchday.is_public_visible ? 'ON' : 'OFF'}
+              </button>
+
+              {/* ABIERTO/CERRADO — controls is_locked */}
+              <button
+                onClick={() => toggleLock(activeMatchday.id, activeMatchday.is_locked)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
+                  activeMatchday.is_locked
+                    ? 'bg-red-600/80 border-red-400 text-white'
+                    : 'bg-blue-600/80 border-blue-400 text-white'
+                }`}
+              >
+                {activeMatchday.is_locked ? <Lock size={13} /> : <Unlock size={13} />}
+                {activeMatchday.is_locked ? 'CERRADO' : 'ABIERTO'}
               </button>
             </div>
           </div>
@@ -291,7 +327,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             ${m.winner_team_id == m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                               : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
                         >
-                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
+                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, m.home.country ?? country)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
                         </button>
                         <span className="text-[9px] font-black text-slate-600 italic">VS</span>
                         <button
@@ -300,7 +336,7 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                             ${m.winner_team_id == m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                               : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
                         >
-                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
+                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, m.away.country ?? country)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
                         </button>
                       </div>
                     </td>
@@ -308,20 +344,23 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                       const pred = allPreds.find(p => p.user_id == u.id && p.match_id == m.id)
                       const isHit = m.winner_team_id && pred && pred.predicted_team_id == m.winner_team_id
                       const hasWinner = m.winner_team_id !== null
-                      const logoFile = Array.isArray(pred?.predicted_team)
-                        ? pred?.predicted_team[0]?.logo_file
-                        : pred?.predicted_team?.logo_file
+                      const predTeam = Array.isArray(pred?.predicted_team)
+                        ? pred?.predicted_team[0]
+                        : pred?.predicted_team
+                      const logoFile = predTeam?.logo_file
+                      const predCountry = predTeam?.country ?? country
 
                       return (
                         <td key={u.id} className="p-1 border-r border-white/5">
                           {logoFile ? (
                             <div className="flex justify-center">
                               <Image
-                                src={getTeamLogoPath(competitionKey, logoFile)}
+                                src={getTeamLogoPath(competitionKey, logoFile, predCountry)}
                                 width={logoSize(logoFile)}
                                 height={logoSize(logoFile)}
                                 alt="p"
                                 className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`}
+                                onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
                               />
                             </div>
                           ) : <span className="text-slate-800 text-xs">-</span>}
@@ -330,6 +369,13 @@ function CompetitionAdmin({ competitionKey }: { competitionKey: string }) {
                     })}
                   </tr>
                 ))}
+                {(!activeMatchday.matches || activeMatchday.matches.length === 0) && (
+                  <tr>
+                    <td colSpan={paginatedUsers.length + 1} className="py-12 text-center text-slate-700 text-xs font-black italic uppercase tracking-widest">
+                      Sin partidos registrados
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
