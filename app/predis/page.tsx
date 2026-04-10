@@ -234,12 +234,11 @@ export default function PredisPage() {
       {/* Hidden share ticket */}
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && (
-          <div ref={shareTicketRef} style={{ width: '450px', backgroundColor: '#0A0A0A', padding: '40px', fontFamily: 'sans-serif', border: '1px solid #1e293b' }}>
+          <div ref={shareTicketRef} style={{ width: '450px', backgroundColor: '#0A0A0A', padding: '40px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
             {/* Standardized header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div>
                 <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Logo" loading="eager" style={{ width: '144px', height: '40px', objectFit: 'contain' }} />
-                <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
               </div>
               <div style={{ textAlign: 'right' }}>
                 {user?.username && (
@@ -247,13 +246,13 @@ export default function PredisPage() {
                 )}
                 <div style={{ color: '#64748b', fontWeight: 900, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.3em', marginBottom: '2px' }}>PREDIS</div>
                 <div style={{ color: activeColor, fontWeight: 900, fontStyle: 'italic', fontSize: '18px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                  {league === 'kings' ? 'Kings' : 'Queens'} · {countryLabel} · {matchdays[currentDayIndex]?.name}
+                  {league === 'kings' ? 'Kings' : 'Queens'} {matchdays[currentDayIndex]?.name}
                 </div>
               </div>
             </div>
 
             {/* Match picks */}
-            <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#000000' }}>
+            <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
               {matchdays[currentDayIndex]?.matches.map((match: any, i: number, arr: any[]) => {
                 const pickId = predictions[match.id]
                 return (
@@ -276,7 +275,7 @@ export default function PredisPage() {
 
             {/* Footer */}
             <div style={{ marginTop: '16px', textAlign: 'center', color: '#334155', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
-              MUERTAZOS.BET
+              MUERTAZOS.COM
             </div>
           </div>
         )}

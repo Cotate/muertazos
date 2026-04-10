@@ -410,9 +410,8 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         <div ref={shareTicketRef} style={{ width: '520px', backgroundColor: '#0A0A0A', padding: '32px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos.bet" loading="eager" style={{ width: '130px', height: '36px', objectFit: 'contain' }} />
-              <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
+            <div>
+              <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" loading="eager" style={{ width: '130px', height: '36px', objectFit: 'contain' }} />
             </div>
             <div style={{ textAlign: 'right' }}>
               {simUser?.username && (
@@ -424,13 +423,13 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                 SIMULADOR
               </div>
               <div style={{ color: compKey === 'kings' ? '#FFD300' : '#01d6c3', fontWeight: 900, fontStyle: 'italic', fontSize: '18px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                {compKey === 'kings' ? 'Kings' : 'Queens'} · {splitCountry === 'brazil' ? 'Brasil' : splitCountry === 'mexico' ? 'México' : 'España'} · {activeMatchday.name}
+                {compKey === 'kings' ? 'Kings' : 'Queens'} {activeMatchday.name}
               </div>
             </div>
           </div>
 
           {/* Matches */}
-          <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
             {activeMatchday.matches?.map((m: any, i: number, arr: any[]) => {
               const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
               const logoSz = 64
@@ -439,7 +438,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   gap: '16px', padding: '12px 20px',
                   borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                  backgroundColor: '#0A0A0A',
+                  backgroundColor: '#0f172a',
                 }}>
                   <div style={{ width: logoSz, height: logoSz, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {m.home && <img src={getTeamLogoPath(compKey, m.home.logo_file, splitCountry)} alt={m.home.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
@@ -463,7 +462,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
           {/* Footer */}
           <div style={{ marginTop: '16px', textAlign: 'center', color: '#334155', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
-            MUERTAZOS.BET
+            MUERTAZOS.COM
           </div>
         </div>
       </div>

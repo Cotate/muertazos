@@ -479,9 +479,8 @@ export default function TierList({ user }: TierListProps) {
         <div className="absolute top-[-9999px] left-[-9999px]">
           <div ref={shareTicketRef} style={{ width: '580px', backgroundColor: '#0A0A0A', padding: '36px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div>
                 <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" loading="eager" style={{ width: '140px', height: '40px', objectFit: 'contain' }} />
-                <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
               </div>
               <div style={{ textAlign: 'right' }}>
                 {user?.username && (
@@ -493,11 +492,11 @@ export default function TierList({ user }: TierListProps) {
                   TIER LIST
                 </div>
                 <div style={{ color: accent, fontWeight: 900, fontStyle: 'italic', fontSize: '20px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                  {comp === 'kings' ? 'Kings' : 'Queens'} · {country === 'brazil' ? 'Brasil' : country === 'mexico' ? 'México' : 'España'} · {cat === 'teams' ? 'Equipos' : cat === 'players' ? (playerScope === 'team' && playerTeam ? playerTeam : 'Jugadores') : 'Camisetas'}
+                  {cat === 'teams' ? 'Equipos' : cat === 'players' ? (playerScope === 'team' && playerTeam ? playerTeam : 'Jugadores') : 'Camisetas'}
                 </div>
               </div>
             </div>
-            <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
               {tiers.filter(t => t.chips.length > 0).map((tier, i, arr) => (
                 <div key={tier.id} style={{ display: 'flex', alignItems: 'stretch', minHeight: '72px', borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
                   <div style={{ width: '5px', flexShrink: 0, backgroundColor: tier.color }} />
@@ -512,7 +511,7 @@ export default function TierList({ user }: TierListProps) {
                   }}>
                     {tier.label}
                   </div>
-                  <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px 10px', alignItems: 'center', alignContent: 'center', backgroundColor: '#0A0A0A' }}>
+                  <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px 10px', alignItems: 'center', alignContent: 'center', backgroundColor: '#0f172a' }}>
                     {tier.chips.map(chip => (
                       <div key={chip.id} title={chip.name} style={{ width: '56px', height: '56px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         <img src={chip.imageSrc} alt={chip.name} loading="eager" crossOrigin="anonymous" style={{ maxWidth: '56px', maxHeight: '56px', width: 'auto', height: 'auto', display: 'block' }} />
@@ -522,13 +521,13 @@ export default function TierList({ user }: TierListProps) {
                 </div>
               ))}
               {tiers.every(t => t.chips.length === 0) && (
-                <div style={{ padding: '32px', textAlign: 'center', color: '#334155', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.2em', backgroundColor: '#0A0A0A' }}>
+                <div style={{ padding: '32px', textAlign: 'center', color: '#334155', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.2em', backgroundColor: '#0f172a' }}>
                   Sin clasificar
                 </div>
               )}
             </div>
             <div style={{ marginTop: '20px', textAlign: 'center', color: '#2d4a6b', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
-              MUERTAZOS.BET
+              MUERTAZOS.COM
             </div>
           </div>
         </div>

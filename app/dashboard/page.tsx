@@ -306,21 +306,20 @@ function UserDashboardInner() {
 
       <div className="absolute top-[-9999px] left-[-9999px]">
         {matchdays.length > 0 && user && (
-          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
+          <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans" style={{ borderRadius: '16px' }}>
             <div className="flex justify-between items-center mb-8">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div>
                 <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Logo" loading="eager" style={{ width: '144px', height: '40px', objectFit: 'contain' }} />
-                <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
               </div>
               <div className="text-right">
                 <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">{user.username}</div>
                 <div style={{ color: '#64748b', fontWeight: 900, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.3em' }}>PICKS</div>
                 <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none">
-                  {league === 'kings' ? 'Kings' : 'Queens'} · {matchdays[currentDayIndex]?.name}
+                  {league === 'kings' ? 'Kings' : 'Queens'} {matchdays[currentDayIndex]?.name}
                 </div>
               </div>
             </div>
-            <div className="space-y-4 bg-[#000000] p-6 border border-[#ffffff10]">
+            <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {matchdays[currentDayIndex]?.matches.map((match: any) => {
                 const pickId = predictions[match.id]
                 return (
@@ -337,7 +336,7 @@ function UserDashboardInner() {
               })}
             </div>
             <div style={{ marginTop: '16px', textAlign: 'center', color: '#334155', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
-              MUERTAZOS.BET
+              MUERTAZOS.COM
             </div>
           </div>
         )}
