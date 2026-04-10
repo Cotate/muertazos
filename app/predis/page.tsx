@@ -129,7 +129,7 @@ export default function PredisPage() {
                   key={key}
                   onClick={() => {
                     setCountry(key)
-                    if ((key === 'mexico' || key === 'brazil') && league === 'queens') setLeague('kings')
+                    if ((key === 'mexico' || key === 'brazil') && league !== 'kings') setLeague('kings')
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black italic uppercase tracking-tight whitespace-nowrap transition-all ${
                     isActive
