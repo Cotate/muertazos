@@ -1,33 +1,29 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
-interface Donor {
-  username: string
-  tier?: 'gold' | 'silver' | 'bronze' | null
-}
+interface Donor { username: string; tier?: 'gold' | 'silver' | 'bronze' | null }
+
+const CREATORS = [
+  { username: 'Cotate',  href: 'https://x.com/Cotate_' },
+  { username: 'Jude',   href: 'https://x.com/jude_utd05' },
+  { username: 'Annagg', href: 'https://x.com/Annagg05' },
+  { username: 'Anye',   href: 'https://x.com/anyecrx_' },
+]
 
 export default function AppFooter() {
   const [donors, setDonors] = useState<Donor[]>([])
 
   useEffect(() => {
-    const fetchDonors = async () => {
-      const { data } = await supabase
-        .from('donors')
-        .select('username, tier')
-        .order('created_at', { ascending: false })
-        .limit(50)
-      if (data) setDonors(data)
-    }
-    fetchDonors().catch(() => {})
+    supabase.from('donors').select('username, tier').order('created_at', { ascending: false }).limit(50)
+      .then(({ data }) => { if (data) setDonors(data) })
   }, [])
 
   useEffect(() => {
     const scriptId = 'paypal-donate-sdk'
-    if (document.getElementById(scriptId)) {
-      renderPayPal()
-      return
-    }
+    if (document.getElementById(scriptId)) { renderPayPal(); return }
     const script = document.createElement('script')
     script.id = scriptId
     script.src = 'https://www.paypalobjects.com/donate/sdk/donate-sdk.js'
@@ -44,11 +40,7 @@ export default function AppFooter() {
     win.PayPal.Donation.Button({
       env: 'production',
       hosted_button_id: 'PE6W2EWS2SJFW',
-      image: {
-        src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_SM.gif',
-        alt: 'Donar con PayPal',
-        title: 'PayPal — The safer, easier way to pay online!',
-      },
+      image: { src: 'https://www.paypalobjects.com/es_XC/i/btn/btn_donate_SM.gif', alt: 'Donar con PayPal', title: 'PayPal' },
     }).render('#footer-donate-button')
   }
 
@@ -61,18 +53,15 @@ export default function AppFooter() {
   return (
     <footer className="w-full bg-slate-950 border-t border-white/5">
 
+      {/* Donor wall — full width */}
       {donors.length > 0 && (
-        <div className="max-w-4xl mx-auto px-6 pt-6 pb-3">
+        <div className="max-w-4xl mx-auto px-6 pt-5 pb-3 border-b border-white/5">
           <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-3">
             ★ MURO DE DONADORES ★
           </h3>
           <div className="flex flex-wrap justify-center gap-2">
             {donors.map((d, i) => (
-              <span
-                key={i}
-                className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border
-                  ${tierStyles[d.tier ?? 'bronze'] ?? tierStyles.bronze}`}
-              >
+              <span key={i} className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${tierStyles[d.tier ?? 'bronze'] ?? tierStyles.bronze}`}>
                 {d.username}
               </span>
             ))}
@@ -80,11 +69,53 @@ export default function AppFooter() {
         </div>
       )}
 
-      <div className="flex items-center justify-center h-12 px-4 gap-5">
-        <div id="footer-donate-button" className="hover:scale-105 transition-transform flex-shrink-0" />
-        <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.35em] whitespace-nowrap pointer-events-none">
-          MUERTAZOS © 2026
-        </p>
+      {/* 3-column bottom bar */}
+      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+
+        {/* Col 1: Donate */}
+        <div className="flex justify-center md:justify-start items-center">
+          <div id="footer-donate-button" className="hover:scale-105 transition-transform" />
+        </div>
+
+        {/* Col 2: Creators */}
+        <div className="flex flex-col items-center gap-2">
+          <h3 className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            CREADORES
+            <Star className="w-2.5 h-2.5 fill-current" />
+          </h3>
+          <div className="flex gap-3">
+            {CREATORS.map(c => (
+              <a key={c.username} href={c.href} target="_blank" rel="noopener noreferrer"
+                className="group" title={`@${c.username}`}>
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 group-hover:border-slate-500 transition-colors">
+                  <img src={`/usuarios/${c.username}.jpg`} alt={c.username}
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Col 3: Pagina Oficial */}
+        <div className="flex flex-col items-center gap-2">
+          <h3 className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            PAGINA OFICIAL
+            <Star className="w-2.5 h-2.5 fill-current" />
+          </h3>
+          <a href="https://x.com/muertazos_com" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center group hover:opacity-80 transition-opacity">
+            <Image
+              src="/MUERTAZOS ESTRUCTURA/MuertazosX.webp"
+              alt="Muertazos en X"
+              width={80}
+              height={28}
+              className="object-contain"
+            />
+          </a>
+        </div>
       </div>
     </footer>
   )

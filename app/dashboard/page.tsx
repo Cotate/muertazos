@@ -3,7 +3,6 @@ import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import html2canvas from 'html2canvas'
 import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import RankingView from '@/components/RankingView'
@@ -20,7 +19,7 @@ function UserDashboardInner() {
   const [user, setUser] = useState<any>(null)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
   const [country, setCountry] = useState<Country>('spain')
-  const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra' | 'all-picks'>('picks')
+  const [view, setView] = useState<'picks' | 'ranking' | 'simulator' | 'pizarra' | 'all-picks' | 'settings'>('picks')
 
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
@@ -44,6 +43,7 @@ function UserDashboardInner() {
     if (tab === 'picks')     setView('all-picks')
     if (tab === 'pizarra')   setView('pizarra')
     if (tab === 'simulator') setView('simulator')
+    if (tab === 'settings')  setView('settings')
     return () => { document.body.style.backgroundColor = '' }
   }, [router, searchParams])
 
@@ -118,22 +118,19 @@ function UserDashboardInner() {
     if (!shareTicketRef.current) return
     setIsGenerating(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 400))
-      const canvas = await html2canvas(shareTicketRef.current, {
-        useCORS: true, scale: 2, backgroundColor: '#0a0a0a', logging: false,
-      })
-      const link = document.createElement('a')
-      link.href = canvas.toDataURL('image/png', 1.0)
-      link.download = `Picks_${user.username}.png`
-      link.click()
-    } catch (error) {
-      console.error(error)
+      const { captureAndDownload } = await import('@/lib/captureTicket')
+      await captureAndDownload(
+        shareTicketRef.current,
+        `picks-${user?.username || 'muertazos'}.webp`
+      )
+    } catch (err) {
+      console.error('[Picks] Share failed:', err)
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const isPublicView = view === 'ranking' || view === 'pizarra' || view === 'simulator'
+  const isPublicView = view === 'ranking' || view === 'pizarra' || view === 'simulator' || view === 'settings'
   if (!user && !isPublicView) return null
 
   const activeColor = league === 'kings' ? '#ffd300' : '#01d6c3'
@@ -169,7 +166,7 @@ function UserDashboardInner() {
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       <AppHeader
         onLogout={user ? handleLogout : undefined}
-        userAvatar={user ? `/usuarios/${user.username}.jpg` : undefined}
+        userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.jpg`) : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"
@@ -300,6 +297,8 @@ function UserDashboardInner() {
           <CompetitionReadOnly competitionKey={league} country={country} />
         ) : view === 'simulator' ? (
           <SimulatorView />
+        ) : view === 'settings' ? (
+          <SettingsView user={user} onUserUpdate={u => { setUser(u); localStorage.setItem('muertazos_user', JSON.stringify(u)) }} />
         ) : (
           <PizarraView />
         )}
@@ -309,13 +308,15 @@ function UserDashboardInner() {
         {matchdays.length > 0 && user && (
           <div ref={shareTicketRef} className="w-[450px] bg-[#0a0a0a] p-10 font-sans border border-[#1e293b]">
             <div className="flex justify-between items-center mb-8">
-              <div className="relative w-36 h-10">
-                <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Logo" className="object-contain w-full h-full" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Logo" loading="eager" style={{ width: '144px', height: '40px', objectFit: 'contain' }} />
+                <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
               </div>
               <div className="text-right">
                 <div className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">{user.username}</div>
-                <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none mt-1">
-                  {matchdays[currentDayIndex]?.name}
+                <div style={{ color: '#64748b', fontWeight: 900, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.3em' }}>PICKS</div>
+                <div style={{ color: activeColor }} className="font-black italic text-xl uppercase tracking-tighter leading-none">
+                  {league === 'kings' ? 'Kings' : 'Queens'} · {matchdays[currentDayIndex]?.name}
                 </div>
               </div>
             </div>
@@ -325,15 +326,18 @@ function UserDashboardInner() {
                 return (
                   <div key={match.id} className="flex items-center justify-center gap-8 bg-[#0f172a] p-4 border border-[#ffffff05] rounded-2xl">
                     <div className={`relative w-24 h-24 flex items-center justify-center ${pickId === match.home_team_id ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                      <img src={getTeamLogoPath(league, match.home.logo_file, 'spain')} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                      <img src={getTeamLogoPath(league, match.home.logo_file, 'spain')} alt="" loading="eager" className="w-[90%] h-[90%] object-contain relative z-10" />
                     </div>
                     <div className="text-2xl font-black italic text-white">VS</div>
                     <div className={`relative w-24 h-24 flex items-center justify-center ${pickId === match.away_team_id ? 'opacity-100 scale-110' : 'opacity-20 grayscale scale-90'}`}>
-                      <img src={getTeamLogoPath(league, match.away.logo_file, 'spain')} alt="" className="w-[90%] h-[90%] object-contain relative z-10" />
+                      <img src={getTeamLogoPath(league, match.away.logo_file, 'spain')} alt="" loading="eager" className="w-[90%] h-[90%] object-contain relative z-10" />
                     </div>
                   </div>
                 )
               })}
+            </div>
+            <div style={{ marginTop: '16px', textAlign: 'center', color: '#334155', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
+              MUERTAZOS.BET
             </div>
           </div>
         )}
@@ -537,6 +541,184 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Settings View ────────────────────────────────────────────────────────────
+function SettingsView({ user, onUserUpdate }: { user: any; onUserUpdate: (u: any) => void }) {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword]         = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwStatus, setPwStatus]               = useState<{ type: 'error' | 'success'; msg: string } | null>(null)
+  const [pwLoading, setPwLoading]             = useState(false)
+
+  const [avatarFile, setAvatarFile]           = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview]     = useState<string | null>(null)
+  const [avatarStatus, setAvatarStatus]       = useState<{ type: 'error' | 'success'; msg: string } | null>(null)
+  const [avatarLoading, setAvatarLoading]     = useState(false)
+
+  if (!user) return (
+    <div className="max-w-lg mx-auto py-24 text-center">
+      <p className="text-slate-600 font-black italic uppercase tracking-widest">Inicia sesión para ver ajustes</p>
+    </div>
+  )
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwStatus(null)
+    if (!newPassword || !currentPassword) { setPwStatus({ type: 'error', msg: 'Rellena todos los campos' }); return }
+    if (newPassword !== confirmPassword) { setPwStatus({ type: 'error', msg: 'Las contraseñas nuevas no coinciden' }); return }
+    if (newPassword.length < 4) { setPwStatus({ type: 'error', msg: 'La contraseña debe tener al menos 4 caracteres' }); return }
+    setPwLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('password')
+        .eq('id', user.id)
+        .single()
+      if (error || !data) { setPwStatus({ type: 'error', msg: 'Error al verificar contraseña' }); return }
+      if (data.password !== currentPassword) { setPwStatus({ type: 'error', msg: 'Contraseña actual incorrecta' }); return }
+      const { error: updateError } = await supabase
+        .from('app_users')
+        .update({ password: newPassword })
+        .eq('id', user.id)
+      if (updateError) { setPwStatus({ type: 'error', msg: updateError.message }); return }
+      setPwStatus({ type: 'success', msg: 'Contraseña actualizada correctamente' })
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+    setAvatarStatus(null)
+  }
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return
+    setAvatarLoading(true)
+    setAvatarStatus(null)
+    try {
+      const ext = avatarFile.name.split('.').pop() || 'jpg'
+      const filePath = `${user.username}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile, { upsert: true, contentType: avatarFile.type })
+      if (uploadError) { setAvatarStatus({ type: 'error', msg: uploadError.message }); return }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const updatedUser = { ...user, avatar_url: publicUrl }
+      onUserUpdate(updatedUser)
+      setAvatarStatus({ type: 'success', msg: 'Foto de perfil actualizada' })
+    } finally {
+      setAvatarLoading(false)
+    }
+  }
+
+  const currentAvatar = user.avatar_url || `/usuarios/${user.username}.jpg`
+
+  return (
+    <div className="max-w-lg mx-auto py-8 px-4 flex flex-col gap-8">
+      <div>
+        <h1 className="font-black italic text-2xl uppercase tracking-tighter">
+          Ajustes <span className="text-[#FFD300]">de cuenta</span>
+        </h1>
+        <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-1">
+          Gestiona tu perfil y seguridad
+        </p>
+      </div>
+
+      {/* Profile photo */}
+      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6 flex flex-col gap-5">
+        <h2 className="font-black italic uppercase text-base tracking-tight text-slate-300">
+          Foto de perfil
+        </h2>
+        <div className="flex items-center gap-5">
+          <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
+            <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-slate-500">
+              {user.username.charAt(0).toUpperCase()}
+            </span>
+            <Image
+              src={avatarPreview || currentAvatar}
+              alt={user.username}
+              fill
+              className="object-cover z-10"
+              onError={e => { e.currentTarget.style.display = 'none' }}
+            />
+          </div>
+          <div className="flex flex-col gap-2 flex-1">
+            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white text-xs font-black italic uppercase tracking-tight transition-all w-fit">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Elegir imagen
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            </label>
+            {avatarFile && (
+              <button
+                onClick={handleAvatarUpload}
+                disabled={avatarLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50 w-fit"
+              >
+                {avatarLoading ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                Guardar foto
+              </button>
+            )}
+          </div>
+        </div>
+        {avatarStatus && (
+          <p className={`text-xs font-bold ${avatarStatus.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+            {avatarStatus.msg}
+          </p>
+        )}
+      </section>
+
+      {/* Password change */}
+      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6">
+        <h2 className="font-black italic uppercase text-base tracking-tight text-slate-300 mb-5">
+          Cambiar contraseña
+        </h2>
+        <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
+          {[
+            { label: 'Contraseña actual', value: currentPassword, setter: setCurrentPassword },
+            { label: 'Nueva contraseña', value: newPassword, setter: setNewPassword },
+            { label: 'Confirmar nueva contraseña', value: confirmPassword, setter: setConfirmPassword },
+          ].map(({ label, value, setter }) => (
+            <div key={label} className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</label>
+              <input
+                type="password"
+                value={value}
+                onChange={e => setter(e.target.value)}
+                className="bg-black/40 border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder-slate-700 focus:border-[#FFD300]/60 focus:outline-none transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
+          ))}
+          {pwStatus && (
+            <p className={`text-xs font-bold ${pwStatus.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+              {pwStatus.msg}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={pwLoading}
+            className="mt-1 w-full h-12 bg-[#FFD300] text-black font-black italic uppercase tracking-tight rounded-xl hover:bg-white transition-colors disabled:opacity-50 text-sm"
+          >
+            {pwLoading ? 'Guardando...' : 'Cambiar contraseña'}
+          </button>
+        </form>
+      </section>
     </div>
   )
 }

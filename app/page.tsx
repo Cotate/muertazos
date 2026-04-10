@@ -135,7 +135,7 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-10">
 
-        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
           <Link href="/tierlist"
             className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#FFD300]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
@@ -185,6 +185,23 @@ export default function Home() {
             </div>
             <div className="relative z-10 mt-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5733]/40 group-hover:text-[#FF5733]/70 transition-colors">Abrir →</span>
+            </div>
+          </Link>
+
+          <Link href="/predis"
+            className="group relative overflow-hidden bg-slate-900/50 border border-white/5 rounded-2xl p-8 min-h-[220px] flex flex-col justify-between hover:border-[#01d6c3]/40 hover:bg-slate-800/50 transition-all duration-300 hover:-translate-y-1.5">
+            <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-[#01d6c3]/8 rounded-full blur-3xl group-hover:bg-[#01d6c3]/20 transition-colors duration-500" />
+            <div className="relative z-10">
+              <div className="bg-[#01d6c3]/10 text-[#01d6c3] p-4 rounded-xl border border-[#01d6c3]/15 group-hover:scale-110 transition-transform duration-300 w-fit mb-5">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+              </div>
+              <h4 className="font-black italic uppercase text-2xl text-white mb-2 group-hover:text-[#01d6c3] transition-colors">Predis</h4>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">Haz tus picks para las jornadas y comparte tu predicción.</p>
+            </div>
+            <div className="relative z-10 mt-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#01d6c3]/40 group-hover:text-[#01d6c3]/70 transition-colors">Abrir →</span>
             </div>
           </Link>
 

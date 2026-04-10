@@ -32,6 +32,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - `/simulator` — Simulator standalone (`app/simulator/page.tsx`)
 - `/ranking` — Ranking standalone (`app/ranking/page.tsx`)
 - `/pizarra` — Pizarra standalone (`app/pizarra/page.tsx`)
+- `/predis` — Predis placeholder (`app/predis/page.tsx`)
 
 All pages are `'use client'`. Auth is role-based via `localStorage` key `muertazos_user` (JSON of the `app_users` row). On load, pages check `localStorage` and redirect to `/` if no valid session or insufficient role. Some views (ranking, pizarra, simulator) are publicly accessible without auth.
 
@@ -81,7 +82,7 @@ All images live under `public/MUERTAZOS ESTRUCTURA/`. All image files are `.webp
 - `SimulatorView` — Kings/Queens simulator with split selector (España/Brasil/México for Kings). Brasil only shows Kings (no Queens). Loads teams and matchdays from DB filtered by `competition_key` and `country`. Shows placeholder when no matchdays exist for the selected split.
 - `RankingView` — global leaderboard.
 - `PizarraView` — drag-and-drop tactical board supporting all three countries (España Split 6, Brasil Split 2, México Split 4). Dropdown flow: Competición → Equipo → Jugador. **Mixed teams are supported**: switching the Competición dropdown only updates the dropdowns for the next player to add — players already on the board are NOT removed. Each token on the board stores its own `split` field and resolves its image path independently via `buildImagePath(team, fileName, split)`. The "Limpiar" button clears all tokens regardless of origin.
-- `TierList` (`app/tierlist/page.tsx`) — tier list maker supporting España, Brasil, and México for Kings; España only for Queens.
+- `TierList` (`components/TierList.tsx`) — tier list maker supporting España, Brasil, and México for Kings; España only for Queens. Extracted from the page into a reusable component; uses `useTierListData` hook for teams/players.
 
 ### Player data
 `PLAYERS_DATA` constants (`SPAIN_PLAYERS_DATA`, `BRAZIL_PLAYERS_DATA`, `MEXICO_PLAYERS_DATA`) exist in both `app/tierlist/page.tsx` and `components/PizarraView.tsx` — they are duplicated intentionally as each component has different concerns. Player names are stored without file extension.
@@ -91,3 +92,34 @@ All images live under `public/MUERTAZOS ESTRUCTURA/`. All image files are `.webp
 - `#01d6c3` — Queens / teal accent
 - `#FF5733` — Simulator / orange accent
 - `#0a0a0a` — App background (dark)
+
+## Recent refactors
+
+### Predis route (`/predis`)
+- New route at `app/predis/page.tsx` — public-facing predictions/stats section, currently a placeholder ("Sección en construcción").
+- Added to `USER_MENU` in `AppHeader.tsx` between PICKS and PIZARRA.
+
+### TierList component extraction
+- Tier list logic moved from `app/tierlist/page.tsx` into `components/TierList.tsx`.
+- `app/tierlist/page.tsx` is now a thin wrapper that handles auth (reads `muertazos_user` from localStorage) and renders `<AppHeader>` + `<TierList user={user} />`.
+- `TierList` accepts a `user?: { username?: string } | null` prop — no auth logic or router inside the component.
+- Key UI improvements in `TierList.tsx` vs old page: label column widened to `w-32`, editing uses `<textarea>` for wrapping, new rows use next available letter (A–Z), `tierCounter` is a `useRef` (not module-level), share ticket label column widened to `80px`.
+
+### `useTierListData` hook (`lib/hooks/useTierListData.ts`)
+- Fetches teams from Supabase (`teams` table, filtered by `competition_key` + `country`).
+- Attempts to fetch players from a `players` table; falls back to hardcoded `SPAIN_PLAYERS_DATA` / `BRAZIL_PLAYERS_DATA` / `MEXICO_PLAYERS_DATA` constants until that table is populated.
+- Exports: `useTierListData(comp, country)` → `{ teamChips, playerTeamNames, buildPlayerChips, loading }`.
+- Also exports the hardcoded player data constants and `buildPlayerChipsFallback` for external use.
+
+### `players` table (needs to be created in Supabase)
+```sql
+CREATE TABLE players (
+  id            serial PRIMARY KEY,
+  team_id       int REFERENCES teams(id),
+  team_name     text NOT NULL,
+  name          text NOT NULL,
+  country       text NOT NULL DEFAULT 'spain',
+  competition_key text NOT NULL DEFAULT 'kings'
+);
+CREATE INDEX ON players (competition_key, country);
+```

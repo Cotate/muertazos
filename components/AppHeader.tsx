@@ -32,9 +32,11 @@ const USER_MENU: MenuEntry[] = [
   { type: 'route',  label: 'QUEENS',      href: '/dashboard?tab=queens' },
   { type: 'route',  label: 'RANKING',     href: '/ranking' },
   { type: 'route',  label: 'PICKS',       href: '/dashboard?tab=picks' },
+  { type: 'route',  label: 'PREDIS',      href: '/predis' },
   { type: 'route',  label: 'PIZARRA',     href: '/pizarra' },
   { type: 'route',  label: 'TIER LIST',   href: '/tierlist' },
   { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
+  { type: 'route',  label: 'AJUSTES',    href: '/dashboard?tab=settings' },
 ]
 
 const ADMIN_MENU: MenuEntry[] = [
@@ -61,8 +63,10 @@ export default function AppHeader({
     return (
       <header className="w-full h-16 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
         <div className="w-24 md:w-32" />
-        <div className="relative w-36 h-10">
-          <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
+        <div className="flex items-center gap-1">
+          <div className="relative w-36 h-10">
+            <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
+          </div>
         </div>
         <div className="w-24 md:w-32 flex justify-end">
           {onLoginClick && (
@@ -107,8 +111,8 @@ export default function AppHeader({
           </button>
         )}
 
-        <a href="https://polymarket.com?via=muertazos" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2">
-          <div className="relative w-28 h-9 hover:scale-105 transition-transform duration-200">
+        <a href="https://polymarket.com?via=muertazos" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 hover:scale-105 transition-transform duration-200">
+          <div className="relative w-28 h-9">
             <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
           </div>
         </a>
@@ -123,8 +127,10 @@ export default function AppHeader({
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-              <div className="relative w-28 h-9">
-                <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
+              <div className="flex items-center gap-1">
+                <div className="relative w-28 h-9">
+                  <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
+                </div>
               </div>
               <button
                 onClick={() => setMenuOpen(false)}

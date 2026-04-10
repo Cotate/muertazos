@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getCompFolder, getLogoSize, getTeamLogoPath } from '@/lib/utils'
@@ -23,6 +23,16 @@ export default function SimulatorView({ isAdmin = false }: Props) {
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [teams, setTeams] = useState<any[]>([])
   const [scores, setScores] = useState<Record<number, { hg: string; ag: string; penaltyWinnerId: number | null }>>({})
+  const [isSharing, setIsSharing] = useState(false)
+  const shareTicketRef = useRef<HTMLDivElement>(null)
+  const [simUser, setSimUser] = useState<{ username: string } | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('muertazos_user')
+      if (stored) setSimUser(JSON.parse(stored))
+    } catch {}
+  }, [])
 
   const logoSize = (filename: string) => getLogoSize(filename, !isAdmin)
   const activeSplit = SPLIT_OPTIONS.find(s => s.key === splitCountry) ?? SPLIT_OPTIONS[0]
@@ -168,7 +178,24 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
   const isNonSpainKings = compKey === 'kings' && splitCountry !== 'spain' && matchdays.length === 0
 
+  const handleShare = async () => {
+    if (!shareTicketRef.current || isSharing) return
+    setIsSharing(true)
+    try {
+      const { captureAndDownload } = await import('@/lib/captureTicket')
+      await captureAndDownload(
+        shareTicketRef.current,
+        `simulador-${simUser?.username || 'muertazos'}.webp`
+      )
+    } catch (err) {
+      console.error('[Simulator] Share failed:', err)
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
   return (
+    <>
     <div className="w-full flex flex-col items-center">
       {/* Top bar: competition + split selectors */}
       <div className="w-full flex flex-col border-b border-white/5">
@@ -179,7 +206,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
               onClick={() => { setCompKey('kings'); setActiveMatchdayId(null) }}
               className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
             >Kings</button>
-            {splitCountry !== 'brazil' && (
+            {splitCountry !== 'brazil' && splitCountry !== 'mexico' && (
               <button
                 onClick={() => { setCompKey('queens'); setSplitCountry('spain'); setActiveMatchdayId(null) }}
                 className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
@@ -232,19 +259,35 @@ export default function SimulatorView({ isAdmin = false }: Props) {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col xl:flex-row gap-8 xl:items-start">
           {/* Match containers */}
-          <div className="flex-1 flex flex-col gap-3">
+          <div className="flex-1 flex flex-col gap-3 xl:max-w-lg">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
               <h3 className="text-2xl font-black italic uppercase tracking-tighter">
                 {isNonSpainKings
                   ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
                   : activeMatchday?.name}
               </h3>
-              {isAdmin && !isNonSpainKings && (
-                <div className="flex gap-2">
-                  <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
-                  <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
-                </div>
-              )}
+              <div className="flex gap-2">
+                {isAdmin && !isNonSpainKings && (
+                  <>
+                    <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
+                    <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
+                  </>
+                )}
+                {!isAdmin && !isNonSpainKings && activeMatchday && (
+                  <button
+                    onClick={handleShare}
+                    disabled={isSharing}
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50"
+                  >
+                    {isSharing ? (
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    )}
+                    Compartir
+                  </button>
+                )}
+              </div>
             </div>
 
             {isNonSpainKings ? (
@@ -256,7 +299,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                 <p className="text-slate-700 text-xs">Los datos de partidos se añadirán cuando estén disponibles</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {activeMatchday?.matches?.map((m: any) => {
                   const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
                   const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
@@ -359,5 +402,72 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         </div>
       </div>
     </div>
+
+    {/* Hidden share ticket */}
+
+    {!isAdmin && activeMatchday && (
+      <div className="absolute top-[-9999px] left-[-9999px]">
+        <div ref={shareTicketRef} style={{ width: '520px', backgroundColor: '#0A0A0A', padding: '32px', fontFamily: 'sans-serif', borderRadius: '16px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <img src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos.bet" loading="eager" style={{ width: '130px', height: '36px', objectFit: 'contain' }} />
+              <span style={{ color: '#334155', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4em' }}>MUERTAZOS.BET</span>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              {simUser?.username && (
+                <div style={{ color: '#ffffff', fontWeight: 900, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.12em', opacity: 0.45 }}>
+                  {simUser.username}
+                </div>
+              )}
+              <div style={{ color: '#64748b', fontWeight: 900, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.3em', marginBottom: '2px' }}>
+                SIMULADOR
+              </div>
+              <div style={{ color: compKey === 'kings' ? '#FFD300' : '#01d6c3', fontWeight: 900, fontStyle: 'italic', fontSize: '18px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                {compKey === 'kings' ? 'Kings' : 'Queens'} · {splitCountry === 'brazil' ? 'Brasil' : splitCountry === 'mexico' ? 'México' : 'España'} · {activeMatchday.name}
+              </div>
+            </div>
+          </div>
+
+          {/* Matches */}
+          <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+            {activeMatchday.matches?.map((m: any, i: number, arr: any[]) => {
+              const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
+              const logoSz = 64
+              return (
+                <div key={m.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: '16px', padding: '12px 20px',
+                  borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                  backgroundColor: '#0A0A0A',
+                }}>
+                  <div style={{ width: logoSz, height: logoSz, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {m.home && <img src={getTeamLogoPath(compKey, m.home.logo_file, splitCountry)} alt={m.home.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', alignSelf: 'center' }}>
+                    <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '28px', fontStyle: 'italic', minWidth: '32px', textAlign: 'center', lineHeight: '1', display: 'inline-block', verticalAlign: 'middle' }}>
+                      {s.hg !== '' ? s.hg : '-'}
+                    </span>
+                    <span style={{ color: '#475569', fontWeight: 900, fontSize: '12px', fontStyle: 'italic', lineHeight: '1', display: 'inline-block', verticalAlign: 'middle' }}>VS</span>
+                    <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '28px', fontStyle: 'italic', minWidth: '32px', textAlign: 'center', lineHeight: '1', display: 'inline-block', verticalAlign: 'middle' }}>
+                      {s.ag !== '' ? s.ag : '-'}
+                    </span>
+                  </div>
+                  <div style={{ width: logoSz, height: logoSz, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {m.away && <img src={getTeamLogoPath(compKey, m.away.logo_file, splitCountry)} alt={m.away.name} loading="eager" style={{ maxWidth: logoSz, maxHeight: logoSz, width: 'auto', height: 'auto', display: 'block' }} crossOrigin="anonymous" />}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Footer */}
+          <div style={{ marginTop: '16px', textAlign: 'center', color: '#334155', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.45em' }}>
+            MUERTAZOS.BET
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
