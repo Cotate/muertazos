@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
@@ -298,7 +299,7 @@ function UserDashboardInner() {
         ) : view === 'simulator' ? (
           <SimulatorView />
         ) : view === 'settings' ? (
-          <SettingsView user={user} onUserUpdate={u => { setUser(u); localStorage.setItem('muertazos_user', JSON.stringify(u)) }} />
+          <SettingsView user={user} />
         ) : (
           <PizarraView />
         )}
@@ -545,17 +546,16 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
 }
 
 // ── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ user, onUserUpdate }: { user: any; onUserUpdate: (u: any) => void }) {
+function SettingsView({ user }: { user: any }) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword]         = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwStatus, setPwStatus]               = useState<{ type: 'error' | 'success'; msg: string } | null>(null)
   const [pwLoading, setPwLoading]             = useState(false)
 
-  const [avatarFile, setAvatarFile]           = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview]     = useState<string | null>(null)
-  const [avatarStatus, setAvatarStatus]       = useState<{ type: 'error' | 'success'; msg: string } | null>(null)
-  const [avatarLoading, setAvatarLoading]     = useState(false)
+  const [showCurrentPw, setShowCurrentPw]     = useState(false)
+  const [showNewPw, setShowNewPw]             = useState(false)
+  const [showConfirmPw, setShowConfirmPw]     = useState(false)
 
   if (!user) return (
     <div className="max-w-lg mx-auto py-24 text-center">
@@ -590,34 +590,6 @@ function SettingsView({ user, onUserUpdate }: { user: any; onUserUpdate: (u: any
     }
   }
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setAvatarFile(file)
-    setAvatarPreview(URL.createObjectURL(file))
-    setAvatarStatus(null)
-  }
-
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) return
-    setAvatarLoading(true)
-    setAvatarStatus(null)
-    try {
-      const ext = avatarFile.name.split('.').pop() || 'jpg'
-      const filePath = `${user.username}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile, { upsert: true, contentType: avatarFile.type })
-      if (uploadError) { setAvatarStatus({ type: 'error', msg: uploadError.message }); return }
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      const updatedUser = { ...user, avatar_url: publicUrl }
-      onUserUpdate(updatedUser)
-      setAvatarStatus({ type: 'success', msg: 'Foto de perfil actualizada' })
-    } finally {
-      setAvatarLoading(false)
-    }
-  }
-
   const currentAvatar = user.avatar_url || `/usuarios/${user.username}.jpg`
 
   return (
@@ -631,55 +603,24 @@ function SettingsView({ user, onUserUpdate }: { user: any; onUserUpdate: (u: any
         </p>
       </div>
 
-      {/* Profile photo */}
-      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6 flex flex-col gap-5">
-        <h2 className="font-black italic uppercase text-base tracking-tight text-slate-300">
-          Foto de perfil
-        </h2>
-        <div className="flex items-center gap-5">
-          <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
-            <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-slate-500">
-              {user.username.charAt(0).toUpperCase()}
-            </span>
-            <Image
-              src={avatarPreview || currentAvatar}
-              alt={user.username}
-              fill
-              className="object-cover z-10"
-              onError={e => { e.currentTarget.style.display = 'none' }}
-            />
-          </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white text-xs font-black italic uppercase tracking-tight transition-all w-fit">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Elegir imagen
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </label>
-            {avatarFile && (
-              <button
-                onClick={handleAvatarUpload}
-                disabled={avatarLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FFD300]/10 border border-[#FFD300]/40 text-[#FFD300] hover:bg-[#FFD300]/20 font-black italic uppercase text-xs tracking-tight transition-all disabled:opacity-50 w-fit"
-              >
-                {avatarLoading ? (
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" /></svg>
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-                Guardar foto
-              </button>
-            )}
-          </div>
+      {/* Profile photo — static display only */}
+      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6 flex items-center gap-5">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
+          <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-slate-500">
+            {user.username.charAt(0).toUpperCase()}
+          </span>
+          <Image
+            src={currentAvatar}
+            alt={user.username}
+            fill
+            className="object-cover z-10"
+            onError={e => { e.currentTarget.style.display = 'none' }}
+          />
         </div>
-        {avatarStatus && (
-          <p className={`text-xs font-bold ${avatarStatus.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
-            {avatarStatus.msg}
-          </p>
-        )}
+        <div>
+          <p className="font-black italic uppercase tracking-tight text-white">{user.username}</p>
+          <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-0.5">{user.role}</p>
+        </div>
       </section>
 
       {/* Password change */}
@@ -688,20 +629,30 @@ function SettingsView({ user, onUserUpdate }: { user: any; onUserUpdate: (u: any
           Cambiar contraseña
         </h2>
         <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
-          {[
-            { label: 'Contraseña actual', value: currentPassword, setter: setCurrentPassword },
-            { label: 'Nueva contraseña', value: newPassword, setter: setNewPassword },
-            { label: 'Confirmar nueva contraseña', value: confirmPassword, setter: setConfirmPassword },
-          ].map(({ label, value, setter }) => (
+          {([
+            { label: 'Contraseña actual', value: currentPassword, setter: setCurrentPassword, show: showCurrentPw, toggle: () => setShowCurrentPw(v => !v) },
+            { label: 'Nueva contraseña', value: newPassword, setter: setNewPassword, show: showNewPw, toggle: () => setShowNewPw(v => !v) },
+            { label: 'Confirmar nueva contraseña', value: confirmPassword, setter: setConfirmPassword, show: showConfirmPw, toggle: () => setShowConfirmPw(v => !v) },
+          ] as const).map(({ label, value, setter, show, toggle }) => (
             <div key={label} className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</label>
-              <input
-                type="password"
-                value={value}
-                onChange={e => setter(e.target.value)}
-                className="bg-black/40 border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder-slate-700 focus:border-[#FFD300]/60 focus:outline-none transition-colors"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={show ? 'text' : 'password'}
+                  value={value}
+                  onChange={e => setter(e.target.value)}
+                  className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3 pr-11 text-sm font-bold text-white placeholder-slate-700 focus:border-[#FFD300]/60 focus:outline-none transition-colors"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={toggle}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           ))}
           {pwStatus && (

@@ -32,7 +32,6 @@ const USER_MENU: MenuEntry[] = [
   { type: 'route',  label: 'QUEENS',      href: '/dashboard?tab=queens' },
   { type: 'route',  label: 'RANKING',     href: '/ranking' },
   { type: 'route',  label: 'PICKS',       href: '/dashboard?tab=picks' },
-  { type: 'route',  label: 'PREDIS',      href: '/predis' },
   { type: 'route',  label: 'PIZARRA',     href: '/pizarra' },
   { type: 'route',  label: 'TIER LIST',   href: '/tierlist' },
   { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
@@ -61,7 +60,7 @@ export default function AppHeader({
 
   if (variant === 'minimal') {
     return (
-      <header className="w-full h-16 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+      <header className="w-full h-16 shrink-0 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
         <div className="w-24 md:w-32" />
         <div className="flex items-center gap-1">
           <div className="relative w-36 h-10">
@@ -87,7 +86,7 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="w-full h-14 flex items-center justify-between bg-slate-950/95 border-b border-slate-800 px-3 md:px-5 sticky top-0 z-50 backdrop-blur-md">
+      <header className="w-full h-14 shrink-0 flex items-center justify-between bg-slate-950/95 border-b border-slate-800 px-3 md:px-5 sticky top-0 z-50 backdrop-blur-md">
 
         {isPublicOnly ? (
           <Link

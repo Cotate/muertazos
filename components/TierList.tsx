@@ -161,10 +161,10 @@ export default function TierList({ user }: TierListProps) {
   const needsPlayerStep = cat === 'players' && comp === 'kings'
 
   return (
-    <div className={`${generated ? 'flex-1 overflow-hidden' : 'flex-1'} flex flex-col`}>
+    <div className={`${generated ? 'flex-1 overflow-hidden' : 'flex-1'} flex flex-col min-h-0`}>
       {/* ── WIZARD ── */}
       {!generated && (
-        <div className="flex-1 flex flex-col items-center overflow-y-auto min-h-0 py-10 px-4">
+        <div className="flex-1 flex flex-col items-center overflow-y-auto min-h-0 pt-10 pb-24 px-4">
           <div className="w-full max-w-lg flex flex-col gap-8">
             <div>
               <h1 className="font-black italic text-2xl uppercase tracking-tighter">
