@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: 'Muertazos',
   description: 'Herramientas Kings & Queens',
   icons: { icon: '/MUERTAZOS ESTRUCTURA/Muertazos.webp?v=1', apple: '/MUERTAZOS ESTRUCTURA/Muertazos.webp?v=1' },
+  other: { 'google-adsense-account': 'ca-pub-5763902761360524' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
