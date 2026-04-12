@@ -68,6 +68,14 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
       const { data: rData } = await supabase.from('match_results').select('*')
 
+      if (mData) {
+        mData.forEach((d: any) => {
+          d.matches?.sort((a: any, b: any) => {
+            if ((a.match_order ?? 99) !== (b.match_order ?? 99)) return (a.match_order ?? 99) - (b.match_order ?? 99)
+            return a.id - b.id
+          })
+        })
+      }
       if (mData && mData.length > 0) {
         const loadedScores: any = {}
         if (rData) {
@@ -126,7 +134,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
   const saveActiveMatchday = async () => {
     if (!activeMatchday) return
     const resultsToUpsert = activeMatchday.matches
-      .filter((m: any) => scores[m.id]?.hg !== '' && scores[m.id]?.ag !== '')
+      .filter((m: any) => scores[m.id] && scores[m.id].hg !== '' && scores[m.id].ag !== '')
       .map((m: any) => {
         const s = scores[m.id]
         const isTie = s.hg === s.ag
@@ -136,16 +144,36 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           away_goals: parseInt(s.ag),
           home_penalties: isTie ? (s.penaltyWinnerId === m.home_team_id ? 1 : 0) : null,
           away_penalties: isTie ? (s.penaltyWinnerId === m.away_team_id ? 1 : 0) : null,
+          _isTie: isTie,
+          _penaltyWinnerId: s.penaltyWinnerId,
         }
       })
-    if (resultsToUpsert.length === 0) return alert('No hay marcadores para guardar.')
+    if (resultsToUpsert.length === 0) return
     const pendingPenalties = resultsToUpsert.some(
-      (r: any) => r.home_goals === r.away_goals && r.home_penalties === 0 && r.away_penalties === 0
+      (r: any) => r._isTie && r.home_penalties === 0 && r.away_penalties === 0
     )
     if (pendingPenalties) return alert('Selecciona al ganador de los penales haciendo clic en su escudo.')
-    const { error } = await supabase.from('match_results').upsert(resultsToUpsert, { onConflict: 'match_id' })
+    const toSave = resultsToUpsert.map(({ _isTie: _t, _penaltyWinnerId: _p, ...rest }: any) => rest)
+    const { error } = await supabase.from('match_results').upsert(toSave, { onConflict: 'match_id' })
     if (error) alert('Error: ' + error.message)
     else alert(`Jornada ${activeMatchday.name} guardada.`)
+  }
+
+  const saveMatchResult = async (matchId: number, match: any) => {
+    const s = scores[matchId] || { hg: '', ag: '', penaltyWinnerId: null }
+    const hg = s.hg !== '' ? s.hg : '0'
+    const ag = s.ag !== '' ? s.ag : '0'
+    const isTie = hg === ag
+    if (isTie && !s.penaltyWinnerId) return alert('Selecciona al ganador de los penales haciendo clic en su escudo.')
+    const result = {
+      match_id: matchId,
+      home_goals: parseInt(hg),
+      away_goals: parseInt(ag),
+      home_penalties: isTie ? (s.penaltyWinnerId === match.home_team_id ? 1 : 0) : null,
+      away_penalties: isTie ? (s.penaltyWinnerId === match.away_team_id ? 1 : 0) : null,
+    }
+    const { error } = await supabase.from('match_results').upsert([result], { onConflict: 'match_id' })
+    if (error) alert('Error: ' + error.message)
   }
 
   const deleteActiveMatchday = async () => {
@@ -325,17 +353,23 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
+                            inputMode="numeric"
                             value={s.hg}
+                            placeholder="0"
+                            onFocus={e => e.target.select()}
                             onChange={e => handleLocalScoreChange(m.id, 'hg', e.target.value)}
-                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
+                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white placeholder:text-white placeholder:opacity-100 focus:border-[#FFD300] focus:outline-none"
                             maxLength={2}
                           />
                           <span className="text-xs font-black text-white italic">VS</span>
                           <input
                             type="text"
+                            inputMode="numeric"
                             value={s.ag}
+                            placeholder="0"
+                            onFocus={e => e.target.select()}
                             onChange={e => handleLocalScoreChange(m.id, 'ag', e.target.value)}
-                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white focus:border-[#FFD300] focus:outline-none"
+                            className="w-10 h-10 text-center bg-black border border-white/20 rounded-md font-black text-xl text-white placeholder:text-white placeholder:opacity-100 focus:border-[#FFD300] focus:outline-none"
                             maxLength={2}
                           />
                         </div>

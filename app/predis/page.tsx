@@ -157,12 +157,12 @@ export default function PredisPage() {
           </div>
         ) : (
           <div ref={multiBoardRef} className="bg-[#0a0a0a] px-4 pt-4 pb-6">
-            {/* Live boards — responsive grid with max-width constraint for small counts */}
+            {/* Live boards — single column on mobile, side-by-side from md upwards */}
             <div className={`grid gap-2 ${
-              guests.length === 2 ? 'grid-cols-2 max-w-2xl mx-auto' :
-              guests.length === 3 ? 'grid-cols-3' :
-              guests.length === 4 ? 'grid-cols-2 xl:grid-cols-4' :
-              'grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
+              guests.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto' :
+              guests.length === 3 ? 'grid-cols-1 md:grid-cols-3' :
+              guests.length === 4 ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4' :
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
             }`}>
               {guests.map((guestName, gIdx) => (
                 <GuestBoard
@@ -499,6 +499,15 @@ function GuestSetupModal({
   onClose: () => void
   activeColor: string
 }) {
+  const [rawInput, setRawInput] = useState(String(guestCount))
+
+  const commitValue = (raw: string) => {
+    const parsed = parseInt(raw, 10)
+    const clamped = isNaN(parsed) ? 2 : Math.max(2, Math.min(5, parsed))
+    setRawInput(String(clamped))
+    onCountChange(clamped)
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -515,16 +524,21 @@ function GuestSetupModal({
           <>
             <p className="text-sm text-slate-400 mb-4">¿Cuántos usuarios van a hacer sus picks?</p>
             <input
-              type="number"
-              min={2}
-              max={5}
-              value={guestCount}
-              onChange={e => onCountChange(Math.max(2, Math.min(5, Number(e.target.value))))}
+              type="text"
+              inputMode="numeric"
+              value={rawInput}
+              onChange={e => {
+                const cleaned = e.target.value.replace(/[^0-9]/g, '').slice(0, 1)
+                setRawInput(cleaned)
+                const n = parseInt(cleaned, 10)
+                if (!isNaN(n) && n >= 2 && n <= 5) onCountChange(n)
+              }}
+              onBlur={() => commitValue(rawInput)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-2xl font-black focus:outline-none focus:border-slate-500"
             />
             <p className="text-xs text-slate-600 text-center mt-2">Mínimo 2, máximo 5</p>
             <button
-              onClick={onNext}
+              onClick={() => { commitValue(rawInput); onNext() }}
               className="w-full mt-5 py-3 rounded-xl font-black italic uppercase text-sm tracking-tight text-black transition-all hover:opacity-90"
               style={{ backgroundColor: activeColor }}
             >

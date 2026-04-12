@@ -2,6 +2,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
+type CountryFilter = 'all' | 'spain' | 'brazil' | 'mexico'
+
+const COUNTRY_TABS: { key: CountryFilter; label: string; flag: string }[] = [
+  { key: 'all',    label: 'TOTAL',  flag: '🌍' },
+  { key: 'spain',  label: 'ESPAÑA', flag: '🇪🇸' },
+  { key: 'brazil', label: 'BRASIL', flag: '🇧🇷' },
+  { key: 'mexico', label: 'MÉXICO', flag: '🇲🇽' },
+]
+
 interface Props {
   currentUser?: string
 }
@@ -11,6 +20,7 @@ export default function RankingView({ currentUser }: Props) {
   const [showFull, setShowFull] = useState(false)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
+  const [countryFilter, setCountryFilter] = useState<CountryFilter>('all')
 
   useEffect(() => {
     const fetchRanking = async () => {
@@ -18,7 +28,7 @@ export default function RankingView({ currentUser }: Props) {
 
       const { data: lockedDays } = await supabase
         .from('matchdays')
-        .select('id, name, competition_key')
+        .select('id, name, competition_key, country')
         .eq('is_locked', true)
         .order('display_order')
 
@@ -64,7 +74,17 @@ export default function RankingView({ currentUser }: Props) {
     </div>
   )
 
-  const allUsers = rankingData.users
+  // Filter days and recompute totals based on selected country
+  const filteredDays = countryFilter === 'all'
+    ? rankingData.days
+    : rankingData.days.filter((d: any) => d.country === countryFilter)
+
+  const allUsers = rankingData.users.map(u => {
+    let filteredTotal = 0
+    filteredDays.forEach((d: any) => { filteredTotal += u.dayBreakdown[d.id] ?? 0 })
+    return { ...u, filteredTotal }
+  }).sort((a, b) => b.filteredTotal !== a.filteredTotal ? b.filteredTotal - a.filteredTotal : a.username.localeCompare(b.username))
+
   const totalUsers = allUsers.length
   const pageChunks: number[][] = []
   for (let i = 0; i < totalUsers; i += 15) {
@@ -78,6 +98,24 @@ export default function RankingView({ currentUser }: Props) {
 
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col items-center pt-2 px-2" style={{ minHeight: 'calc(100vh - 9rem)' }}>
+      {/* Country filter tabs */}
+      <div className="flex gap-1.5 flex-wrap justify-center mb-3 mt-1">
+        {COUNTRY_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { setCountryFilter(tab.key); setCurrentPage(0) }}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-[10px] font-black italic uppercase tracking-tight transition-all ${
+              countryFilter === tab.key
+                ? 'bg-[#FFD300] text-black border-[#FFD300]'
+                : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
+            }`}
+          >
+            <span className="not-italic">{tab.flag}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-3 px-2 md:px-4 gap-3">
         <div className="w-full flex justify-center md:justify-start">
           <button
@@ -153,7 +191,7 @@ export default function RankingView({ currentUser }: Props) {
                         </div>
                       </td>
 
-                      {showFull && rankingData.days.map(day => (
+                      {showFull && filteredDays.map((day: any) => (
                         <td
                           key={day.id}
                           className={`px-1.5 py-2 text-center border-l border-white/5 text-xs font-mono w-8
@@ -171,7 +209,7 @@ export default function RankingView({ currentUser }: Props) {
 
                       <td className={`w-14 px-2 py-2 text-center border-l border-white/10 font-black text-base italic
                         ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
-                        {u.total}
+                        {u.filteredTotal}
                       </td>
                     </tr>
                   )
