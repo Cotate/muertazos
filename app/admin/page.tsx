@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Eye, EyeOff, Globe, GlobeLock, Lock, Unlock } from 'lucide-react'
@@ -7,75 +7,98 @@ import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import RankingView from '@/components/RankingView'
-import { Country, COUNTRIES, getCompFolder, getLogoSize, getTeamLogoPath } from '@/lib/utils'
+import AdminPlayerRoster from '@/components/AdminPlayerRoster'
+import { Country, getLogoSize, getTeamLogoPath } from '@/lib/utils'
+import { useState } from 'react'
+
+// ─── Section config ──────────────────────────────────────────────────────────
+
+type Section = 'espana' | 'brasil' | 'mexico' | 'queens' | 'ranking' | 'simulator'
+type SubTab  = 'picks' | 'jugadores'
+
+const COMP_SECTIONS: Record<string, {
+  compKey: string; country: Country; label: string; flag: string; color: string
+}> = {
+  espana: { compKey: 'kings',  country: 'spain',  label: 'España', flag: '🇪🇸', color: '#FFD300' },
+  brasil: { compKey: 'kings',  country: 'brazil', label: 'Brasil', flag: '🇧🇷', color: '#FFD300' },
+  mexico: { compKey: 'kings',  country: 'mexico', label: 'México', flag: '🇲🇽', color: '#FFD300' },
+  queens: { compKey: 'queens', country: 'spain',  label: 'Queens', flag: '♛',   color: '#01d6c3' },
+}
+
+const VALID_SECTIONS: Section[] = ['espana', 'brasil', 'mexico', 'queens', 'ranking', 'simulator']
+
+/** Derive current section from URL params (new-style + legacy compat) */
+function resolveSection(
+  rawSection: string | null,
+  legacyTab:  string | null,
+): Section {
+  if (rawSection && VALID_SECTIONS.includes(rawSection as Section)) return rawSection as Section
+  if (legacyTab === 'queens')    return 'queens'
+  if (legacyTab === 'ranking')   return 'ranking'
+  if (legacyTab === 'simulator') return 'simulator'
+  if (legacyTab === 'kings')     return 'espana'
+  return 'espana'
+}
+
+// ─── Page shell ──────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   return <Suspense><AdminDashboardInner /></Suspense>
 }
 
 function AdminDashboardInner() {
-  const router = useRouter()
+  const router       = useRouter()
   const searchParams = useSearchParams()
-  const [tab, setTab] = useState<'kings' | 'queens' | 'ranking' | 'simulator'>('kings')
-  const [country, setCountry] = useState<Country>('spain')
 
+  // Auth guard
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('muertazos_user') || '{}')
     if (user.role !== 'admin') { router.push('/'); return }
     document.body.style.backgroundColor = '#0a0a0a'
-    const t = searchParams.get('tab') as any
-    if (['kings', 'queens', 'ranking', 'simulator'].includes(t)) setTab(t)
     return () => { document.body.style.backgroundColor = '' }
-  }, [router, searchParams])
+  }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem('muertazos_user')
     router.push('/')
   }
 
-  const activeColor = tab === 'kings' ? '#ffd300' : tab === 'queens' ? '#01d6c3' : tab === 'simulator' ? '#FF5733' : '#ffffff'
-  const isKingsTab = tab === 'kings'
+  // ── Derive state purely from URL — sidebar links drive everything ──
+  const section = resolveSection(searchParams.get('section'), searchParams.get('tab'))
+  const rawSub  = searchParams.get('sub')
+  const subTab: SubTab = (rawSub === 'jugadores' || rawSub === 'jugadoras') ? 'jugadores' : 'picks'
+
+  const cfg = COMP_SECTIONS[section]  // defined only for competition sections
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
-      <AppHeader
-        onLogout={handleLogout}
-        userRole="admin"
-        variant="nav"
-      />
+      <AppHeader onLogout={handleLogout} userRole="admin" variant="nav" />
 
-      {isKingsTab && (
-        <div className="flex gap-2 px-4 pt-4 max-w-5xl mx-auto overflow-x-auto pb-1">
-          {COUNTRIES.map(({ key, flag, name }) => (
-            <button
-              key={key}
-              onClick={() => setCountry(key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black italic uppercase tracking-tight whitespace-nowrap transition-all
-                ${country === key
-                  ? 'border-current'
-                  : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'
-                }`}
-              style={country === key ? { borderColor: activeColor, color: activeColor, backgroundColor: activeColor + '18' } : {}}
-            >
-              <span>{flag}</span>
-              <span>{name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
+      {/* ── Content — navigation is fully handled by the sidebar ── */}
       <div className="relative w-full overflow-x-hidden">
-        {tab === 'ranking' ? (
+        {section === 'ranking' ? (
           <RankingView />
-        ) : tab === 'simulator' ? (
+        ) : section === 'simulator' ? (
           <SimulatorView isAdmin />
-        ) : (
-          <CompetitionAdmin key={`${tab}-${country}`} competitionKey={tab} country={country} />
-        )}
+        ) : cfg && subTab === 'picks' ? (
+          <CompetitionAdmin
+            key={`${cfg.compKey}-${cfg.country}`}
+            competitionKey={cfg.compKey}
+            country={cfg.country}
+          />
+        ) : cfg && subTab === 'jugadores' ? (
+          <AdminPlayerRoster
+            key={`roster-${cfg.compKey}-${cfg.country}`}
+            competitionKey={cfg.compKey}
+            country={cfg.country}
+          />
+        ) : null}
       </div>
     </div>
   )
 }
+
+// ─── CompetitionAdmin (Picks view — unchanged from original) ─────────────────
 
 function CompetitionAdmin({ competitionKey, country }: { competitionKey: string; country: Country }) {
   const [matchdays, setMatchdays] = useState<any[]>([])
@@ -113,10 +136,9 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
       })
       setMatchdays(mData)
       setActiveMatchdayId(prev => {
-        // Auto-select: first matchday with matches but no winner set (closest empty), or first visible, or first
-        const emptyDay = mData.find(d => d.matches?.length > 0 && d.matches.every((m: any) => m.winner_team_id == null))
+        const emptyDay   = mData.find(d => d.matches?.length > 0 && d.matches.every((m: any) => m.winner_team_id == null))
         const visibleDay = mData.find(d => d.is_visible === true)
-        const fallback = mData.length > 0 ? mData[0].id : null
+        const fallback   = mData.length > 0 ? mData[0].id : null
         if (!prev) return emptyDay?.id ?? visibleDay?.id ?? fallback
         if (!mData.find(d => d.id === prev)) return emptyDay?.id ?? visibleDay?.id ?? fallback
         return prev
@@ -128,7 +150,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
 
     if (fetchedUsers.length > 0) {
       const perPage = typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 12
-      const pages = Math.ceil(fetchedUsers.length / perPage)
+      const pages   = Math.ceil(fetchedUsers.length / perPage)
       const chunks: number[][] = Array.from({ length: pages }, (_, i) => [i * perPage, (i + 1) * perPage])
       setPageChunks(chunks)
       setCurrentPage(prev => Math.min(prev, Math.max(0, chunks.length - 1)))
@@ -143,8 +165,10 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
       const activeDay = matchdays.find(d => d.id === activeMatchdayId)
       if (!activeDay?.matches?.length) { setAllPreds([]); return }
 
-      const currentUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
-      const userIds = currentUsers.map(u => u.id)
+      const currentUsers = pageChunks.length > 0
+        ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1])
+        : []
+      const userIds  = currentUsers.map(u => u.id)
       if (userIds.length === 0) return
 
       const matchIds = activeDay.matches.map((m: any) => m.id)
@@ -159,7 +183,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     fetchPredictions()
   }, [activeMatchdayId, matchdays, currentPage, pageChunks, users])
 
-  // USUARIO: controls visibility for logged-in users (is_visible)
   const toggleUserVisible = async (id: number, currentVal: boolean) => {
     if (!id) return
     const newVal = !currentVal
@@ -170,7 +193,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     load()
   }
 
-  // PÚBLICO: controls visibility for unauthenticated users (is_public_visible)
   const togglePublicVisible = async (id: number, currentVal: boolean) => {
     if (!id) return
     const newVal = !currentVal
@@ -192,11 +214,10 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     load()
   }
 
-  const paginatedUsers = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
-  const totalPages = pageChunks.length
-  const activeMatchday = matchdays.find(d => d.id === activeMatchdayId)
-
-  const accentColor = competitionKey === 'kings' ? '#FFD300' : '#01d6c3'
+  const paginatedUsers  = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
+  const totalPages      = pageChunks.length
+  const activeMatchday  = matchdays.find(d => d.id === activeMatchdayId)
+  const accentColor     = competitionKey === 'kings' ? '#FFD300' : '#01d6c3'
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -225,9 +246,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
           <div className="text-center space-y-2">
             <p className="text-[#01d6c3] font-black italic uppercase tracking-[0.3em] text-2xl">Próximamente</p>
             <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Queens · Split 6 España</p>
-            <p className="text-slate-700 text-xs mt-3 max-w-xs mx-auto leading-relaxed">
-              Los datos de la competición Queens se cargarán cuando estén disponibles
-            </p>
           </div>
         </div>
       )}
@@ -239,8 +257,16 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
             <div className="flex justify-center sm:justify-start">
               {totalPages > 1 && (
                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                  <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                  <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                  <button
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                  >◀</button>
+                  <button
+                    disabled={currentPage === totalPages - 1}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+                  >▶</button>
                 </div>
               )}
             </div>
@@ -257,7 +283,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
 
             {/* Toggle buttons */}
             <div className="flex justify-center sm:justify-end gap-2 flex-wrap">
-              {/* USUARIO: ON/OFF — controls is_visible (logged-in users) */}
               <button
                 onClick={() => toggleUserVisible(activeMatchday.id, activeMatchday.is_visible)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
@@ -270,7 +295,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 USUARIO: {activeMatchday.is_visible ? 'ON' : 'OFF'}
               </button>
 
-              {/* PÚBLICO: ON/OFF — controls is_public_visible (unauthenticated) */}
               <button
                 onClick={() => togglePublicVisible(activeMatchday.id, activeMatchday.is_public_visible)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
@@ -283,7 +307,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 PÚBLICO: {activeMatchday.is_public_visible ? 'ON' : 'OFF'}
               </button>
 
-              {/* ABIERTO/CERRADO — controls is_locked */}
               <button
                 onClick={() => toggleLock(activeMatchday.id, activeMatchday.is_locked)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all ${
@@ -308,7 +331,14 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
-                          <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={e => (e.currentTarget.style.display = 'none')} />
+                          <Image
+                            src={`/usuarios/${u.username}.jpg`}
+                            alt={u.username}
+                            fill
+                            sizes="48px"
+                            className="object-cover z-10"
+                            onError={e => (e.currentTarget.style.display = 'none')}
+                          />
                         </div>
                         <span className="text-[9px] leading-tight truncate w-full px-1">{u.username}</span>
                       </div>
@@ -324,30 +354,48 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                         <button
                           onClick={() => setWinner(m.id, m.winner_team_id == m.home_team_id ? null : m.home_team_id)}
                           className={`w-12 h-12 md:w-14 md:h-14 rounded-xl transition-all duration-300 flex items-center justify-center
-                            ${m.winner_team_id == m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
-                              : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
+                            ${m.winner_team_id == m.home_team_id
+                              ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
+                              : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'
+                            }`}
                         >
-                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, m.home.country ?? country)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+                          {m.home && (
+                            <Image
+                              src={getTeamLogoPath(competitionKey, m.home.logo_file, m.home.country ?? country)}
+                              width={logoSize(m.home.logo_file)}
+                              height={logoSize(m.home.logo_file)}
+                              alt="h"
+                              onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
+                            />
+                          )}
                         </button>
                         <span className="text-[9px] font-black text-slate-600 italic">VS</span>
                         <button
                           onClick={() => setWinner(m.id, m.winner_team_id == m.away_team_id ? null : m.away_team_id)}
                           className={`w-12 h-12 md:w-14 md:h-14 rounded-xl transition-all duration-300 flex items-center justify-center
-                            ${m.winner_team_id == m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
-                              : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'}`}
+                            ${m.winner_team_id == m.away_team_id
+                              ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'
+                              : m.winner_team_id == null ? 'opacity-100 hover:scale-105' : 'opacity-20 grayscale scale-90'
+                            }`}
                         >
-                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, m.away.country ?? country)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+                          {m.away && (
+                            <Image
+                              src={getTeamLogoPath(competitionKey, m.away.logo_file, m.away.country ?? country)}
+                              width={logoSize(m.away.logo_file)}
+                              height={logoSize(m.away.logo_file)}
+                              alt="a"
+                              onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
+                            />
+                          )}
                         </button>
                       </div>
                     </td>
                     {paginatedUsers.map(u => {
-                      const pred = allPreds.find(p => p.user_id == u.id && p.match_id == m.id)
-                      const isHit = m.winner_team_id && pred && pred.predicted_team_id == m.winner_team_id
+                      const pred      = allPreds.find(p => p.user_id == u.id && p.match_id == m.id)
+                      const isHit     = m.winner_team_id && pred && pred.predicted_team_id == m.winner_team_id
                       const hasWinner = m.winner_team_id !== null
-                      const predTeam = Array.isArray(pred?.predicted_team)
-                        ? pred?.predicted_team[0]
-                        : pred?.predicted_team
-                      const logoFile = predTeam?.logo_file
+                      const predTeam  = Array.isArray(pred?.predicted_team) ? pred?.predicted_team[0] : pred?.predicted_team
+                      const logoFile  = predTeam?.logo_file
                       const predCountry = predTeam?.country ?? country
 
                       return (
@@ -359,11 +407,17 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                                 width={logoSize(logoFile)}
                                 height={logoSize(logoFile)}
                                 alt="p"
-                                className={`transition-all duration-500 ${hasWinner ? (isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90') : 'opacity-100'}`}
+                                className={`transition-all duration-500 ${
+                                  hasWinner
+                                    ? isHit ? 'opacity-100 drop-shadow-[0_0_8px_rgba(255,211,0,0.4)] scale-110' : 'opacity-15 grayscale scale-90'
+                                    : 'opacity-100'
+                                }`}
                                 onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
                               />
                             </div>
-                          ) : <span className="text-slate-800 text-xs">-</span>}
+                          ) : (
+                            <span className="text-slate-800 text-xs">-</span>
+                          )}
                         </td>
                       )
                     })}
@@ -371,7 +425,10 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 ))}
                 {(!activeMatchday.matches || activeMatchday.matches.length === 0) && (
                   <tr>
-                    <td colSpan={paginatedUsers.length + 1} className="py-12 text-center text-slate-700 text-xs font-black italic uppercase tracking-widest">
+                    <td
+                      colSpan={paginatedUsers.length + 1}
+                      className="py-12 text-center text-slate-700 text-xs font-black italic uppercase tracking-widest"
+                    >
                       Sin partidos registrados
                     </td>
                   </tr>

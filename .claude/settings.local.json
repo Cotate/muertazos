@@ -15,7 +15,8 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(node scripts/seed-br-mx.mjs)",
       "Bash(npx eslint:*)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//tmp/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import { supabase } from '@/lib/supabase'
 
 type SplitKey = 'spain' | 'brazil' | 'mexico'
 
@@ -59,6 +60,20 @@ const DATA_BY_SPLIT: Record<SplitKey, Record<string, string[]>> = {
   mexico: MEXICO_PLAYERS_DATA,
 }
 
+// Status icon sources keyed by field name
+const STATUS_ICONS: Record<string, string> = {
+  lesion:   '/MUERTAZOS ESTRUCTURA/lesion.png',
+  tarjeta:  '/MUERTAZOS ESTRUCTURA/tarjeta.png',
+  wildcard: '/MUERTAZOS ESTRUCTURA/wildcard.png',
+}
+
+interface PlayerStatus {
+  lesion:    boolean
+  tarjeta:   boolean
+  wildcard:  boolean
+  convocado: boolean
+}
+
 interface Props {
   fillViewport?: boolean
 }
@@ -75,18 +90,85 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
   const boardRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
+  // Player statuses from DB — key: `${country}_${teamName}_${playerName}`
+  const [playerStatuses, setPlayerStatuses] = useState<Map<string, PlayerStatus>>(new Map())
+
+  // country_id → SplitKey mapping (must match players_insert.sql)
+  const COUNTRY_ID_TO_SPLIT: Record<number, SplitKey> = { 1: 'spain', 2: 'brazil', 3: 'mexico' }
+
+  // Fetch all player statuses once — join teams to get team name
+  useEffect(() => {
+    supabase
+      .from('players')
+      .select('name, country_id, lesion, tarjeta, wildcard, convocado, teams(name)')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[PizarraView] status fetch error:', JSON.stringify(error))
+          return
+        }
+        if (!data?.length) return
+        const map = new Map<string, PlayerStatus>()
+        data.forEach(p => {
+          const splitKey = COUNTRY_ID_TO_SPLIT[p.country_id as number]
+          const teamName = (p.teams as unknown as { name: string } | null)?.name
+          if (!splitKey || !teamName) return
+          const key = `${splitKey}_${teamName}_${p.name}`
+          map.set(key, {
+            lesion:    !!p.lesion,
+            tarjeta:   !!p.tarjeta,
+            wildcard:  !!p.wildcard,
+            convocado: p.convocado !== false,
+          })
+        })
+        setPlayerStatuses(map)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Returns the status for a player, defaulting to fully enabled if not in DB
+  const getStatus = (splitKey: SplitKey, team: string, playerName: string): PlayerStatus => {
+    return playerStatuses.get(`${splitKey}_${team}_${playerName}`) ?? {
+      lesion: false, tarjeta: false, wildcard: false, convocado: true,
+    }
+  }
+
+  // Whether a player is convocado (default: true if not in DB)
+  const isConvocado = (splitKey: SplitKey, team: string, playerName: string) =>
+    getStatus(splitKey, team, playerName).convocado
+
+  // Returns overlay icon paths for a player based on their status
+  const getOverlays = (splitKey: SplitKey, team: string, playerName: string): string[] => {
+    const s = getStatus(splitKey, team, playerName)
+    const icons: string[] = []
+    if (s.lesion)   icons.push(STATUS_ICONS.lesion)
+    if (s.tarjeta)  icons.push(STATUS_ICONS.tarjeta)
+    if (s.wildcard) icons.push(STATUS_ICONS.wildcard)
+    return icons
+  }
+
+  // Convocado-filtered player list for the active team/split
+  const convocadoPlayers = (DATA_BY_SPLIT[split][selectedTeam] ?? []).filter(
+    p => isConvocado(split, selectedTeam, p)
+  )
+
   // Reset team/player dropdowns when split changes — board state is preserved intentionally
   useEffect(() => {
     const newData = DATA_BY_SPLIT[split]
     const teams = Object.keys(newData)
     setSelectedTeam(teams[0] || '')
-    setSelectedPlayer(newData[teams[0]]?.[0] || '')
+    const firstPlayers = newData[teams[0]] ?? []
+    const firstConvocado = firstPlayers.find(p => isConvocado(split, teams[0], p))
+    setSelectedPlayer(firstConvocado ?? firstPlayers[0] ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [split])
 
   // Reset player when team changes
   useEffect(() => {
-    const players = DATA_BY_SPLIT[split][selectedTeam]
-    if (players?.length) setSelectedPlayer(players[0])
+    const allPlayers = DATA_BY_SPLIT[split][selectedTeam] ?? []
+    const firstConvocado = allPlayers.find(p => isConvocado(split, selectedTeam, p))
+    if (firstConvocado) setSelectedPlayer(firstConvocado)
+    else if (allPlayers.length) setSelectedPlayer(allPlayers[0])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTeam, split])
 
   const buildImagePath = (team: string, fileName: string, splitKey: SplitKey) => {
@@ -107,8 +189,11 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
   }
 
   const addAllPlayers = () => {
-    const players = DATA_BY_SPLIT[split][selectedTeam]
-    if (!players) return
+    // Only add convocado players
+    const players = (DATA_BY_SPLIT[split][selectedTeam] ?? []).filter(
+      p => isConvocado(split, selectedTeam, p)
+    )
+    if (!players.length) return
     const currentCount = playersOnPitch.length
     setPlayersOnPitch(prev => [...prev, ...players.map((fileName, index) => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -180,7 +265,11 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
             onChange={e => setSelectedPlayer(e.target.value)}
             className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
           >
-            {playersData[selectedTeam]?.map(player => (
+            {convocadoPlayers.map(player => (
+              <option key={player} value={player}>{player}</option>
+            ))}
+            {/* If no convocado data yet, fall back to showing all */}
+            {convocadoPlayers.length === 0 && playersData[selectedTeam]?.map(player => (
               <option key={player} value={player}>{player}</option>
             ))}
           </select>
@@ -227,6 +316,22 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
                   fill
                   className="object-contain pointer-events-none select-none"
                 />
+                {/* Status overlays — stacked top-left, inset 4% from edges, 20% of token size */}
+                {getOverlays(player.split, player.team, player.fileName).map((src, i) => (
+                  <div
+                    key={src}
+                    className="absolute pointer-events-none"
+                    style={{ left: '15%', top: `calc(8% + ${i * 22}%)`, width: '20%', height: '20%' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt=""
+                      className="w-full h-full object-contain drop-shadow-md"
+                      onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           ))}

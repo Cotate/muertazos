@@ -1,8 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import {
+  ChevronDown, ChevronUp,
+  BarChart3, Users,
+  Trophy, Zap, CreditCard,
+} from 'lucide-react'
 
 export interface NavItem {
   label: string
@@ -28,22 +33,177 @@ type MenuEntry =
   | { type: 'action'; label: string; action: 'logout' }
 
 const USER_MENU: MenuEntry[] = [
-  { type: 'route',  label: 'KINGS',       href: '/dashboard?tab=kings' },
-  { type: 'route',  label: 'QUEENS',      href: '/dashboard?tab=queens' },
-  { type: 'route',  label: 'RANKING',     href: '/ranking' },
-  { type: 'route',  label: 'PICKS',       href: '/dashboard?tab=picks' },
-  { type: 'route',  label: 'PIZARRA',     href: '/pizarra' },
-  { type: 'route',  label: 'TIER LIST',   href: '/tierlist' },
-  { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
-  { type: 'route',  label: 'AJUSTES',    href: '/dashboard?tab=settings' },
+  { type: 'route', label: 'KINGS',     href: '/dashboard?tab=kings' },
+  { type: 'route', label: 'QUEENS',    href: '/dashboard?tab=queens' },
+  { type: 'route', label: 'RANKING',   href: '/ranking' },
+  { type: 'route', label: 'PICKS',     href: '/dashboard?tab=picks' },
+  { type: 'route', label: 'PIZARRA',   href: '/pizarra' },
+  { type: 'route', label: 'TIER LIST', href: '/tierlist' },
+  { type: 'route', label: 'SIMULADOR', href: '/simulator' },
+  { type: 'route', label: 'AJUSTES',   href: '/dashboard?tab=settings' },
 ]
 
-const ADMIN_MENU: MenuEntry[] = [
-  { type: 'route',  label: 'KINGS',       href: '/admin?tab=kings' },
-  { type: 'route',  label: 'QUEENS',      href: '/admin?tab=queens' },
-  { type: 'route',  label: 'RANKING',     href: '/ranking' },
-  { type: 'route',  label: 'SIMULADOR',   href: '/simulator' },
-]
+// ─── Admin hierarchical nav ───────────────────────────────────────────────────
+
+const LEAGUE_ITEMS = [
+  { key: 'espana', label: 'España', flag: '🇪🇸', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'mexico', label: 'México', flag: '🇲🇽', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'brasil', label: 'Brasil', flag: '🇧🇷', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'queens', label: 'Queens', flag: '♛',   color: '#01d6c3', jugLabel: 'Jugadoras' },
+] as const
+
+/** Inner component — needs Suspense because it calls useSearchParams */
+function AdminNavContent({ onClose }: { onClose: () => void }) {
+  const searchParams = useSearchParams()
+  const pathname     = usePathname()
+
+  const rawSection = searchParams.get('section')
+  const rawSub     = searchParams.get('sub')
+  const legacyTab  = searchParams.get('tab')
+
+  // Resolve current section (support legacy ?tab= params too)
+  const currentSection =
+    rawSection ??
+    (legacyTab === 'queens'   ? 'queens'   :
+     legacyTab === 'ranking'  ? 'ranking'  :
+     legacyTab === 'simulator'? 'simulator':
+     legacyTab               ? 'espana'   : null)
+
+  const currentSub = rawSub   // null | 'picks' | 'jugadores' | 'jugadoras'
+
+  const isLeague = LEAGUE_ITEMS.some(l => l.key === currentSection)
+
+  // Auto-open the active league section; allow toggling others
+  const [openSections, setOpenSections] = useState<Set<string>>(() =>
+    currentSection && isLeague ? new Set([currentSection]) : new Set()
+  )
+
+  const toggle = (key: string) =>
+    setOpenSections(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+
+  const subActive = (section: string, sub: string) =>
+    pathname === '/admin' && currentSection === section &&
+    (currentSub === sub || (sub === 'picks' && !currentSub))
+
+  const flatActive = (section: string) =>
+    pathname === '/admin' && currentSection === section
+
+  return (
+    <>
+      {/* ── League sections with accordion ── */}
+      {LEAGUE_ITEMS.map(league => {
+        const isOpen   = openSections.has(league.key)
+        const isActive = pathname === '/admin' && currentSection === league.key
+
+        return (
+          <div key={league.key}>
+            <button
+              onClick={() => toggle(league.key)}
+              className={`w-full flex items-center justify-between py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+                ${isActive
+                  ? 'bg-white/5 border-white/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}
+              style={isActive ? { color: league.color } : {}}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-lg leading-none">{league.flag}</span>
+                <span>{league.label}</span>
+              </span>
+              {isOpen
+                ? <ChevronUp size={15} className="flex-shrink-0 opacity-60" />
+                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />
+              }
+            </button>
+
+            {/* Sub-items — animated with max-height */}
+            <div
+              className="overflow-hidden transition-all duration-200 ease-in-out"
+              style={{ maxHeight: isOpen ? '120px' : '0px', opacity: isOpen ? 1 : 0 }}
+            >
+              <div className="pl-10 pr-3 pt-0.5 pb-2 flex flex-col gap-0.5">
+                {/* Picks */}
+                <Link
+                  href={`/admin?section=${league.key}&sub=picks`}
+                  onClick={onClose}
+                  className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
+                    ${subActive(league.key, 'picks')
+                      ? 'bg-white/[0.07] border border-white/10'
+                      : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                  style={subActive(league.key, 'picks') ? { color: league.color } : {}}
+                >
+                  <BarChart3 size={13} className="flex-shrink-0" />
+                  Picks
+                </Link>
+
+                {/* Jugadores / Jugadoras */}
+                <Link
+                  href={`/admin?section=${league.key}&sub=jugadores`}
+                  onClick={onClose}
+                  className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
+                    ${subActive(league.key, 'jugadores')
+                      ? 'bg-white/[0.07] border border-white/10'
+                      : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                  style={subActive(league.key, 'jugadores') ? { color: league.color } : {}}
+                >
+                  <Users size={13} className="flex-shrink-0" />
+                  {league.jugLabel}
+                </Link>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* ── Divider ── */}
+      <div className="my-1.5 border-t border-slate-800/50" />
+
+      {/* Ranking */}
+      <Link
+        href="/admin?section=ranking"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${flatActive('ranking')
+            ? 'text-white bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Trophy size={16} className="flex-shrink-0" />
+        Ranking
+      </Link>
+
+      {/* Simulador */}
+      <Link
+        href="/admin?section=simulator"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${flatActive('simulator')
+            ? 'text-[#FF5733] bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Zap size={16} className="flex-shrink-0" />
+        Simulador
+      </Link>
+
+      {/* Carta */}
+      <Link
+        href="/card-generator"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${pathname === '/card-generator'
+            ? 'text-[#FFD300] bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <CreditCard size={16} className="flex-shrink-0" />
+        Carta
+      </Link>
+    </>
+  )
+}
+
+// ─── AppHeader ────────────────────────────────────────────────────────────────
 
 export default function AppHeader({
   navItems = [],
@@ -81,7 +241,6 @@ export default function AppHeader({
     )
   }
 
-  const menuEntries = userRole === 'admin' ? ADMIN_MENU : USER_MENU
   const isPublicOnly = !username && !!backTo
 
   return (
@@ -90,7 +249,7 @@ export default function AppHeader({
 
         {isPublicOnly ? (
           <Link
-            href={backTo}
+            href={backTo!}
             className="flex items-center gap-1.5 text-slate-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors font-black italic uppercase text-xs tracking-tight"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +269,12 @@ export default function AppHeader({
           </button>
         )}
 
-        <a href="https://polymarket.com?via=muertazos" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 hover:scale-105 transition-transform duration-200">
+        <a
+          href="https://polymarket.com?via=muertazos"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 hover:scale-105 transition-transform duration-200"
+        >
           <div className="relative w-28 h-9">
             <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
           </div>
@@ -125,11 +289,10 @@ export default function AppHeader({
 
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
+            {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-              <div className="flex items-center gap-1">
-                <div className="relative w-28 h-9">
-                  <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
-                </div>
+              <div className="relative w-28 h-9">
+                <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
@@ -141,50 +304,63 @@ export default function AppHeader({
               </button>
             </div>
 
+            {/* Nav content */}
             <nav className="flex flex-col p-3 gap-0.5 flex-1 overflow-y-auto">
-              {menuEntries.map((entry, i) => {
-                if (entry.type !== 'route') return null
-                const isActive = pathname === entry.href.split('?')[0]
-                  && (entry.href.includes('?')
-                    ? false
-                    : true)
-                return (
-                  <Link
-                    key={i}
-                    href={entry.href}
-                    onClick={() => setMenuOpen(false)}
-                    className={`py-3.5 px-4 rounded-xl font-black italic text-lg uppercase tracking-tight transition-all
-                      ${isActive
-                        ? 'text-[#ffd300] bg-white/5 border border-white/10'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                      }`}
-                  >
-                    {entry.label}
-                  </Link>
-                )
-              })}
-
-              {navItems.length > 0 && (
+              {userRole === 'admin' ? (
+                /* ── Hierarchical admin nav ── */
+                <Suspense fallback={
+                  <div className="p-4 text-slate-700 text-xs font-bold uppercase tracking-widest text-center">
+                    Cargando...
+                  </div>
+                }>
+                  <AdminNavContent onClose={() => setMenuOpen(false)} />
+                </Suspense>
+              ) : (
+                /* ── Flat user nav (unchanged) ── */
                 <>
-                  <div className="my-2 border-t border-slate-800/60" />
-                  {navItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { item.onClick(); setMenuOpen(false) }}
-                      style={{ color: item.active ? (item.activeColor || '#fff') : undefined }}
-                      className={`text-left py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all
-                        ${item.active
-                          ? 'bg-white/5 border border-white/10'
-                          : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
-                        }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  {USER_MENU.map((entry, i) => {
+                    if (entry.type !== 'route') return null
+                    const isActive = pathname === entry.href.split('?')[0] && !entry.href.includes('?')
+                    return (
+                      <Link
+                        key={i}
+                        href={entry.href}
+                        onClick={() => setMenuOpen(false)}
+                        className={`py-3.5 px-4 rounded-xl font-black italic text-lg uppercase tracking-tight transition-all
+                          ${isActive
+                            ? 'text-[#ffd300] bg-white/5 border border-white/10'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                      >
+                        {entry.label}
+                      </Link>
+                    )
+                  })}
+
+                  {navItems.length > 0 && (
+                    <>
+                      <div className="my-2 border-t border-slate-800/60" />
+                      {navItems.map((item, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { item.onClick(); setMenuOpen(false) }}
+                          style={{ color: item.active ? (item.activeColor || '#fff') : undefined }}
+                          className={`text-left py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all
+                            ${item.active
+                              ? 'bg-white/5 border border-white/10'
+                              : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </>
               )}
             </nav>
 
+            {/* Footer: user info + logout */}
             {(username || onLogout) && (
               <div className="p-4 border-t border-slate-800">
                 {username && (
@@ -194,8 +370,13 @@ export default function AppHeader({
                         {username.charAt(0).toUpperCase()}
                       </span>
                       {userAvatar && (
-                        <Image src={userAvatar} alt={username} fill className="object-cover z-10"
-                          onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                        <Image
+                          src={userAvatar}
+                          alt={username}
+                          fill
+                          className="object-cover z-10"
+                          onError={e => { e.currentTarget.style.display = 'none' }}
+                        />
                       )}
                     </div>
                     <span className="text-sm font-black uppercase text-slate-300 tracking-wider">{username}</span>
