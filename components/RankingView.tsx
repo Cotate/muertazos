@@ -178,7 +178,7 @@ export default function RankingView({ currentUser }: Props) {
                             ${isFirst ? 'border-[#FFD300] text-[#FFD300]' : isMe ? 'border-white text-white' : 'border-white/10 text-slate-400'}`}>
                             <span>{u.username.charAt(0).toUpperCase()}</span>
                             <img
-                              src={`/usuarios/${u.username}.jpg`}
+                              src={`/usuarios/${u.username}.webp`}
                               alt={u.username}
                               className="absolute inset-0 object-cover w-full h-full z-10"
                               onError={e => (e.currentTarget.style.display = 'none')}

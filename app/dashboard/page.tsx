@@ -167,7 +167,7 @@ function UserDashboardInner() {
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans overflow-x-hidden">
       <AppHeader
         onLogout={user ? handleLogout : undefined}
-        userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.jpg`) : undefined}
+        userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.webp`) : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"
@@ -492,7 +492,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
-                          <Image src={`/usuarios/${u.username}.jpg`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={e => (e.currentTarget.style.display = 'none')} />
+                          <Image src={`/usuarios/${u.username}.webp`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={e => (e.currentTarget.style.display = 'none')} />
                         </div>
                         <span className="text-[9px] leading-tight truncate w-full px-1">{u.username}</span>
                       </div>
@@ -590,7 +590,7 @@ function SettingsView({ user }: { user: any }) {
     }
   }
 
-  const currentAvatar = user.avatar_url || `/usuarios/${user.username}.jpg`
+  const currentAvatar = user.avatar_url || `/usuarios/${user.username}.webp`
 
   return (
     <div className="max-w-lg mx-auto py-8 px-4 flex flex-col gap-8">

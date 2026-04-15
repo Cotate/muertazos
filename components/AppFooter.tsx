@@ -70,24 +70,8 @@ export default function AppFooter() {
         </div>
       )}
 
-      {/* Site links */}
-      <div className="max-w-5xl mx-auto px-6 py-4 flex justify-center gap-10 border-b border-white/5">
-        <Link
-          href="/quienes-somos"
-          className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
-        >
-          Quienes somos
-        </Link>
-        <Link
-          href="/contacto"
-          className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
-        >
-          Contacto
-        </Link>
-      </div>
-
-      {/* 3-column bottom bar */}
-      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      {/* 4-column bottom bar */}
+      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-6 items-start">
 
         {/* Col 1: Donate */}
         <div className="flex flex-col items-center gap-2">
@@ -111,7 +95,7 @@ export default function AppFooter() {
               <a key={c.username} href={c.href} target="_blank" rel="noopener noreferrer"
                 className="group" title={`@${c.username}`}>
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 group-hover:border-slate-500 transition-colors">
-                  <img src={`/usuarios/${c.username}.jpg`} alt={c.username}
+                  <img src={`/usuarios/${c.username}.webp`} alt={c.username}
                     className="w-full h-full object-cover"
                     onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                 </div>
@@ -137,6 +121,29 @@ export default function AppFooter() {
               className="object-contain h-9 w-auto"
             />
           </a>
+        </div>
+
+        {/* Col 4: Site links */}
+        <div className="flex flex-col items-center gap-2">
+          <h3 className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            MUERTAZOS
+            <Star className="w-2.5 h-2.5 fill-current" />
+          </h3>
+          <div className="flex flex-col items-center gap-1.5">
+            <Link
+              href="/quienes-somos"
+              className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
+            >
+              Quienes somos
+            </Link>
+            <Link
+              href="/contacto"
+              className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
+            >
+              Contacto
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

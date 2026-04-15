@@ -71,7 +71,7 @@ export default function ContactoPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <AppHeader
         onLogout={user ? handleLogout : undefined}
-        userAvatar={user ? `/usuarios/${user.username}.jpg` : undefined}
+        userAvatar={user ? `/usuarios/${user.username}.webp` : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"
@@ -129,7 +129,7 @@ export default function ContactoPage() {
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex-shrink-0 flex items-center justify-center">
                       <img
-                        src={`/usuarios/${c.label}.jpg`}
+                        src={`/usuarios/${c.label}.webp`}
                         alt={c.label}
                         className="w-full h-full object-cover"
                         onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}

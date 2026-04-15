@@ -27,7 +27,7 @@ export default function RankingPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <AppHeader
         onLogout={user ? handleLogout : undefined}
-        userAvatar={user ? `/usuarios/${user.username}.jpg` : undefined}
+        userAvatar={user ? `/usuarios/${user.username}.webp` : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"

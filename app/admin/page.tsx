@@ -332,7 +332,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
                           <Image
-                            src={`/usuarios/${u.username}.jpg`}
+                            src={`/usuarios/${u.username}.webp`}
                             alt={u.username}
                             fill
                             sizes="48px"
