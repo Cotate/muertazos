@@ -26,42 +26,13 @@ export default function RankingView({ currentUser }: Props) {
     const fetchRanking = async () => {
       setLoading(true)
 
-      const { data: rawLockedDays } = await supabase
+      const { data: lockedDays } = await supabase
         .from('matchdays')
         .select('id, name, competition_key, country')
         .eq('is_locked', true)
         .order('display_order')
 
-      if (!rawLockedDays || rawLockedDays.length === 0) {
-        setRankingData({ users: [], days: [] })
-        setLoading(false)
-        return
-      }
-
-      // Filter to only matchdays where at least one user has cast a prediction
-      const { data: matchesForDays } = await supabase
-        .from('matches')
-        .select('id, matchday_id')
-        .in('matchday_id', rawLockedDays.map(d => d.id))
-
-      let lockedDays = rawLockedDays
-      if (matchesForDays && matchesForDays.length > 0) {
-        const allMatchIds = matchesForDays.map(m => m.id)
-        const { data: predsCheck } = await supabase
-          .from('predictions')
-          .select('match_id')
-          .in('match_id', allMatchIds)
-
-        const matchIdsWithPreds = new Set((predsCheck ?? []).map(p => p.match_id))
-        const activeMatchdayIds = new Set(
-          matchesForDays
-            .filter(m => matchIdsWithPreds.has(m.id))
-            .map(m => m.matchday_id)
-        )
-        lockedDays = rawLockedDays.filter(d => activeMatchdayIds.has(d.id))
-      }
-
-      if (lockedDays.length === 0) {
+      if (!lockedDays || lockedDays.length === 0) {
         setRankingData({ users: [], days: [] })
         setLoading(false)
         return
