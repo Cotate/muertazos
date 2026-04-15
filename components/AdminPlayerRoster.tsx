@@ -62,8 +62,6 @@ const STATUS_CONFIG: { field: StatusField; label: string; onCls: string }[] = [
   { field: 'convocado', label: 'Convocado', onCls: 'bg-emerald-600/80 border-emerald-500 text-white' },
 ]
 
-const OFF_CLS =
-  'bg-slate-800 border-slate-700 text-slate-600 hover:border-slate-500 hover:text-slate-400'
 
 export default function AdminPlayerRoster({
   competitionKey,
@@ -252,21 +250,21 @@ export default function AdminPlayerRoster({
                 <button
                   key={team.id}
                   onClick={() => setSelectedTeamId(team.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold whitespace-nowrap transition-all
-                    ${active ? 'border-current' : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-600 hover:text-white'}`}
-                  style={active ? { borderColor: accentColor, color: accentColor, backgroundColor: accentColor + '18' } : {}}
+                  title={team.name}
+                  className={`relative w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all
+                    ${active ? '' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}
+                  style={active ? { borderColor: accentColor, backgroundColor: accentColor + '18' } : {}}
                 >
-                  <div className="relative w-7 h-7 flex-shrink-0">
+                  <div className="relative w-9 h-9 flex-shrink-0">
                     <Image
                       src={getTeamLogoPath(competitionKey, team.logo_file, team.country)}
                       alt={team.name}
                       fill
-                      sizes="28px"
+                      sizes="36px"
                       className="object-contain"
                       onError={e => { e.currentTarget.style.opacity = '0' }}
                     />
                   </div>
-                  <span>{team.name}</span>
                 </button>
               )
             })}
@@ -322,7 +320,7 @@ export default function AdminPlayerRoster({
               </div>
             )}
             <span className="font-black italic uppercase text-sm tracking-tight" style={{ color: accentColor }}>
-              {selectedTeam?.name ?? '—'} · {jugadoresLabel}
+              {jugadoresLabel}
             </span>
             {players.length > 0 && (
               <span className="text-[11px] text-slate-600 font-bold">
@@ -391,16 +389,22 @@ export default function AdminPlayerRoster({
                       className={`transition-colors hover:bg-white/[0.02] ${!player.convocado ? 'opacity-40' : ''}`}
                     >
                       <td className="px-5 py-2.5 text-sm text-slate-200 font-medium">{player.name}</td>
-                      {STATUS_CONFIG.map(({ field, label, onCls }) => {
+                      {STATUS_CONFIG.map(({ field, onCls }) => {
                         const active = player[field]
                         return (
                           <td key={field} className="px-2 py-2 text-center">
                             <button
+                              role="checkbox"
+                              aria-checked={active}
                               onClick={() => toggleStatus(player.id, field, active)}
-                              className={`px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide transition-all whitespace-nowrap
-                                ${active ? onCls : OFF_CLS}`}
+                              className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center mx-auto
+                                ${active ? onCls : 'border-slate-700 bg-slate-800 hover:border-slate-500'}`}
                             >
-                              {active ? '✓' : field === 'convocado' ? '✗' : '–'} {label}
+                              {active && (
+                                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </button>
                           </td>
                         )

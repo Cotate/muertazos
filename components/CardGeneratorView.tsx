@@ -162,11 +162,15 @@ export default function CardGeneratorView() {
       ctx.shadowOffsetX = 0
       ctx.shadowOffsetY = 3
 
-      // Draw text twice with tight offset — creates a crisp outline/stroke feel
+      // Draw text twice with shadow offset — creates a crisp outline/stroke feel
+      ctx.shadowOffsetX = 1
+      ctx.shadowOffsetY = 3
       ctx.fillStyle = '#FFD300'
-      ctx.fillText(name.toUpperCase(), CANVAS_W / 2 + 1, textY + 1)
+      ctx.fillText(name.toUpperCase(), CANVAS_W / 2, textY + 1)
 
       ctx.shadowBlur = 4
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
       ctx.fillStyle = '#FFFFFF'
       ctx.fillText(name.toUpperCase(), CANVAS_W / 2, textY)
 
@@ -244,7 +248,7 @@ export default function CardGeneratorView() {
             {/* Player cutout upload */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
-                B · Imagen del Jugador (PNG Transparente)
+                B · Imagen del Jugador
               </label>
               <label className={`flex flex-col items-center justify-center gap-2 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-all
                 ${playerFile ? 'border-[#01d6c3]/60 bg-[#01d6c3]/5' : 'border-slate-700 hover:border-slate-500 bg-slate-800/40 hover:bg-slate-800/70'}`}>
@@ -284,7 +288,6 @@ export default function CardGeneratorView() {
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Ej: Ibai Llanos"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-base placeholder-slate-600 focus:outline-none focus:border-[#FFD300]/60 focus:ring-1 focus:ring-[#FFD300]/30 transition-all"
               />
             </div>

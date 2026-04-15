@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -68,6 +69,22 @@ export default function AppFooter() {
           </div>
         </div>
       )}
+
+      {/* Site links */}
+      <div className="max-w-5xl mx-auto px-6 py-4 flex justify-center gap-10 border-b border-white/5">
+        <Link
+          href="/quienes-somos"
+          className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
+        >
+          Quienes somos
+        </Link>
+        <Link
+          href="/contacto"
+          className="text-slate-500 hover:text-slate-200 text-[11px] font-bold uppercase tracking-widest transition-colors"
+        >
+          Contacto
+        </Link>
+      </div>
 
       {/* 3-column bottom bar */}
       <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
