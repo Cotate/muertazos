@@ -127,7 +127,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
 
     if (uErr) {
       const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username').limit(5000)
-      uData = fallback
+      uData = fallback as typeof uData
     }
 
     if (mData) {
