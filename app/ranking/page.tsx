@@ -33,7 +33,7 @@ export default function RankingPage() {
         variant="nav"
         backTo={!user ? '/' : undefined}
       />
-      <main className="w-full pb-2">
+      <main className="w-full pt-6 pb-2">
         <RankingView currentUser={user?.username} />
       </main>
     </div>

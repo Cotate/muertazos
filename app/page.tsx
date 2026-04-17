@@ -217,7 +217,7 @@ export default function Home() {
           {marqueeItems.map((name, i) => (
             <span key={i} className="font-black italic uppercase text-sm text-[#FFD300]/50 flex items-center gap-10 px-8">
               {name}
-              <span className="text-white/10 text-xs">✦</span>
+              <span className="text-white/10 text-xs">·</span>
             </span>
           ))}
         </div>

@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, ChevronUp,
   BarChart3, Users,
-  Trophy, Zap, CreditCard,
+  Trophy, Zap, CreditCard, Crown,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -46,10 +46,10 @@ const USER_MENU: MenuEntry[] = [
 // ─── Admin hierarchical nav ───────────────────────────────────────────────────
 
 const LEAGUE_ITEMS = [
-  { key: 'espana', label: 'España', flag: '🇪🇸', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'mexico', label: 'México', flag: '🇲🇽', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'brasil', label: 'Brasil', flag: '🇧🇷', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'queens', label: 'Queens', flag: '♛',   color: '#01d6c3', jugLabel: 'Jugadoras' },
+  { key: 'espana', label: 'España', dotColor: '#c60b1e', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'mexico', label: 'México', dotColor: '#006847', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'brasil', label: 'Brasil', dotColor: '#009c3b', color: '#FFD300', jugLabel: 'Jugadores' },
+  { key: 'queens', label: 'Queens', dotColor: '#01d6c3', color: '#01d6c3', jugLabel: 'Jugadoras' },
 ] as const
 
 /** Inner component — needs Suspense because it calls useSearchParams */
@@ -110,7 +110,10 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
               style={isActive ? { color: league.color } : {}}
             >
               <span className="flex items-center gap-2.5">
-                <span className="text-lg leading-none">{league.flag}</span>
+                {league.key === 'queens'
+                  ? <Crown size={13} className="flex-shrink-0" style={{ color: league.color }} />
+                  : <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: league.dotColor }} />
+                }
                 <span>{league.label}</span>
               </span>
               {isOpen

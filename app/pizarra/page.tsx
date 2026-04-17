@@ -33,7 +33,7 @@ export default function PizarraPage() {
         variant="nav"
         backTo={!user ? '/' : undefined}
       />
-      <main className="w-full px-4 pt-4 pb-2">
+      <main className="w-full px-4 pt-6 pb-2">
         <PizarraView fillViewport />
       </main>
     </div>

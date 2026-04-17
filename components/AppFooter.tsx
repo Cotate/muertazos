@@ -57,8 +57,10 @@ export default function AppFooter() {
       {/* Donor wall — full width */}
       {donors.length > 0 && (
         <div className="max-w-4xl mx-auto px-6 pt-5 pb-3 border-b border-white/5">
-          <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-3">
-            ★ MURO DE DONADORES ★
+          <h3 className="flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 text-center mb-3">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            MURO DE DONADORES
+            <Star className="w-2.5 h-2.5 fill-current" />
           </h3>
           <div className="flex flex-wrap justify-center gap-2">
             {donors.map((d, i) => (

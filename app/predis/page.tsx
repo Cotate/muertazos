@@ -302,7 +302,7 @@ export default function PredisPage() {
             </div>
             {league === 'kings' && (
               <div className="flex items-center gap-2 flex-wrap">
-                {COUNTRIES.map(({ key, flag, name }) => {
+                {COUNTRIES.map(({ key, name, color }) => {
                   const isActive = country === key
                   return (
                     <button
@@ -316,7 +316,7 @@ export default function PredisPage() {
                       }`}
                       style={isActive ? { borderColor: activeColor, color: activeColor, backgroundColor: activeColor + '18' } : {}}
                     >
-                      <span>{flag}</span>
+                      <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: isActive ? 'currentColor' : color }} />
                       <span>{name}</span>
                     </button>
                   )

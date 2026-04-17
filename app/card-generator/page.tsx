@@ -22,7 +22,9 @@ export default function CardGeneratorPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <AppHeader onLogout={handleLogout} userRole="admin" variant="nav" />
-      <CardGeneratorView />
+      <main>
+        <CardGeneratorView />
+      </main>
     </div>
   )
 }

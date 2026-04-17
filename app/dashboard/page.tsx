@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Crown, Globe } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
@@ -178,7 +178,7 @@ function UserDashboardInner() {
 
         {showCountrySelector && (
           <div className="flex gap-2 mb-5 max-w-2xl mx-auto overflow-x-auto pb-1">
-            {COUNTRIES.map(({ key, flag, name }) => {
+            {COUNTRIES.map(({ key, name, color }) => {
               const isSoon = key !== 'spain'
               const isActive = country === key
               return (
@@ -191,7 +191,7 @@ function UserDashboardInner() {
                       : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
                   style={isActive ? { borderColor: activeColor, color: activeColor, backgroundColor: activeColor + '18' } : {}}
                 >
-                  <span>{flag}</span>
+                  <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: isActive ? 'currentColor' : color }} />
                   <span>{name}</span>
                   {isSoon && <span className="text-[8px] font-black not-italic tracking-widest text-slate-600 ml-0.5">PRÓX.</span>}
                 </button>
@@ -208,13 +208,13 @@ function UserDashboardInner() {
                 <div className="flex flex-col items-center justify-center h-64">
                   {league === 'queens' ? (
                     <>
-                      <p className="text-4xl mb-4">👑</p>
+                      <Crown size={40} className="mb-4 opacity-30" style={{ color: '#01d6c3' }} />
                       <p className="font-black italic tracking-widest" style={{ color: '#01d6c3' }}>PRÓXIMAMENTE</p>
                       <p className="text-slate-700 text-xs mt-2">Queens aún no está disponible</p>
                     </>
                   ) : country !== 'spain' ? (
                     <>
-                      <p className="text-4xl mb-4">🌎</p>
+                      <Globe size={40} className="mb-4 opacity-20 text-slate-500" />
                       <p className="text-slate-600 font-black italic tracking-widest">PRÓXIMAMENTE</p>
                       <p className="text-slate-700 text-xs mt-2">
                         {country === 'mexico' ? 'Kings México' : 'Kings Brasil'} aún no está disponible
@@ -675,14 +675,19 @@ function SettingsView({ user }: { user: any }) {
               {c}
             </button>
           ))}
-          {favComp === 'kings' && (['spain', 'brazil', 'mexico'] as const).map(cn => (
-            <button key={cn} onClick={() => setFavCountry(cn)}
-              className={`px-2.5 py-1.5 rounded-full text-sm border transition-all ${
-                favCountry === cn ? 'bg-white/20 border-white/30' : 'border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700'
-              }`}>
-              {cn === 'spain' ? '🇪🇸' : cn === 'brazil' ? '🇧🇷' : '🇲🇽'}
-            </button>
-          ))}
+          {favComp === 'kings' && (['spain', 'brazil', 'mexico'] as const).map(cn => {
+            const dotColors: Record<string, string> = { spain: '#c60b1e', brazil: '#009c3b', mexico: '#006847' }
+            const labels: Record<string, string> = { spain: 'ES', brazil: 'BR', mexico: 'MX' }
+            return (
+              <button key={cn} onClick={() => setFavCountry(cn)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-black border transition-all ${
+                  favCountry === cn ? 'bg-white/20 border-white/30 text-white' : 'border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700'
+                }`}>
+                <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: dotColors[cn] }} />
+                {labels[cn]}
+              </button>
+            )
+          })}
         </div>
 
         {/* Team grid */}

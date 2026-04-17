@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Crown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getTeamLogoPath } from '@/lib/utils'
 
@@ -112,7 +113,7 @@ export default function RankingView({ currentUser }: Props) {
 
   return (
     <div
-      className="flex flex-col items-center pt-2 px-2 mx-auto w-fit"
+      className="flex flex-col items-center px-2 mx-auto w-fit"
       style={{ minHeight: 'calc(100vh - 9rem)' }}
     >
       {/* Header: [Desglose] — [TABLA DE POSICIONES centered] — [Pagination] */}
@@ -178,7 +179,7 @@ export default function RankingView({ currentUser }: Props) {
                       {/* Position */}
                       <td className="px-2 py-3 text-center border-r border-white/5 font-black italic text-xs">
                         {isFirst
-                          ? <span className="text-2xl">👑</span>
+                          ? <Crown size={20} className="text-[#FFD300] mx-auto" />
                           : <span className={`text-sm ${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                       </td>
 

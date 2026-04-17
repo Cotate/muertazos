@@ -1,9 +1,9 @@
 export type Country = 'spain' | 'mexico' | 'brazil'
 
-export const COUNTRIES: { key: Country; flag: string; name: string }[] = [
-  { key: 'spain',  flag: '🇪🇸', name: 'España' },
-  { key: 'mexico', flag: '🇲🇽', name: 'México' },
-  { key: 'brazil', flag: '🇧🇷', name: 'Brasil' },
+export const COUNTRIES: { key: Country; flag: string; name: string; color: string }[] = [
+  { key: 'spain',  flag: '', name: 'España', color: '#c60b1e' },
+  { key: 'mexico', flag: '', name: 'México', color: '#006847' },
+  { key: 'brazil', flag: '', name: 'Brasil', color: '#009c3b' },
 ]
 
 const COUNTRY_FOLDER: Record<string, string> = {

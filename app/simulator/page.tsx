@@ -33,7 +33,7 @@ export default function SimulatorPage() {
         variant="nav"
         backTo={!user ? '/' : undefined}
       />
-      <main className="w-full pb-2">
+      <main className="w-full pt-6 pb-2">
         <SimulatorView isAdmin={user?.role === 'admin'} />
       </main>
     </div>

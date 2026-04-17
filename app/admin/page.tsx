@@ -17,12 +17,12 @@ type Section = 'espana' | 'brasil' | 'mexico' | 'queens' | 'ranking' | 'simulato
 type SubTab  = 'picks' | 'jugadores'
 
 const COMP_SECTIONS: Record<string, {
-  compKey: string; country: Country; label: string; flag: string; color: string
+  compKey: string; country: Country; label: string; color: string
 }> = {
-  espana: { compKey: 'kings',  country: 'spain',  label: 'España', flag: '🇪🇸', color: '#FFD300' },
-  brasil: { compKey: 'kings',  country: 'brazil', label: 'Brasil', flag: '🇧🇷', color: '#FFD300' },
-  mexico: { compKey: 'kings',  country: 'mexico', label: 'México', flag: '🇲🇽', color: '#FFD300' },
-  queens: { compKey: 'queens', country: 'spain',  label: 'Queens', flag: '♛',   color: '#01d6c3' },
+  espana: { compKey: 'kings',  country: 'spain',  label: 'España', color: '#FFD300' },
+  brasil: { compKey: 'kings',  country: 'brazil', label: 'Brasil', color: '#FFD300' },
+  mexico: { compKey: 'kings',  country: 'mexico', label: 'México', color: '#FFD300' },
+  queens: { compKey: 'queens', country: 'spain',  label: 'Queens', color: '#01d6c3' },
 }
 
 const VALID_SECTIONS: Section[] = ['espana', 'brasil', 'mexico', 'queens', 'ranking', 'simulator']
@@ -75,7 +75,7 @@ function AdminDashboardInner() {
       <AppHeader onLogout={handleLogout} userRole="admin" variant="nav" />
 
       {/* ── Content — navigation is fully handled by the sidebar ── */}
-      <div className="relative w-full overflow-x-hidden">
+      <div className="relative w-full overflow-x-hidden pt-6">
         {section === 'ranking' ? (
           <RankingView />
         ) : section === 'simulator' ? (

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import { Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCompFolder, getLogoSize, getTeamLogoPath, getTeamLogoPathEncoded } from '@/lib/utils'
 
@@ -22,10 +23,10 @@ function getQueensGroup(teamName: string): string | null {
   return null
 }
 
-const SPLIT_OPTIONS: { key: SplitKey; label: string; flag: string; accentColor: string }[] = [
-  { key: 'spain',  label: 'SPLIT 6 ESPAÑA',  flag: '🇪🇸', accentColor: '#c60b1e' },
-  { key: 'brazil', label: 'SPLIT 2 BRASIL',  flag: '🇧🇷', accentColor: '#009c3b' },
-  { key: 'mexico', label: 'SPLIT 4 MÉXICO',  flag: '🇲🇽', accentColor: '#006847' },
+const SPLIT_OPTIONS: { key: SplitKey; label: string; accentColor: string }[] = [
+  { key: 'spain',  label: 'SPLIT 6 ESPAÑA', accentColor: '#c60b1e' },
+  { key: 'brazil', label: 'SPLIT 2 BRASIL', accentColor: '#009c3b' },
+  { key: 'mexico', label: 'SPLIT 4 MÉXICO', accentColor: '#006847' },
 ]
 
 interface Props {
@@ -295,7 +296,10 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                   }`}
                   style={isActive ? { backgroundColor: opt.accentColor, borderColor: opt.accentColor } : {}}
                 >
-                  <span className="not-italic">{opt.flag}</span>
+                  <span
+                    className="w-2 h-2 rounded-full inline-block shrink-0"
+                    style={{ backgroundColor: isActive ? 'rgba(0,0,0,0.35)' : opt.accentColor }}
+                  />
                   {opt.label}
                 </button>
               )
@@ -341,7 +345,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           <div className="w-full xl:w-[360px] flex flex-col gap-3">
             {isNonSpainKings ? (
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-2xl gap-3">
-                <span className="text-3xl not-italic">{activeSplit.flag}</span>
+                <Globe size={28} className="text-slate-600" />
                 <p className="text-slate-500 font-black italic uppercase text-sm tracking-widest">
                   Jornadas {splitCountry === 'brazil' ? 'Brasil' : 'México'} próximamente
                 </p>

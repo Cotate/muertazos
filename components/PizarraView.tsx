@@ -5,10 +5,10 @@ import { supabase } from '@/lib/supabase'
 
 type SplitKey = 'spain' | 'brazil' | 'mexico'
 
-const SPLIT_OPTIONS: { key: SplitKey; flag: string; label: string; folder: string; split: string }[] = [
-  { key: 'spain',  flag: '🇪🇸', label: 'SPLIT 6 ESPAÑA',  folder: 'España',  split: 'Split 6' },
-  { key: 'brazil', flag: '🇧🇷', label: 'SPLIT 2 BRASIL',  folder: 'Brazil',  split: 'Split 2' },
-  { key: 'mexico', flag: '🇲🇽', label: 'SPLIT 4 MÉXICO',  folder: 'México',  split: 'Split 4' },
+const SPLIT_OPTIONS: { key: SplitKey; label: string; folder: string; split: string; dotColor: string }[] = [
+  { key: 'spain',  label: 'SPLIT 6 ESPAÑA', folder: 'España', split: 'Split 6', dotColor: '#c60b1e' },
+  { key: 'brazil', label: 'SPLIT 2 BRASIL', folder: 'Brazil', split: 'Split 2', dotColor: '#009c3b' },
+  { key: 'mexico', label: 'SPLIT 4 MÉXICO', folder: 'México', split: 'Split 4', dotColor: '#006847' },
 ]
 
 const SPAIN_PLAYERS_DATA: Record<string, string[]> = {
@@ -242,7 +242,7 @@ export default function PizarraView({ fillViewport: _fillViewport = false }: Pro
             className="bg-slate-950 border border-slate-700 text-white rounded-lg p-2 outline-none text-sm"
           >
             {SPLIT_OPTIONS.map(opt => (
-              <option key={opt.key} value={opt.key}>{opt.flag} {opt.label}</option>
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
             ))}
           </select>
         </div>
