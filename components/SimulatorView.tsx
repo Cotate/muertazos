@@ -31,16 +31,20 @@ const SPLIT_OPTIONS: { key: SplitKey; label: string; accentColor: string }[] = [
 
 interface Props {
   isAdmin?: boolean
+  initialCountry?: SplitKey
+  initialLeague?: 'kings' | 'queens'
+  hideControls?: boolean
 }
 
-export default function SimulatorView({ isAdmin = false }: Props) {
-  const [compKey, setCompKey] = useState<'kings' | 'queens'>('kings')
-  const [splitCountry, setSplitCountry] = useState<SplitKey>('spain')
+export default function SimulatorView({ isAdmin = false, initialCountry, initialLeague, hideControls = false }: Props) {
+  const [compKey, setCompKey] = useState<'kings' | 'queens'>(initialLeague ?? 'kings')
+  const [splitCountry, setSplitCountry] = useState<SplitKey>(initialCountry ?? 'spain')
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [teams, setTeams] = useState<any[]>([])
   const [scores, setScores] = useState<Record<number, { hg: string; ag: string; penaltyWinnerId: number | null }>>({})
   const [isSharing, setIsSharing] = useState(false)
+  const [loading, setLoading] = useState(true)
   const shareTicketRef = useRef<HTMLDivElement>(null)
   const [simUser, setSimUser] = useState<{ username: string } | null>(null)
 
@@ -52,7 +56,8 @@ export default function SimulatorView({ isAdmin = false }: Props) {
   }, [])
 
   const logoSize = (filename: string) => getLogoSize(filename, !isAdmin)
-  const activeSplit = SPLIT_OPTIONS.find(s => s.key === splitCountry) ?? SPLIT_OPTIONS[0]
+  const activeSplit      = SPLIT_OPTIONS.find(s => s.key === splitCountry) ?? SPLIT_OPTIONS[0]
+  const activeSplitLabel = activeSplit.label
 
   const getRowColor = (idx: number) => {
     if (idx === 0) return 'bg-yellow-500'
@@ -66,24 +71,23 @@ export default function SimulatorView({ isAdmin = false }: Props) {
   }
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
-      // Try to load teams from DB (with country column after migration)
-      const { data: tData } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('competition_key', compKey)
-        .eq('country', splitCountry)
+      setLoading(true)
+      setMatchdays([])
+      setTeams([])
+      setScores({})
+      setActiveMatchdayId(null)
+
+      const [{ data: tData }, { data: mData }, { data: rData }] = await Promise.all([
+        supabase.from('teams').select('*').eq('competition_key', compKey).eq('country', splitCountry),
+        supabase.from('matchdays').select(`*, matches (*, home:home_team_id(*), away:away_team_id(*))`).eq('competition_key', compKey).eq('country', splitCountry).order('display_order'),
+        supabase.from('match_results').select('*'),
+      ])
+
+      if (cancelled) return
 
       setTeams(tData ?? [])
-
-      const { data: mData } = await supabase
-        .from('matchdays')
-        .select(`*, matches (*, home:home_team_id(*), away:away_team_id(*))`)
-        .eq('competition_key', compKey)
-        .eq('country', splitCountry)
-        .order('display_order')
-
-      const { data: rData } = await supabase.from('match_results').select('*')
 
       if (mData) {
         mData.forEach((d: any) => {
@@ -93,6 +97,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           })
         })
       }
+
       if (mData && mData.length > 0) {
         const loadedScores: any = {}
         if (rData) {
@@ -113,19 +118,17 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         }
         setScores(loadedScores)
         setMatchdays(mData)
-        // Auto-select the closest upcoming empty matchday (no results loaded)
         const matchIdsWithResults = new Set(Object.keys(loadedScores).map(Number))
         const firstEmpty = mData.find((d: any) =>
           d.matches?.length > 0 && !d.matches.some((m: any) => matchIdsWithResults.has(m.id))
         )
         setActiveMatchdayId((firstEmpty ?? mData[mData.length - 1] ?? mData[0]).id)
-      } else {
-        setMatchdays([])
-        setActiveMatchdayId(null)
-        setScores({})
       }
+
+      setLoading(false)
     }
     load()
+    return () => { cancelled = true }
   }, [compKey, splitCountry])
 
   const activeMatchday = matchdays.find(d => d.id === activeMatchdayId)
@@ -225,8 +228,6 @@ export default function SimulatorView({ isAdmin = false }: Props) {
     })
     .sort((a, b) => b.w - a.w || b.dg - a.dg || b.gf - a.gf)
 
-  const isNonSpainKings = compKey === 'kings' && splitCountry !== 'spain' && matchdays.length === 0
-
   const handleShare = async () => {
     if (!shareTicketRef.current || isSharing) return
     setIsSharing(true)
@@ -248,21 +249,25 @@ export default function SimulatorView({ isAdmin = false }: Props) {
     <div className="w-full flex flex-col items-center">
       {/* Top bar: competition + split selectors */}
       <div className="w-full flex flex-col border-b border-white/5">
-        {/* Row 1: Kings / Queens + matchday tabs */}
+        {/* Row 1: Kings/Queens (hidden when hideControls) + matchday tabs */}
         <div className="w-full flex justify-center items-center flex-wrap gap-4 py-3 px-4">
-          <div className="flex gap-2 border-r border-white/10 pr-4">
-            <button
-              onClick={() => { setCompKey('kings'); setActiveMatchdayId(null) }}
-              className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
-            >Kings</button>
-            {splitCountry !== 'brazil' && splitCountry !== 'mexico' && (
+          {/* League switcher — only when not locked from sidebar */}
+          {!hideControls && (
+            <div className="flex gap-2 border-r border-white/10 pr-4">
               <button
-                onClick={() => { setCompKey('queens'); setSplitCountry('spain'); setActiveMatchdayId(null) }}
-                className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
-              >Queens</button>
-            )}
-          </div>
+                onClick={() => { setCompKey('kings'); setActiveMatchdayId(null) }}
+                className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'kings' ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+              >Kings</button>
+              {splitCountry !== 'brazil' && splitCountry !== 'mexico' && (
+                <button
+                  onClick={() => { setCompKey('queens'); setSplitCountry('spain'); setActiveMatchdayId(null) }}
+                  className={`px-5 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${compKey === 'queens' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+                >Queens</button>
+              )}
+            </div>
+          )}
 
+          {/* Matchday tabs — always shown */}
           <div className="flex flex-wrap items-center gap-2">
             {matchdays.map(day => {
               const shortName = day.name.toUpperCase().replace('JORNADA', 'J').replace(/\s+/g, '')
@@ -280,8 +285,8 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           </div>
         </div>
 
-        {/* Row 2: Split selector (Kings only) */}
-        {compKey === 'kings' && (
+        {/* Row 2: Split selector — only when not locked from sidebar */}
+        {!hideControls && compKey === 'kings' && (
           <div className="flex justify-center gap-2 px-4 pb-3">
             {SPLIT_OPTIONS.map(opt => {
               const isActive = splitCountry === opt.key
@@ -308,22 +313,26 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         )}
       </div>
 
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {loading && (
+        <div className="flex items-center justify-center py-24">
+          <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-[#FFD300] animate-spin" />
+        </div>
+      )}
+
+      {!loading && <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Matchday title — sits above the two-column layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-center gap-3 mb-4">
           <h3 className="text-2xl font-black italic uppercase tracking-tighter">
-            {isNonSpainKings
-              ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
-              : activeMatchday?.name}
+            {activeMatchday?.name ?? activeSplitLabel}
           </h3>
           <div className="flex gap-2">
-            {isAdmin && !isNonSpainKings && (
+            {isAdmin && activeMatchday && (
               <>
                 <button onClick={saveActiveMatchday} className="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Guardar</button>
                 <button onClick={deleteActiveMatchday} className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase italic">Borrar</button>
               </>
             )}
-            {!isAdmin && !isNonSpainKings && activeMatchday && (
+            {!isAdmin && activeMatchday && (
               <button
                 onClick={handleShare}
                 disabled={isSharing}
@@ -343,13 +352,11 @@ export default function SimulatorView({ isAdmin = false }: Props) {
         <div className="flex flex-col xl:flex-row gap-8 justify-center items-start">
           {/* Match containers */}
           <div className="w-full xl:w-[360px] flex flex-col gap-3">
-            {isNonSpainKings ? (
+            {matchdays.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-2xl gap-3">
                 <Globe size={28} className="text-slate-600" />
-                <p className="text-slate-500 font-black italic uppercase text-sm tracking-widest">
-                  Jornadas {splitCountry === 'brazil' ? 'Brasil' : 'México'} próximamente
-                </p>
-                <p className="text-slate-700 text-xs">Los datos de partidos se añadirán cuando estén disponibles</p>
+                <p className="text-slate-500 font-black italic uppercase text-sm tracking-widest">Próximamente</p>
+                <p className="text-slate-700 text-xs">Los datos se añadirán cuando estén disponibles</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
@@ -541,7 +548,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
 
     {/* Hidden share ticket */}

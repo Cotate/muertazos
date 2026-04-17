@@ -2,11 +2,12 @@
 import { useState, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, ChevronUp,
   BarChart3, Users,
   Trophy, Zap, CreditCard, Crown,
+  Target, ClipboardList, Settings, Layers, Layout,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -27,23 +28,7 @@ interface AppHeaderProps {
   onLoginClick?: () => void
 }
 
-type MenuEntry =
-  | { type: 'route'; label: string; href: string }
-  | { type: 'view'; label: string; viewKey: string }
-  | { type: 'action'; label: string; action: 'logout' }
-
-const USER_MENU: MenuEntry[] = [
-  { type: 'route', label: 'KINGS',     href: '/dashboard?tab=kings' },
-  { type: 'route', label: 'QUEENS',    href: '/dashboard?tab=queens' },
-  { type: 'route', label: 'RANKING',   href: '/ranking' },
-  { type: 'route', label: 'PICKS',     href: '/dashboard?tab=picks' },
-  { type: 'route', label: 'PIZARRA',   href: '/pizarra' },
-  { type: 'route', label: 'TIER LIST', href: '/tierlist' },
-  { type: 'route', label: 'SIMULADOR', href: '/simulator' },
-  { type: 'route', label: 'AJUSTES',   href: '/dashboard?tab=settings' },
-]
-
-// ─── Admin hierarchical nav ───────────────────────────────────────────────────
+// ─── Shared league data ───────────────────────────────────────────────────────
 
 const LEAGUE_ITEMS = [
   { key: 'espana', label: 'España', dotColor: '#c60b1e', color: '#FFD300', jugLabel: 'Jugadores' },
@@ -52,28 +37,26 @@ const LEAGUE_ITEMS = [
   { key: 'queens', label: 'Queens', dotColor: '#01d6c3', color: '#01d6c3', jugLabel: 'Jugadoras' },
 ] as const
 
-/** Inner component — needs Suspense because it calls useSearchParams */
+// ─── Admin hierarchical nav ───────────────────────────────────────────────────
+
 function AdminNavContent({ onClose }: { onClose: () => void }) {
-  const searchParams = useSearchParams()
-  const pathname     = usePathname()
+  const searchParams  = useSearchParams()
+  const pathname      = usePathname()
 
-  const rawSection = searchParams.get('section')
-  const rawSub     = searchParams.get('sub')
-  const legacyTab  = searchParams.get('tab')
+  const rawSection  = searchParams.get('section')
+  const rawSub      = searchParams.get('sub')
+  const legacyTab   = searchParams.get('tab')
 
-  // Resolve current section (support legacy ?tab= params too)
   const currentSection =
     rawSection ??
-    (legacyTab === 'queens'   ? 'queens'   :
-     legacyTab === 'ranking'  ? 'ranking'  :
-     legacyTab === 'simulator'? 'simulator':
-     legacyTab               ? 'espana'   : null)
+    (legacyTab === 'queens'    ? 'queens'   :
+     legacyTab === 'ranking'   ? 'ranking'  :
+     legacyTab === 'simulator' ? 'simulator':
+     legacyTab                 ? 'espana'   : null)
 
-  const currentSub = rawSub   // null | 'picks' | 'jugadores' | 'jugadoras'
+  const currentSub = rawSub
+  const isLeague   = LEAGUE_ITEMS.some(l => l.key === currentSection)
 
-  const isLeague = LEAGUE_ITEMS.some(l => l.key === currentSection)
-
-  // Auto-open the active league section; allow toggling others
   const [openSections, setOpenSections] = useState<Set<string>>(() =>
     currentSection && isLeague ? new Set([currentSection]) : new Set()
   )
@@ -94,7 +77,6 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      {/* ── League sections with accordion ── */}
       {LEAGUE_ITEMS.map(league => {
         const isOpen   = openSections.has(league.key)
         const isActive = pathname === '/admin' && currentSection === league.key
@@ -122,13 +104,11 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
               }
             </button>
 
-            {/* Sub-items — animated with max-height */}
             <div
               className="overflow-hidden transition-all duration-200 ease-in-out"
               style={{ maxHeight: isOpen ? '120px' : '0px', opacity: isOpen ? 1 : 0 }}
             >
               <div className="pl-10 pr-3 pt-0.5 pb-2 flex flex-col gap-0.5">
-                {/* Picks */}
                 <Link
                   href={`/admin?section=${league.key}&sub=picks`}
                   onClick={onClose}
@@ -141,8 +121,6 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
                   <BarChart3 size={13} className="flex-shrink-0" />
                   Picks
                 </Link>
-
-                {/* Jugadores / Jugadoras */}
                 <Link
                   href={`/admin?section=${league.key}&sub=jugadores`}
                   onClick={onClose}
@@ -161,10 +139,8 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
         )
       })}
 
-      {/* ── Divider ── */}
       <div className="my-1.5 border-t border-slate-800/50" />
 
-      {/* Ranking */}
       <Link
         href="/admin?section=ranking"
         onClick={onClose}
@@ -177,7 +153,6 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
         Ranking
       </Link>
 
-      {/* Simulador */}
       <Link
         href="/admin?section=simulator"
         onClick={onClose}
@@ -190,7 +165,6 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
         Simulador
       </Link>
 
-      {/* Carta */}
       <Link
         href="/card-generator"
         onClick={onClose}
@@ -206,10 +180,197 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ─── User hierarchical nav ────────────────────────────────────────────────────
+
+const USER_LEAGUES: {
+  key: string
+  label: string
+  dotColor: string
+  color: string
+  subs: { label: string; href: string; icon: 'predis' | 'picks' | 'sim' }[]
+}[] = [
+  {
+    key: 'espana', label: 'España', dotColor: '#c60b1e', color: '#FFD300',
+    subs: [
+      { label: 'Predis',    href: '/predis?league=kings&country=spain',              icon: 'predis' },
+      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=spain', icon: 'picks'  },
+      { label: 'Simulador', href: '/simulator?country=spain',                        icon: 'sim'    },
+    ],
+  },
+  {
+    key: 'brasil', label: 'Brasil', dotColor: '#009c3b', color: '#FFD300',
+    subs: [
+      { label: 'Predis',    href: '/predis?league=kings&country=brazil',              icon: 'predis' },
+      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=brazil', icon: 'picks'  },
+      { label: 'Simulador', href: '/simulator?country=brazil',                        icon: 'sim'    },
+    ],
+  },
+  {
+    key: 'mexico', label: 'México', dotColor: '#006847', color: '#FFD300',
+    subs: [
+      { label: 'Predis',    href: '/predis?league=kings&country=mexico',              icon: 'predis' },
+      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=mexico', icon: 'picks'  },
+      { label: 'Simulador', href: '/simulator?country=mexico',                        icon: 'sim'    },
+    ],
+  },
+  {
+    key: 'queens', label: 'Queens', dotColor: '#01d6c3', color: '#01d6c3',
+    subs: [
+      { label: 'Predis',    href: '/predis?league=queens&country=spain',              icon: 'predis' },
+      { label: 'Picks',     href: '/dashboard?tab=picks&league=queens&country=spain', icon: 'picks'  },
+      { label: 'Simulador', href: '/simulator?league=queens',                         icon: 'sim'    },
+    ],
+  },
+]
+
+function SubIcon({ type }: { type: 'predis' | 'picks' | 'sim' }) {
+  if (type === 'predis') return <Target size={13} className="flex-shrink-0" />
+  if (type === 'picks')  return <ClipboardList size={13} className="flex-shrink-0" />
+  return <Zap size={13} className="flex-shrink-0" />
+}
+
+function UserNavContent({ onClose }: { onClose: () => void }) {
+  const searchParams = useSearchParams()
+  const pathname     = usePathname()
+  const tab          = searchParams.get('tab')
+  const urlCountry   = searchParams.get('country')
+  const urlLeague    = searchParams.get('league')
+
+  // Determine which section to auto-open based on current URL
+  const defaultOpen =
+    tab === 'queens' || urlLeague === 'queens' ? 'queens' :
+    urlCountry === 'brazil' ? 'brasil' :
+    urlCountry === 'mexico' ? 'mexico' :
+    'espana'
+
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set([defaultOpen])
+  )
+
+  const toggle = (key: string) =>
+    setOpenSections(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+
+  const subIsActive = (href: string) => {
+    const [hPath, hQuery] = href.split('?')
+    if (pathname !== hPath) return false
+    if (!hQuery) return true
+    const params = new URLSearchParams(hQuery)
+    for (const [k, v] of params.entries()) {
+      if (searchParams.get(k) !== v) return false
+    }
+    return true
+  }
+
+  const leagueIsActive = (league: typeof USER_LEAGUES[number]) =>
+    league.subs.some(s => subIsActive(s.href))
+
+  return (
+    <>
+      {USER_LEAGUES.map(league => {
+        const isOpen   = openSections.has(league.key)
+        const isActive = leagueIsActive(league)
+
+        return (
+          <div key={league.key}>
+            <button
+              onClick={() => toggle(league.key)}
+              className={`w-full flex items-center justify-between py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+                ${isActive
+                  ? 'bg-white/5 border-white/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}
+              style={isActive ? { color: league.color } : {}}
+            >
+              <span className="flex items-center gap-2.5">
+                {league.key === 'queens'
+                  ? <Crown size={13} className="flex-shrink-0" style={{ color: league.color }} />
+                  : <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: league.dotColor }} />
+                }
+                <span>{league.label}</span>
+              </span>
+              {isOpen
+                ? <ChevronUp size={15} className="flex-shrink-0 opacity-60" />
+                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />
+              }
+            </button>
+
+            {/* Sub-items */}
+            <div
+              className="overflow-hidden transition-all duration-200 ease-in-out"
+              style={{ maxHeight: isOpen ? '160px' : '0px', opacity: isOpen ? 1 : 0 }}
+            >
+              <div className="pl-10 pr-3 pt-0.5 pb-2 flex flex-col gap-0.5">
+                {league.subs.map(sub => {
+                  const active = subIsActive(sub.href)
+                  return (
+                    <Link
+                      key={sub.label}
+                      href={sub.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
+                        ${active
+                          ? 'bg-white/[0.07] border border-white/10'
+                          : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                      style={active ? { color: league.color } : {}}
+                    >
+                      <SubIcon type={sub.icon} />
+                      {sub.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      <div className="my-1.5 border-t border-slate-800/50" />
+
+      <Link
+        href="/ranking"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${pathname === '/ranking'
+            ? 'text-white bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Trophy size={16} className="flex-shrink-0" />
+        Ranking
+      </Link>
+
+      <Link
+        href="/tierlist"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${pathname === '/tierlist'
+            ? 'text-white bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Layers size={16} className="flex-shrink-0" />
+        Tier List
+      </Link>
+
+      <Link
+        href="/pizarra"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${pathname === '/pizarra'
+            ? 'text-white bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Layout size={16} className="flex-shrink-0" />
+        Pizarra
+      </Link>
+    </>
+  )
+}
+
 // ─── AppHeader ────────────────────────────────────────────────────────────────
 
 export default function AppHeader({
-  navItems = [],
   onLogout,
   userAvatar,
   username,
@@ -245,6 +406,8 @@ export default function AppHeader({
   }
 
   const isPublicOnly = !username && !!backTo
+
+  const close = () => setMenuOpen(false)
 
   return (
     <>
@@ -288,17 +451,17 @@ export default function AppHeader({
 
       {!isPublicOnly && menuOpen && (
         <div className="fixed inset-0 z-[60]">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={close} />
 
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
               <div className="relative w-28 h-9">
                 <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
               </div>
               <button
-                onClick={() => setMenuOpen(false)}
+                onClick={close}
                 className="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,94 +470,66 @@ export default function AppHeader({
               </button>
             </div>
 
-            {/* Nav content */}
-            <nav className="flex flex-col p-3 gap-0.5 flex-1 overflow-y-auto">
-              {userRole === 'admin' ? (
-                /* ── Hierarchical admin nav ── */
-                <Suspense fallback={
-                  <div className="p-4 text-slate-700 text-xs font-bold uppercase tracking-widest text-center">
-                    Cargando...
-                  </div>
-                }>
-                  <AdminNavContent onClose={() => setMenuOpen(false)} />
-                </Suspense>
-              ) : (
-                /* ── Flat user nav (unchanged) ── */
-                <>
-                  {USER_MENU.map((entry, i) => {
-                    if (entry.type !== 'route') return null
-                    const isActive = pathname === entry.href.split('?')[0] && !entry.href.includes('?')
-                    return (
-                      <Link
-                        key={i}
-                        href={entry.href}
-                        onClick={() => setMenuOpen(false)}
-                        className={`py-3.5 px-4 rounded-xl font-black italic text-lg uppercase tracking-tight transition-all
-                          ${isActive
-                            ? 'text-[#ffd300] bg-white/5 border border-white/10'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                      >
-                        {entry.label}
-                      </Link>
-                    )
-                  })}
-
-                  {navItems.length > 0 && (
-                    <>
-                      <div className="my-2 border-t border-slate-800/60" />
-                      {navItems.map((item, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { item.onClick(); setMenuOpen(false) }}
-                          style={{ color: item.active ? (item.activeColor || '#fff') : undefined }}
-                          className={`text-left py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all
-                            ${item.active
-                              ? 'bg-white/5 border border-white/10'
-                              : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
+            {/* Nav content — scrollable */}
+            <nav className="flex flex-col p-3 gap-0.5 flex-1 overflow-y-auto min-h-0">
+              <Suspense fallback={
+                <div className="p-4 text-slate-700 text-xs font-bold uppercase tracking-widest text-center">
+                  Cargando...
+                </div>
+              }>
+                {userRole === 'admin'
+                  ? <AdminNavContent onClose={close} />
+                  : <UserNavContent onClose={close} />
+                }
+              </Suspense>
             </nav>
 
-            {/* Footer: user info + logout */}
-            {(username || onLogout) && (
-              <div className="p-4 border-t border-slate-800">
-                {username && (
-                  <div className="flex items-center gap-3 mb-3 px-2">
-                    <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-slate-400">
-                        {username.charAt(0).toUpperCase()}
-                      </span>
-                      {userAvatar && (
-                        <Image
-                          src={userAvatar}
-                          alt={username}
-                          fill
-                          className="object-cover z-10"
-                          onError={e => { e.currentTarget.style.display = 'none' }}
-                        />
-                      )}
-                    </div>
-                    <span className="text-sm font-black uppercase text-slate-300 tracking-wider">{username}</span>
+            {/* Drawer footer — user info + logout */}
+            <div className="shrink-0 border-t border-slate-800">
+
+              {/* Username row with Settings icon on the right */}
+              {username && (
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-slate-400">
+                      {username.charAt(0).toUpperCase()}
+                    </span>
+                    {userAvatar && (
+                      <Image
+                        src={userAvatar}
+                        alt={username}
+                        fill
+                        className="object-cover z-10"
+                        onError={e => { e.currentTarget.style.display = 'none' }}
+                      />
+                    )}
                   </div>
-                )}
+                  <span className="text-sm font-black uppercase text-slate-300 tracking-wider truncate flex-1">{username}</span>
+                  {userRole !== 'admin' && (
+                    <Link
+                      href="/dashboard?tab=settings"
+                      onClick={close}
+                      title="Ajustes"
+                      className="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                    >
+                      <Settings size={17} />
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              <div className="px-4 pb-4">
+                {/* Logout */}
                 {onLogout && (
                   <button
-                    onClick={() => { onLogout(); setMenuOpen(false) }}
+                    onClick={() => { onLogout(); close() }}
                     className="w-full bg-red-600/10 text-red-500 border border-red-500/30 px-5 py-3 rounded-xl font-black uppercase italic text-sm hover:bg-red-600 hover:text-white transition-all"
                   >
-                    CERRAR SESIÓN
+                    Cerrar sesión
                   </button>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

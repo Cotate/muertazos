@@ -38,10 +38,14 @@ function UserDashboardInner() {
     if (!storedUser && !PUBLIC_TABS.has(tab || '')) { router.push('/'); return }
     if (storedUser) setUser(JSON.parse(storedUser))
     document.body.style.backgroundColor = '#0a0a0a'
+    const urlLeague  = searchParams.get('league')  as 'kings' | 'queens' | null
+    const urlCountry = searchParams.get('country') as Country | null
+    if (urlLeague)  setLeague(urlLeague)
+    if (urlCountry) setCountry(urlCountry)
+    if (tab === 'picks')     setView('all-picks')
     if (tab === 'kings')     { setLeague('kings');  setView('picks') }
     if (tab === 'queens')    { setLeague('queens'); setView('picks') }
     if (tab === 'ranking')   setView('ranking')
-    if (tab === 'picks')     setView('all-picks')
     if (tab === 'pizarra')   setView('pizarra')
     if (tab === 'simulator') setView('simulator')
     if (tab === 'settings')  setView('settings')
@@ -50,7 +54,6 @@ function UserDashboardInner() {
 
   const loadData = useCallback(async () => {
     if (!user) return
-    if (league === 'kings' && country !== 'spain') { setMatchdays([]); return }
     const effectiveCountry = league === 'queens' ? 'spain' : country
 
     const { data: mDays } = await supabase
@@ -153,7 +156,7 @@ function UserDashboardInner() {
     router.push('/')
   }
 
-  const showCountrySelector = view === 'picks' && league === 'kings'
+  const showCountrySelector = view === 'picks' && league === 'kings' && !searchParams.get('country')
   const folder = getCompFolder(league)
 
   const getPicksBorderGradient = () => {
@@ -297,7 +300,12 @@ function UserDashboardInner() {
         ) : view === 'all-picks' ? (
           <CompetitionReadOnly competitionKey={league} country={country} />
         ) : view === 'simulator' ? (
-          <SimulatorView />
+          <SimulatorView
+            key={`${searchParams.get('country') ?? 'none'}-${searchParams.get('league') ?? 'none'}`}
+            initialCountry={(searchParams.get('country') as 'spain' | 'brazil' | 'mexico') || undefined}
+            initialLeague={(searchParams.get('league') as 'kings' | 'queens') || undefined}
+            hideControls={!!(searchParams.get('country') || searchParams.get('league'))}
+          />
         ) : view === 'settings' ? (
           <SettingsView user={user} />
         ) : (
@@ -381,7 +389,6 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', competitionKey)
       .eq('country', country)
-      .eq('is_visible', false)
       .eq('is_locked', true)
       .order('display_order')
 
@@ -416,7 +423,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
     }
   }
 
-  useEffect(() => { load() }, [competitionKey])
+  useEffect(() => { load() }, [competitionKey, country])
 
   useEffect(() => {
     const fetchPredictions = async () => {

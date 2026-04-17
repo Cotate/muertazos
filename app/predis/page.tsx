@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Users, Share2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -15,11 +15,21 @@ function getCountryLabel(c: string): string {
 }
 
 export default function PredisPage() {
+  return <Suspense><PredisPageInner /></Suspense>
+}
+
+function PredisPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [userChecked, setUserChecked] = useState(false)
   const [league, setLeague] = useState<'kings' | 'queens'>('kings')
   const [country, setCountry] = useState<Country>('spain')
+
+  // URL params set when navigating from the menu — hide filter UI when present
+  const urlLeague  = searchParams.get('league')  as 'kings' | 'queens' | null
+  const urlCountry = searchParams.get('country') as Country | null
+  const hasUrlContext = !!(urlLeague || urlCountry)
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
   const [predictions, setPredictions] = useState<Record<number, number>>({})
@@ -41,6 +51,9 @@ export default function PredisPage() {
     const stored = localStorage.getItem('muertazos_user')
     if (stored) { try { setUser(JSON.parse(stored)) } catch {} }
     setUserChecked(true)
+    if (urlLeague)  setLeague(urlLeague)
+    if (urlCountry) setCountry(urlCountry)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const effectiveCountry: Country = league === 'queens' ? 'spain' : country
@@ -277,8 +290,8 @@ export default function PredisPage() {
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-8 pb-10">
 
-        {/* Filter bar — left: 2-row league+country · right: Multipredis button */}
-        <div className="flex items-start justify-between gap-x-4 gap-y-2 mb-6">
+        {/* Filter bar — hidden when navigated from menu (URL context already set) */}
+        <div className={`flex items-start justify-between gap-x-4 gap-y-2 mb-6 ${hasUrlContext ? 'hidden' : ''}`}>
           {/* Left block — Row 1: Kings/Queens · Row 2: country pills (Kings only) */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">

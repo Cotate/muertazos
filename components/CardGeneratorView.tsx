@@ -209,7 +209,7 @@ export default function CardGeneratorView() {
       ctx.fillRect(0, CANVAS_H - gradH, CANVAS_W, gradH)
 
       // Layer 4: Player name — Doppio One, starting at 40px, auto-shrink
-      const name = (playerName.trim() || 'JUGADOR').toUpperCase()
+      const name = playerName.trim() || 'JUGADOR'
       const safeMargin = CANVAS_W * 0.07
       const maxTextW   = CANVAS_W - safeMargin * 2
       const startSize  = 40

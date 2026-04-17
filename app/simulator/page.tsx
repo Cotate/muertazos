@@ -1,12 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import { getStoredUser } from '@/lib/utils'
 
 export default function SimulatorPage() {
+  return <Suspense><SimulatorPageInner /></Suspense>
+}
+
+function SimulatorPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [ready, setReady] = useState(false)
 
@@ -23,6 +28,9 @@ export default function SimulatorPage() {
 
   if (!ready) return null
 
+  const urlCountry = searchParams.get('country') as 'spain' | 'brazil' | 'mexico' | null
+  const urlLeague  = searchParams.get('league')  as 'kings' | 'queens' | null
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <AppHeader
@@ -34,7 +42,13 @@ export default function SimulatorPage() {
         backTo={!user ? '/' : undefined}
       />
       <main className="w-full pt-6 pb-2">
-        <SimulatorView isAdmin={user?.role === 'admin'} />
+        <SimulatorView
+          key={`${urlCountry ?? 'none'}-${urlLeague ?? 'none'}`}
+          isAdmin={user?.role === 'admin'}
+          initialCountry={urlCountry ?? undefined}
+          initialLeague={urlLeague ?? undefined}
+          hideControls={!!(urlCountry || urlLeague)}
+        />
       </main>
     </div>
   )
