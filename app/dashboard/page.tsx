@@ -393,7 +393,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
 
     if (uErr) {
       const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
-      uData = fallback
+      uData = fallback as typeof uData
     }
 
     if (mData && mData.length > 0) {
