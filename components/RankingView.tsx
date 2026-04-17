@@ -1,14 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getTeamLogoPath } from '@/lib/utils'
 
-type CountryFilter = 'all' | 'spain' | 'brazil' | 'mexico'
+/** Returns a subtle background tint color string for a matchday row/cell */
+function getMatchdayBg(day: any): string {
+  if (day.competition_key === 'queens') return 'rgba(1,214,195,0.10)'
+  if (day.country === 'brazil')         return 'rgba(0,180,80,0.13)'
+  if (day.country === 'mexico')         return 'rgba(200,70,30,0.11)'
+  return 'rgba(255,211,0,0.09)' // kings spain
+}
 
-const COUNTRY_TABS: { key: CountryFilter; label: string; flag: string }[] = [
-  { key: 'all',    label: 'TOTAL',  flag: '🌍' },
-  { key: 'spain',  label: 'ESPAÑA', flag: '🇪🇸' },
-  { key: 'brazil', label: 'BRASIL', flag: '🇧🇷' },
-  { key: 'mexico', label: 'MÉXICO', flag: '🇲🇽' },
+/** Short label for the legend */
+const LEGEND = [
+  { label: 'Kings España', bg: 'rgba(255,211,0,0.40)'  },
+  { label: 'Kings Brasil', bg: 'rgba(0,180,80,0.45)'   },
+  { label: 'Kings México', bg: 'rgba(200,70,30,0.40)'  },
+  { label: 'Queens',       bg: 'rgba(1,214,195,0.40)'  },
 ]
 
 interface Props {
@@ -20,7 +28,6 @@ export default function RankingView({ currentUser }: Props) {
   const [showFull, setShowFull] = useState(false)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
-  const [countryFilter, setCountryFilter] = useState<CountryFilter>('all')
 
   useEffect(() => {
     const fetchRanking = async () => {
@@ -38,10 +45,15 @@ export default function RankingView({ currentUser }: Props) {
         return
       }
 
-      const { data: appUsers } = await supabase
+      let { data: appUsers, error: usersErr } = await supabase
         .from('app_users')
-        .select('id, username')
+        .select('id, username, favorite_team:favorite_team_id(logo_file, competition_key, country)')
         .neq('role', 'admin')
+
+      if (usersErr) {
+        const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
+        appUsers = fallback
+      }
 
       const { data: pointsData } = await supabase
         .from('user_points')
@@ -57,7 +69,9 @@ export default function RankingView({ currentUser }: Props) {
           dayBreakdown[p.matchday_id] = p.points
           total += p.points
         })
-        return { username: u.username, total, dayBreakdown }
+        const ft = u.favorite_team
+        const favoriteTeam = ft ? (Array.isArray(ft) ? ft[0] : ft) : null
+        return { username: u.username, total, dayBreakdown, favoriteTeam }
       })
 
       userScores.sort((a, b) => b.total !== a.total ? b.total - a.total : a.username.localeCompare(b.username))
@@ -74,21 +88,15 @@ export default function RankingView({ currentUser }: Props) {
     </div>
   )
 
-  // Filter days and recompute totals based on selected country
-  const filteredDays = countryFilter === 'all'
-    ? rankingData.days
-    : rankingData.days.filter((d: any) => d.country === countryFilter)
-
-  const allUsers = rankingData.users.map(u => {
-    let filteredTotal = 0
-    filteredDays.forEach((d: any) => { filteredTotal += u.dayBreakdown[d.id] ?? 0 })
-    return { ...u, filteredTotal }
-  }).sort((a, b) => b.filteredTotal !== a.filteredTotal ? b.filteredTotal - a.filteredTotal : a.username.localeCompare(b.username))
+  // Sort users by total (all matchdays, no country filter)
+  const allUsers = [...rankingData.users].sort((a, b) =>
+    b.total !== a.total ? b.total - a.total : a.username.localeCompare(b.username)
+  )
 
   const totalUsers = allUsers.length
   const pageChunks: number[][] = []
-  for (let i = 0; i < totalUsers; i += 15) {
-    pageChunks.push([i, Math.min(i + 15, totalUsers)])
+  for (let i = 0; i < totalUsers; i += 10) {
+    pageChunks.push([i, Math.min(i + 10, totalUsers)])
   }
 
   const totalPages = pageChunks.length || 1
@@ -96,63 +104,64 @@ export default function RankingView({ currentUser }: Props) {
   const currentChunk = pageChunks[safeCurrentPage] || [0, 0]
   const paginatedUsers = allUsers.slice(currentChunk[0], currentChunk[1])
 
+  // Fixed pixel widths for the three permanent columns
+  const COL_POS  = 60
+  const COL_NAME = 200
+  const COL_TOT  = 80
+  const COL_DAY  = 45  // each breakdown column
+
   return (
-    <div className="w-full max-w-xl mx-auto flex flex-col items-center pt-2 px-2" style={{ minHeight: 'calc(100vh - 9rem)' }}>
-      {/* Country filter tabs */}
-      <div className="flex gap-1.5 flex-wrap justify-center mb-3 mt-1">
-        {COUNTRY_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { setCountryFilter(tab.key); setCurrentPage(0) }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-[10px] font-black italic uppercase tracking-tight transition-all ${
-              countryFilter === tab.key
-                ? 'bg-[#FFD300] text-black border-[#FFD300]'
-                : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
-            }`}
-          >
-            <span className="not-italic">{tab.flag}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div
+      className="flex flex-col items-center pt-2 px-2 mx-auto w-fit"
+      style={{ minHeight: 'calc(100vh - 9rem)' }}
+    >
+      {/* Header: [Desglose] — [TABLA DE POSICIONES centered] — [Pagination] */}
+      <div className="w-full flex items-center gap-3 mb-3 px-2 md:px-4">
+        {/* Left: Desglose toggle */}
+        <button
+          onClick={() => setShowFull(!showFull)}
+          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border shrink-0 ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
+        >
+          {showFull ? '← VOLVER' : 'DESGLOSE'}
+        </button>
 
-      <div className="w-full flex flex-col md:grid md:grid-cols-3 items-center mb-3 px-2 md:px-4 gap-3">
-        <div className="w-full flex justify-center md:justify-start">
-          <button
-            onClick={() => setShowFull(!showFull)}
-            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic transition-all duration-500 border ${showFull ? 'bg-white text-black border-white' : 'bg-transparent text-white border-white/20'}`}
-          >
-            {showFull ? '← VOLVER' : 'DESGLOSE'}
-          </button>
-        </div>
-
-        <h2 className="text-xl font-black italic uppercase tracking-tighter text-center order-first md:order-none w-full">
+        {/* Center: Title */}
+        <h2 className="flex-1 text-center text-base sm:text-xl font-black italic uppercase tracking-tighter">
           <span className="text-white">TABLA DE</span>{' '}
           <span className="text-[#FFD300]">POSICIONES</span>
         </h2>
 
-        <div className="w-full flex justify-center md:justify-end">
-          {totalPages > 1 && (
-            <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-              <button
-                disabled={safeCurrentPage === 0}
-                onClick={() => setCurrentPage(p => p - 1)}
-                className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-              >◀</button>
-              <button
-                disabled={safeCurrentPage === totalPages - 1}
-                onClick={() => setCurrentPage(p => p + 1)}
-                className={`px-5 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
-              >▶</button>
-            </div>
-          )}
+        {/* Right: Pagination — invisible spacer keeps title centered when hidden */}
+        <div className={`shrink-0 ${totalPages <= 1 ? 'invisible' : ''}`}>
+          <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
+            <button
+              disabled={safeCurrentPage === 0}
+              onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }}
+              className={`px-4 py-2 text-xs font-black transition-colors border-r border-white/10 ${safeCurrentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+            >◀</button>
+            <span className="px-3 py-2 text-xs font-black text-slate-400 tabular-nums select-none border-r border-white/10">
+              {safeCurrentPage + 1} / {totalPages}
+            </span>
+            <button
+              disabled={safeCurrentPage === totalPages - 1}
+              onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }}
+              className={`px-4 py-2 text-xs font-black transition-colors ${safeCurrentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
+            >▶</button>
+          </div>
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto flex-1">
-        <div className="w-full h-full">
-          <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-            <table className="w-full border-collapse table-fixed">
+      <div className="flex-1">
+          <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5 shadow-2xl w-fit">
+            <table className="border-collapse" style={{ tableLayout: 'auto' }}>
+              <colgroup>
+                <col style={{ width: COL_POS, minWidth: COL_POS }} />
+                <col style={{ width: COL_NAME, minWidth: COL_NAME }} />
+                {showFull && rankingData.days.map((d: any) => (
+                  <col key={d.id} style={{ width: COL_DAY, minWidth: COL_DAY }} />
+                ))}
+                <col style={{ width: COL_TOT, minWidth: COL_TOT }} />
+              </colgroup>
               <tbody>
                 {paginatedUsers.map((u, idx) => {
                   const globalPos = currentChunk[0] + idx + 1
@@ -166,15 +175,17 @@ export default function RankingView({ currentUser }: Props) {
                         ${isFirst ? 'bg-[#FFD300]/5' : ''}
                         ${isMe ? 'bg-blue-500/10' : ''}`}
                     >
-                      <td className="w-9 px-1.5 py-2 text-center border-r border-white/5 font-black italic text-xs">
+                      {/* Position */}
+                      <td className="px-2 py-3 text-center border-r border-white/5 font-black italic text-xs">
                         {isFirst
                           ? <span className="text-2xl">👑</span>
                           : <span className={`text-sm ${isMe ? 'text-white' : 'text-slate-600'}`}>{globalPos}</span>}
                       </td>
 
-                      <td className="w-[130px] px-2 py-2 border-r border-white/5 overflow-hidden">
-                        <div className="flex items-center gap-2">
-                          <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 shadow-md flex items-center justify-center bg-slate-800 font-bold text-sm
+                      {/* Name + avatar */}
+                      <td className="px-2 py-3 border-r border-white/5">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`relative w-12 h-12 rounded-full overflow-hidden border-2 shadow-md flex items-center justify-center bg-slate-800 font-bold text-base shrink-0
                             ${isFirst ? 'border-[#FFD300] text-[#FFD300]' : isMe ? 'border-white text-white' : 'border-white/10 text-slate-400'}`}>
                             <span>{u.username.charAt(0).toUpperCase()}</span>
                             <img
@@ -184,18 +195,28 @@ export default function RankingView({ currentUser }: Props) {
                               onError={e => (e.currentTarget.style.display = 'none')}
                             />
                           </div>
-                          <span className={`uppercase text-xs tracking-[0.08em] font-black truncate
-                            ${isFirst ? 'text-[#FFD300]' : isMe ? 'text-white' : 'text-slate-300'}`}>
-                            {u.username}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className={`uppercase text-sm tracking-[0.06em] font-black whitespace-nowrap
+                              ${isFirst ? 'text-[#FFD300]' : isMe ? 'text-white' : 'text-slate-300'}`}>
+                              {u.username}
+                            </span>
+                            {u.favoriteTeam && (
+                              <img
+                                src={getTeamLogoPath(u.favoriteTeam.competition_key, u.favoriteTeam.logo_file, u.favoriteTeam.country)}
+                                alt=""
+                                className="w-9 h-9 object-contain shrink-0"
+                              />
+                            )}
+                          </div>
                         </div>
                       </td>
 
-                      {showFull && filteredDays.map((day: any) => (
+                      {/* Breakdown columns — only when Desglose active */}
+                      {showFull && rankingData.days.map((day: any) => (
                         <td
                           key={day.id}
-                          className={`px-1.5 py-2 text-center border-l border-white/5 text-xs font-mono w-8
-                            ${day.competition_key === 'kings' ? 'bg-[#FFD300]/5' : 'bg-[#01d6c3]/5'}`}
+                          className="py-3 text-center border-l border-white/5 text-xs font-mono"
+                          style={{ backgroundColor: getMatchdayBg(day) }}
                         >
                           {u.dayBreakdown[day.id] !== undefined ? (
                             <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-700'}>
@@ -207,9 +228,10 @@ export default function RankingView({ currentUser }: Props) {
                         </td>
                       ))}
 
-                      <td className={`w-14 px-2 py-2 text-center border-l border-white/10 font-black text-base italic
+                      {/* Total score */}
+                      <td className={`px-2 py-3 text-center border-l border-white/10 font-black text-lg italic
                         ${isFirst ? 'bg-[#FFD300] text-black' : isMe ? 'bg-white/10 text-white' : 'bg-[#FFD300]/5 text-[#FFD300]'}`}>
-                        {u.filteredTotal}
+                        {u.total}
                       </td>
                     </tr>
                   )
@@ -217,8 +239,20 @@ export default function RankingView({ currentUser }: Props) {
               </tbody>
             </table>
           </div>
+
+          {/* Breakdown legend */}
+          {showFull && (
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3 px-2">
+              {LEGEND.map(l => (
+                <div key={l.label} className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 tracking-wide">
+                  <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: l.bg }} />
+                  {l.label}
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
-      </div>
     </div>
   )
 }

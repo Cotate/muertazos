@@ -174,7 +174,7 @@ function UserDashboardInner() {
         backTo="/"
       />
 
-      <main className={`mx-auto pt-6 pb-2 ${view === 'all-picks' || view === 'pizarra' ? 'w-full px-4' : 'max-w-5xl px-4'}`}>
+      <main className={`mx-auto pt-6 pb-2 ${view === 'all-picks' || view === 'pizarra' ? 'w-full' : 'max-w-5xl px-4'}`}>
 
         {showCountrySelector && (
           <div className="flex gap-2 mb-5 max-w-2xl mx-auto overflow-x-auto pb-1">
@@ -385,11 +385,16 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
       .eq('is_locked', true)
       .order('display_order')
 
-    const { data: uData } = await supabase
+    let { data: uData, error: uErr } = await supabase
       .from('app_users')
-      .select('id, username')
+      .select('id, username, favorite_team:favorite_team_id(logo_file, competition_key, country)')
       .neq('role', 'admin')
       .order('username')
+
+    if (uErr) {
+      const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username')
+      uData = fallback
+    }
 
     if (mData && mData.length > 0) {
       mData.forEach(day => {
@@ -405,7 +410,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
     setUsers(fetchedUsers)
 
     if (fetchedUsers.length > 0) {
-      const perPage = typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 12
+      const perPage = 10
       const pages = Math.ceil(fetchedUsers.length / perPage)
       setPageChunks(Array.from({ length: pages }, (_, i) => [i * perPage, (i + 1) * perPage]))
     }
@@ -466,8 +471,9 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
             <div className="flex justify-center sm:justify-start">
               {totalPages > 1 && (
                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
-                  <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
-                  <button disabled={currentPage === totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
+                  <button disabled={currentPage === 0} onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }} className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>◀</button>
+                  <span className="px-4 py-2 text-xs font-black text-slate-400 tabular-nums select-none border-r border-white/10">{currentPage + 1} / {totalPages}</span>
+                  <button disabled={currentPage === totalPages - 1} onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }} className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}>▶</button>
                 </div>
               )}
             </div>
@@ -486,18 +492,31 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
             <table className="w-full border-collapse table-fixed text-center">
               <thead>
                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
-                  <th className="w-[160px] md:w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
-                  {paginatedUsers.map(u => (
-                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[60px]">
+                  <th className="w-[160px] md:w-[180px] p-2 border-r border-white/5 align-middle text-sm text-white">PARTIDO</th>
+                  {paginatedUsers.map(u => {
+                    const favTeam = u.favorite_team
+                      ? (Array.isArray(u.favorite_team) ? u.favorite_team[0] : u.favorite_team)
+                      : null
+                    return (
+                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[72px]">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
                           <Image src={`/usuarios/${u.username}.webp`} alt={u.username} fill sizes="48px" className="object-cover z-10" onError={e => (e.currentTarget.style.display = 'none')} />
                         </div>
-                        <span className="text-[9px] leading-tight truncate w-full px-1">{u.username}</span>
+                        <div className="flex items-center justify-center gap-1 w-full px-1">
+                          <span className="text-[12px] leading-tight truncate min-w-0">{u.username}</span>
+                          {favTeam && (
+                            <img
+                              src={getTeamLogoPath(favTeam.competition_key, favTeam.logo_file, favTeam.country)}
+                              alt=""
+                              className="w-8 h-8 object-contain shrink-0"
+                            />
+                          )}
+                        </div>
                       </div>
                     </th>
-                  ))}
+                  )})}
                 </tr>
               </thead>
               <tbody>
@@ -508,7 +527,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                           {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, country)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
                         </div>
-                        <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                        <span className="text-[9px] font-black text-white italic">VS</span>
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
                           {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, country)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
                         </div>
@@ -557,6 +576,34 @@ function SettingsView({ user }: { user: any }) {
   const [showNewPw, setShowNewPw]             = useState(false)
   const [showConfirmPw, setShowConfirmPw]     = useState(false)
 
+  // ── Favorite team state ────────────────────────────────────
+  const [allTeams, setAllTeams]       = useState<any[]>([])
+  const [favTeamId, setFavTeamId]     = useState<number | null>(null)
+  const [favComp, setFavComp]         = useState<'kings' | 'queens'>('kings')
+  const [favCountry, setFavCountry]   = useState<'spain' | 'brazil' | 'mexico'>('spain')
+  const [favSaved, setFavSaved]       = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('teams').select('id, name, logo_file, competition_key, country')
+      .then(({ data }) => { if (data) setAllTeams(data) })
+    supabase.from('app_users').select('favorite_team_id').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.favorite_team_id) setFavTeamId(data.favorite_team_id) })
+  }, [user?.id])
+
+  const saveFavTeam = async (teamId: number) => {
+    setFavTeamId(teamId)
+    await supabase.from('app_users').update({ favorite_team_id: teamId }).eq('id', user.id)
+    setFavSaved(true)
+    setTimeout(() => setFavSaved(false), 2500)
+  }
+
+  const visibleTeams = allTeams.filter(t =>
+    t.competition_key === favComp && (favComp === 'queens' || t.country === favCountry)
+  )
+  const selectedTeam = allTeams.find(t => t.id === favTeamId)
+  // ── end favorite team state ────────────────────────────────
+
   if (!user) return (
     <div className="max-w-lg mx-auto py-24 text-center">
       <p className="text-slate-600 font-black italic uppercase tracking-widest">Inicia sesión para ver ajustes</p>
@@ -590,36 +637,83 @@ function SettingsView({ user }: { user: any }) {
     }
   }
 
-  const currentAvatar = user.avatar_url || `/usuarios/${user.username}.webp`
-
   return (
     <div className="max-w-lg mx-auto py-8 px-4 flex flex-col gap-8">
       <div>
         <h1 className="font-black italic text-2xl uppercase tracking-tighter">
           Ajustes <span className="text-[#FFD300]">de cuenta</span>
         </h1>
-        <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-1">
-          Gestiona tu perfil y seguridad
-        </p>
       </div>
 
-      {/* Profile photo — static display only */}
-      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6 flex items-center gap-5">
-        <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
-          <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-slate-500">
-            {user.username.charAt(0).toUpperCase()}
-          </span>
-          <Image
-            src={currentAvatar}
-            alt={user.username}
-            fill
-            className="object-cover z-10"
-            onError={e => { e.currentTarget.style.display = 'none' }}
-          />
+      {/* Favorite team picker */}
+      <section className="bg-slate-900/70 rounded-2xl border border-white/5 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black italic uppercase text-base tracking-tight text-slate-300">
+            Equipo favorito
+          </h2>
+          {selectedTeam && (
+            <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all duration-300 ${favSaved ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-white/10 bg-white/5'}`}>
+              <img
+                src={getTeamLogoPath(selectedTeam.competition_key, selectedTeam.logo_file, selectedTeam.country)}
+                alt={selectedTeam.name}
+                className="w-8 h-8 object-contain shrink-0"
+              />
+              <span className={`text-xs font-black uppercase tracking-wide ${favSaved ? 'text-emerald-400' : 'text-slate-300'}`}>
+                {favSaved ? '✓ Guardado' : selectedTeam.name}
+              </span>
+            </div>
+          )}
         </div>
-        <div>
-          <p className="font-black italic uppercase tracking-tight text-white">{user.username}</p>
-          <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-0.5">{user.role}</p>
+
+        {/* Competition / country tabs */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(['kings', 'queens'] as const).map(c => (
+            <button key={c} onClick={() => { setFavComp(c); setFavCountry('spain') }}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-black italic uppercase border transition-all ${
+                favComp === c ? 'bg-[#FFD300] text-black border-[#FFD300]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
+              }`}>
+              {c}
+            </button>
+          ))}
+          {favComp === 'kings' && (['spain', 'brazil', 'mexico'] as const).map(cn => (
+            <button key={cn} onClick={() => setFavCountry(cn)}
+              className={`px-2.5 py-1.5 rounded-full text-sm border transition-all ${
+                favCountry === cn ? 'bg-white/20 border-white/30' : 'border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700'
+              }`}>
+              {cn === 'spain' ? '🇪🇸' : cn === 'brazil' ? '🇧🇷' : '🇲🇽'}
+            </button>
+          ))}
+        </div>
+
+        {/* Team grid */}
+        <div className="grid grid-cols-5 sm:grid-cols-8 gap-1.5">
+          {visibleTeams.map(team => {
+            const isActive = favTeamId === team.id
+            return (
+              <button
+                key={team.id}
+                onClick={() => saveFavTeam(team.id)}
+                title={team.name}
+                className={`flex items-center justify-center p-2 rounded-xl border transition-all ${
+                  isActive
+                    ? 'border-[#FFD300]/70 bg-[#FFD300]/10 scale-105'
+                    : 'border-transparent hover:border-white/10 hover:bg-white/5'
+                }`}
+              >
+                <div className="w-9 h-9 flex items-center justify-center">
+                  <img
+                    src={getTeamLogoPath(team.competition_key, team.logo_file, team.country)}
+                    alt={team.name}
+                    className="w-full h-full object-contain"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.opacity = '0.15' }}
+                  />
+                </div>
+              </button>
+            )
+          })}
+          {visibleTeams.length === 0 && (
+            <p className="col-span-full text-slate-700 text-xs italic py-4 text-center">Sin equipos disponibles</p>
+          )}
         </div>
       </section>
 

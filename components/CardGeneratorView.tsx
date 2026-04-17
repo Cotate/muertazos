@@ -177,7 +177,7 @@ export default function CardGeneratorView() {
       ctx.shadowColor = 'transparent'
       ctx.restore()
 
-      setPreviewUrl(canvas.toDataURL('image/png'))
+      setPreviewUrl(canvas.toDataURL('image/webp'))
     } catch (err) {
       console.error(err)
       setError('Error al procesar las imágenes. Intenta de nuevo.')
@@ -191,7 +191,7 @@ export default function CardGeneratorView() {
     const a = document.createElement('a')
     a.href = previewUrl
     const safeName = (playerName.trim() || 'jugador').replace(/\s+/g, '_')
-    a.download = `${safeName}_card.png`
+    a.download = `${safeName}_card.webp`
     a.click()
   }, [previewUrl, playerName])
 
@@ -334,33 +334,35 @@ export default function CardGeneratorView() {
           </div>
 
           {/* ── Right panel: preview ── */}
-          <div className="flex flex-col items-center gap-4">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500 self-start">
-              Vista Previa
-            </p>
+          <div className="flex flex-col items-center">
+            <div className="w-full max-w-sm mx-auto flex flex-col gap-4">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                Vista Previa
+              </p>
 
-            <div className="w-full max-w-sm aspect-[5/7] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex items-center justify-center">
-              {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Carta generada"
-                  className="w-full h-full object-contain rounded-2xl"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-3 text-slate-700">
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                  </svg>
-                  <p className="text-sm font-medium">La carta aparecerá aquí</p>
-                </div>
+              <div className="w-full aspect-[5/7] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex items-center justify-center">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Carta generada"
+                    className="w-full h-full object-contain rounded-2xl"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-slate-700">
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    </svg>
+                    <p className="text-sm font-medium">La carta aparecerá aquí</p>
+                  </div>
+                )}
+              </div>
+
+              {previewUrl && (
+                <p className="text-xs text-slate-600 font-medium">
+                  Resolución: {CANVAS_W} × {CANVAS_H} px
+                </p>
               )}
             </div>
-
-            {previewUrl && (
-              <p className="text-xs text-slate-600 font-medium">
-                Resolución: {CANVAS_W} × {CANVAS_H} px
-              </p>
-            )}
           </div>
         </div>
       </div>

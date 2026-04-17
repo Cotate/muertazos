@@ -118,12 +118,17 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
       .eq('country', country)
       .order('display_order')
 
-    const { data: uData } = await supabase
+    let { data: uData, error: uErr } = await supabase
       .from('app_users')
-      .select('id, username')
+      .select('id, username, favorite_team:favorite_team_id(logo_file, competition_key, country)')
       .neq('role', 'admin')
       .order('username')
       .limit(5000)
+
+    if (uErr) {
+      const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin').order('username').limit(5000)
+      uData = fallback
+    }
 
     if (mData) {
       mData.forEach(day => {
@@ -149,7 +154,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     setUsers(fetchedUsers)
 
     if (fetchedUsers.length > 0) {
-      const perPage = typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 12
+      const perPage = 10
       const pages   = Math.ceil(fetchedUsers.length / perPage)
       const chunks: number[][] = Array.from({ length: pages }, (_, i) => [i * perPage, (i + 1) * perPage])
       setPageChunks(chunks)
@@ -259,12 +264,13 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 <div className="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden">
                   <button
                     disabled={currentPage === 0}
-                    onClick={() => setCurrentPage(p => p - 1)}
+                    onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }}
                     className={`px-5 py-2 text-xs font-black transition-colors border-r border-white/10 ${currentPage === 0 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                   >◀</button>
+                  <span className="px-4 py-2 text-xs font-black text-slate-400 tabular-nums select-none border-r border-white/10">{currentPage + 1} / {totalPages}</span>
                   <button
                     disabled={currentPage === totalPages - 1}
-                    onClick={() => setCurrentPage(p => p + 1)}
+                    onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }}
                     className={`px-5 py-2 text-xs font-black transition-colors ${currentPage === totalPages - 1 ? 'opacity-20' : 'hover:bg-white/10 text-[#FFD300]'}`}
                   >▶</button>
                 </div>
@@ -326,8 +332,12 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
               <thead>
                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
                   <th className="w-[160px] md:w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
-                  {paginatedUsers.map(u => (
-                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[60px]">
+                  {paginatedUsers.map(u => {
+                    const favTeam = u.favorite_team
+                      ? (Array.isArray(u.favorite_team) ? u.favorite_team[0] : u.favorite_team)
+                      : null
+                    return (
+                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[72px]">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
@@ -340,10 +350,19 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                             onError={e => (e.currentTarget.style.display = 'none')}
                           />
                         </div>
-                        <span className="text-[9px] leading-tight truncate w-full px-1">{u.username}</span>
+                        <div className="flex items-center justify-center gap-1 w-full px-1">
+                          <span className="text-[9px] leading-tight truncate min-w-0">{u.username}</span>
+                          {favTeam && (
+                            <img
+                              src={getTeamLogoPath(competitionKey, favTeam.logo_file, favTeam.country ?? country)}
+                              alt=""
+                              className="w-6 h-6 object-contain shrink-0"
+                            />
+                          )}
+                        </div>
                       </div>
                     </th>
-                  ))}
+                  )})}
                 </tr>
               </thead>
               <tbody>

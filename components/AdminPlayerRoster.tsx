@@ -243,7 +243,7 @@ export default function AdminPlayerRoster({
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
             Seleccionar Equipo
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {teams.map(team => {
               const active = selectedTeamId === team.id
               return (
@@ -251,16 +251,14 @@ export default function AdminPlayerRoster({
                   key={team.id}
                   onClick={() => setSelectedTeamId(team.id)}
                   title={team.name}
-                  className={`relative w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all
-                    ${active ? '' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}
-                  style={active ? { borderColor: accentColor, backgroundColor: accentColor + '18' } : {}}
+                  className={`relative transition-all duration-200 ${active ? 'scale-110 opacity-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 'opacity-45 hover:opacity-80 hover:scale-105'}`}
                 >
-                  <div className="relative w-9 h-9 flex-shrink-0">
+                  <div className="relative w-10 h-10 flex-shrink-0">
                     <Image
                       src={getTeamLogoPath(competitionKey, team.logo_file, team.country)}
                       alt={team.name}
                       fill
-                      sizes="36px"
+                      sizes="40px"
                       className="object-contain"
                       onError={e => { e.currentTarget.style.opacity = '0' }}
                     />

@@ -6,6 +6,22 @@ import { getCompFolder, getLogoSize, getTeamLogoPath, getTeamLogoPathEncoded } f
 
 type SplitKey = 'spain' | 'brazil' | 'mexico'
 
+// Queens League Spain — group stage configuration
+const QUEENS_GROUPS: { letter: string; color: string; keywords: string[] }[] = [
+  { letter: 'A', color: '#FFD300', keywords: ['1k', 'saiyans', 'pio', 'balanceadas'] },
+  { letter: 'B', color: '#01d6c3', keywords: ['troncas', 'rayo de barcelona', 'vellakas', 'barrio'] },
+  { letter: 'C', color: '#FF5733', keywords: ['pilares', 'mostoles', 'jijantas', 'flop'] },
+  { letter: 'D', color: '#a855f7', keywords: ['porcinas', 'madam', 'sakura', 'fun'] },
+]
+
+function getQueensGroup(teamName: string): string | null {
+  const norm = teamName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  for (const g of QUEENS_GROUPS) {
+    if (g.keywords.some(k => norm.includes(k))) return g.letter
+  }
+  return null
+}
+
 const SPLIT_OPTIONS: { key: SplitKey; label: string; flag: string; accentColor: string }[] = [
   { key: 'spain',  label: 'SPLIT 6 ESPAÑA',  flag: '🇪🇸', accentColor: '#c60b1e' },
   { key: 'brazil', label: 'SPLIT 2 BRASIL',  flag: '🇧🇷', accentColor: '#009c3b' },
@@ -290,7 +306,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Matchday title — sits above the two-column layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center gap-3 mb-4">
           <h3 className="text-2xl font-black italic uppercase tracking-tighter">
             {isNonSpainKings
               ? `Kings ${splitCountry === 'brazil' ? 'Brasil' : 'México'} · ${activeSplit.label}`
@@ -320,9 +336,9 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-8 xl:items-start">
+        <div className="flex flex-col xl:flex-row gap-8 justify-center items-start">
           {/* Match containers */}
-          <div className="flex-1 flex flex-col gap-3 xl:max-w-[380px]">
+          <div className="w-full xl:w-[360px] flex flex-col gap-3">
             {isNonSpainKings ? (
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-2xl gap-3">
                 <span className="text-3xl not-italic">{activeSplit.flag}</span>
@@ -336,7 +352,8 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                 {activeMatchday?.matches?.map((m: any) => {
                   const s = scores[m.id] || { hg: '', ag: '', penaltyWinnerId: null }
                   const isTie = s.hg !== '' && s.ag !== '' && s.hg === s.ag
-                  const size = 72
+                  const homeSize = logoSize(m.home?.logo_file ?? '')
+                  const awaySize = logoSize(m.away?.logo_file ?? '')
                   return (
                     <div key={m.id} className="bg-slate-900/50 border border-white/10 rounded-xl px-3 py-2 flex flex-col items-center gap-2">
                       <div className="flex items-center gap-3">
@@ -346,7 +363,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                               onClick={() => isTie && togglePenaltyWinner(m.id, m.home_team_id)}
                               className={`transition-all ${isTie && s.penaltyWinnerId === m.home_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                             >
-                              <Image src={getTeamLogoPath(compKey, m.home.logo_file, m.home.country ?? splitCountry)} width={size} height={size} alt="home" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+                              <Image src={getTeamLogoPath(compKey, m.home.logo_file, m.home.country ?? splitCountry)} width={homeSize} height={homeSize} alt="home" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                             </button>
                           )}
                         </div>
@@ -379,7 +396,7 @@ export default function SimulatorView({ isAdmin = false }: Props) {
                               onClick={() => isTie && togglePenaltyWinner(m.id, m.away_team_id)}
                               className={`transition-all ${isTie && s.penaltyWinnerId === m.away_team_id ? 'drop-shadow-[0_0_10px_#FFD300] scale-110' : isTie ? 'opacity-30 grayscale' : ''}`}
                             >
-                              <Image src={getTeamLogoPath(compKey, m.away.logo_file, m.away.country ?? splitCountry)} width={size} height={size} alt="away" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+                              <Image src={getTeamLogoPath(compKey, m.away.logo_file, m.away.country ?? splitCountry)} width={awaySize} height={awaySize} alt="away" onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                             </button>
                           )}
                         </div>
@@ -395,48 +412,127 @@ export default function SimulatorView({ isAdmin = false }: Props) {
           </div>
 
           {/* Standings table */}
-          <div className="w-full xl:w-[480px]">
-            <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl overflow-x-auto">
-              <table className="w-full text-center text-sm">
-                <thead>
-                  <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
-                    <th className="py-3 w-8">#</th>
-                    <th className="py-3 text-left pl-2">Equipo</th>
-                    <th className="py-3 w-8">V</th>
-                    <th className="py-3 w-8">D</th>
-                    <th className="py-3 w-8">GF</th>
-                    <th className="py-3 w-8">GC</th>
-                    <th className="py-3 w-10 bg-white/5">DG</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((t, idx) => (
-                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                      <td className="relative py-2.5 font-black text-xs">
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`} />
-                        {idx + 1}
-                      </td>
-                      <td className="py-2.5 pl-2 text-left">
-                        <div className="flex items-center gap-2">
-                          <Image src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)} width={22} height={22} alt={t.name} onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
-                          <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
-                      <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
-                      <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
-                      <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                      <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+          <div className={compKey === 'queens' ? 'w-full xl:w-[480px]' : 'w-full xl:w-[480px]'}>
+            {compKey === 'queens' ? (
+              /* Queens: 4 groups stacked vertically */
+              <div className="flex flex-col gap-4">
+                {QUEENS_GROUPS.map(group => {
+                  const groupTeams = standings.filter(t => getQueensGroup(t.name) === group.letter)
+                  return (
+                    <div key={group.letter} className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-xl">
+                      <div
+                        className="px-3 py-2 text-xs font-black uppercase tracking-widest text-black"
+                        style={{ backgroundColor: group.color }}
+                      >
+                        Grupo {group.letter}
+                      </div>
+                      <table className="w-full text-center text-sm">
+                        <thead>
+                          <tr className="bg-black/40 text-[9px] text-slate-400 font-black uppercase border-b border-white/5">
+                            <th className="py-2 w-6">#</th>
+                            <th className="py-2 text-left pl-2">Equipo</th>
+                            <th className="py-2 w-7">V</th>
+                            <th className="py-2 w-7">D</th>
+                            <th className="py-2 w-8">GF</th>
+                            <th className="py-2 w-8">GC</th>
+                            <th className="py-2 w-9 bg-white/5">DG</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {groupTeams.map((t, idx) => (
+                            <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                              <td className="relative py-2.5 font-black text-[10px]">
+                                <div
+                                  className="absolute left-0 top-0 bottom-0 w-1"
+                                  style={{
+                                    backgroundColor: idx === 0 ? group.color : idx === 1 ? '#3b82f6' : idx === 2 ? '#f97316' : 'transparent',
+                                    opacity: 0.85,
+                                  }}
+                                />
+                                {idx + 1}
+                              </td>
+                              <td className="py-2.5 pl-2 text-left">
+                                <div className="flex items-center gap-2">
+                                  <Image
+                                    src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)}
+                                    width={22} height={22}
+                                    alt={t.name}
+                                    className="object-contain shrink-0"
+                                    onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
+                                  />
+                                  <span className="text-[10px] font-bold uppercase truncate max-w-[140px]">{t.name}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
+                              <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
+                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
+                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
+                              <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                            </tr>
+                          ))}
+                          {groupTeams.length === 0 && (
+                            <tr><td colSpan={7} className="py-3 text-slate-700 text-[10px] italic">Sin datos</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              /* Kings: single standings table */
+              <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl overflow-x-auto">
+                <table className="w-full text-center text-sm">
+                  <thead>
+                    <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+                      <th className="py-3 w-8">#</th>
+                      <th className="py-3 text-left pl-2">Equipo</th>
+                      <th className="py-3 w-8">V</th>
+                      <th className="py-3 w-8">D</th>
+                      <th className="py-3 w-8">GF</th>
+                      <th className="py-3 w-8">GC</th>
+                      <th className="py-3 w-10 bg-white/5">DG</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {standings.map((t, idx) => (
+                      <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="relative py-2.5 font-black text-xs">
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${getRowColor(idx)}`} />
+                          {idx + 1}
+                        </td>
+                        <td className="py-2.5 pl-2 text-left">
+                          <div className="flex items-center gap-2">
+                            <Image src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)} width={22} height={22} alt={t.name} onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+                            <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
+                        <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
+                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
+                        <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
+                        <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] uppercase font-bold text-slate-400 bg-black/20 p-3 rounded-xl border border-white/5">
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-yellow-500 rounded-full" /><span>1º Semifinal</span></div>
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full" /><span>2º a {splitCountry === 'brazil' ? '7º' : '6º'} Cuartos</span></div>
-              {splitCountry !== 'brazil' && (
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-red-500 rounded-full" /><span>7º a 10º Play In</span></div>
+              {compKey === 'queens' ? (
+                <div className="flex flex-col gap-1.5 text-left w-full">
+                  <div className="flex items-start gap-2"><div className="w-2.5 h-2.5 mt-0.5 rounded-full shrink-0" style={{ backgroundColor: '#FFD300' }} /><span>1º 1 penalti presi extra y 1 carta secreta extra</span></div>
+                  <div className="flex items-start gap-2"><div className="w-2.5 h-2.5 mt-0.5 bg-blue-500 rounded-full shrink-0" /><span>2º 1 carta secreta extra</span></div>
+                  <div className="flex items-start gap-2"><div className="w-2.5 h-2.5 mt-0.5 bg-orange-500 rounded-full shrink-0" /><span>3º Posesión en el reinicio de los minutos 17 y 23</span></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-yellow-500 rounded-full" /><span>1º Semifinal</span></div>
+                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full" /><span>2º a {splitCountry === 'brazil' ? '7º' : '6º'} Cuartos</span></div>
+                  {splitCountry !== 'brazil' && (
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-red-500 rounded-full" /><span>7º a 10º Play In</span></div>
+                  )}
+                </>
               )}
             </div>
           </div>
