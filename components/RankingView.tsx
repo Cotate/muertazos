@@ -52,7 +52,7 @@ export default function RankingView({ currentUser }: Props) {
 
       if (usersErr) {
         const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
-        appUsers = fallback
+        appUsers = fallback as typeof appUsers
       }
 
       const { data: pointsData } = await supabase
