@@ -5,9 +5,8 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, ChevronUp,
-  BarChart3, Users,
   Trophy, Zap, CreditCard, Crown,
-  Target, ClipboardList, Settings, Layers, Layout,
+  Target, ClipboardList, Settings, Layers, Layout, Users,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -28,111 +27,158 @@ interface AppHeaderProps {
   onLoginClick?: () => void
 }
 
-// ─── Shared league data ───────────────────────────────────────────────────────
+// ─── Shared league rows ───────────────────────────────────────────────────────
 
-const LEAGUE_ITEMS = [
-  { key: 'espana', label: 'España', dotColor: '#c60b1e', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'mexico', label: 'México', dotColor: '#006847', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'brasil', label: 'Brasil', dotColor: '#009c3b', color: '#FFD300', jugLabel: 'Jugadores' },
-  { key: 'queens', label: 'Queens', dotColor: '#01d6c3', color: '#01d6c3', jugLabel: 'Jugadoras' },
+const LEAGUE_ROWS = [
+  { key: 'espana',  label: 'España',  dotColor: '#c60b1e', queenKey: 'spain'  },
+  { key: 'mexico',  label: 'México',  dotColor: '#006847', queenKey: 'mexico' },
+  { key: 'brasil',  label: 'Brasil',  dotColor: '#009c3b', queenKey: 'brazil' },
+  { key: 'queens',  label: 'Queens',  isQueens: true,      queenKey: 'spain'  },
 ] as const
 
-// ─── Admin hierarchical nav ───────────────────────────────────────────────────
+// ─── Admin feature-first nav ──────────────────────────────────────────────────
+
+const ADMIN_FEATURES = [
+  {
+    key: 'picks',
+    label: 'Picks',
+    Icon: ClipboardList,
+    activeColor: '#FFD300',
+    leagues: [
+      { key: 'espana', label: 'España', href: '/admin?section=espana&sub=picks',  dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México', href: '/admin?section=mexico&sub=picks',  dotColor: '#006847' },
+      { key: 'brasil', label: 'Brasil', href: '/admin?section=brasil&sub=picks',  dotColor: '#009c3b' },
+      { key: 'queens', label: 'Queens', href: '/admin?section=queens&sub=picks',  isQueens: true      },
+    ],
+  },
+  {
+    key: 'jugadores',
+    label: 'Jugadores',
+    Icon: Users,
+    activeColor: '#FFD300',
+    leagues: [
+      { key: 'espana', label: 'España',    href: '/admin?section=espana&sub=jugadores',  dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México',    href: '/admin?section=mexico&sub=jugadores',  dotColor: '#006847' },
+      { key: 'brasil', label: 'Brasil',    href: '/admin?section=brasil&sub=jugadores',  dotColor: '#009c3b' },
+      { key: 'queens', label: 'Jugadoras', href: '/admin?section=queens&sub=jugadores',  isQueens: true      },
+    ],
+  },
+  {
+    key: 'simulator',
+    label: 'Simulador',
+    Icon: Zap,
+    activeColor: '#FF5733',
+    leagues: [
+      { key: 'spain',  label: 'España', href: '/admin?section=simulator&country=spain',  dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México', href: '/admin?section=simulator&country=mexico', dotColor: '#006847' },
+      { key: 'brazil', label: 'Brasil', href: '/admin?section=simulator&country=brazil', dotColor: '#009c3b' },
+      { key: 'queens', label: 'Queens', href: '/admin?section=simulator&league=queens',  isQueens: true      },
+    ],
+  },
+] as const
 
 function AdminNavContent({ onClose }: { onClose: () => void }) {
-  const searchParams  = useSearchParams()
-  const pathname      = usePathname()
+  const searchParams = useSearchParams()
+  const pathname     = usePathname()
 
-  const rawSection  = searchParams.get('section')
-  const rawSub      = searchParams.get('sub')
-  const legacyTab   = searchParams.get('tab')
-
+  const rawSection = searchParams.get('section')
+  const legacyTab  = searchParams.get('tab')
   const currentSection =
     rawSection ??
-    (legacyTab === 'queens'    ? 'queens'   :
-     legacyTab === 'ranking'   ? 'ranking'  :
-     legacyTab === 'simulator' ? 'simulator':
-     legacyTab                 ? 'espana'   : null)
+    (legacyTab === 'queens'    ? 'queens'    :
+     legacyTab === 'ranking'   ? 'ranking'   :
+     legacyTab === 'simulator' ? 'simulator' :
+     legacyTab                 ? 'espana'    : 'espana')
 
-  const currentSub = rawSub
-  const isLeague   = LEAGUE_ITEMS.some(l => l.key === currentSection)
+  const currentSub     = searchParams.get('sub')
+  const currentCountry = searchParams.get('country')
+  const currentLeague  = searchParams.get('league')
 
-  const [openSections, setOpenSections] = useState<Set<string>>(() =>
-    currentSection && isLeague ? new Set([currentSection]) : new Set()
-  )
+  const isLeagueSection = ['espana', 'mexico', 'brasil', 'queens'].includes(currentSection)
+  const isPicksActive   = isLeagueSection && (currentSub === 'picks' || !currentSub)
+  const isJugActive     = isLeagueSection && currentSub === 'jugadores'
+  const isSimActive     = currentSection === 'simulator'
+  const isRankingActive = currentSection === 'ranking'
 
-  const toggle = (key: string) =>
-    setOpenSections(prev => {
-      const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
+  const featureIsActive = (key: string) =>
+    key === 'picks' ? isPicksActive : key === 'jugadores' ? isJugActive : isSimActive
 
-  const subActive = (section: string, sub: string) =>
-    pathname === '/admin' && currentSection === section &&
-    (currentSub === sub || (sub === 'picks' && !currentSub))
+  const [open, setOpen] = useState<Set<string>>(() => {
+    const s = new Set<string>()
+    if (isPicksActive) s.add('picks')
+    if (isJugActive)   s.add('jugadores')
+    if (isSimActive)   s.add('simulator')
+    return s
+  })
 
-  const flatActive = (section: string) =>
-    pathname === '/admin' && currentSection === section
+  const toggle = (k: string) =>
+    setOpen(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n })
+
+  const subIsActive = (featureKey: string, leagueKey: string) => {
+    if (pathname !== '/admin') return false
+    if (featureKey === 'picks')
+      return currentSection === leagueKey && (currentSub === 'picks' || !currentSub)
+    if (featureKey === 'jugadores')
+      return currentSection === leagueKey && currentSub === 'jugadores'
+    // simulator
+    if (leagueKey === 'queens')
+      return currentSection === 'simulator' && currentLeague === 'queens'
+    return currentSection === 'simulator' && currentCountry === leagueKey && !currentLeague
+  }
 
   return (
     <>
-      {LEAGUE_ITEMS.map(league => {
-        const isOpen   = openSections.has(league.key)
-        const isActive = pathname === '/admin' && currentSection === league.key
-
+      {ADMIN_FEATURES.map(f => {
+        const isOpen   = open.has(f.key)
+        const isActive = featureIsActive(f.key)
+        const Icon     = f.Icon
         return (
-          <div key={league.key}>
+          <div key={f.key}>
             <button
-              onClick={() => toggle(league.key)}
+              onClick={() => toggle(f.key)}
               className={`w-full flex items-center justify-between py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
                 ${isActive
                   ? 'bg-white/5 border-white/10'
                   : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}
-              style={isActive ? { color: league.color } : {}}
+              style={isActive ? { color: f.activeColor } : {}}
             >
               <span className="flex items-center gap-2.5">
-                {league.key === 'queens'
-                  ? <Crown size={13} className="flex-shrink-0" style={{ color: league.color }} />
-                  : <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: league.dotColor }} />
-                }
-                <span>{league.label}</span>
+                <Icon size={15} className="flex-shrink-0" />
+                {f.label}
               </span>
               {isOpen
                 ? <ChevronUp size={15} className="flex-shrink-0 opacity-60" />
-                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />
-              }
+                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />}
             </button>
 
             <div
               className="overflow-hidden transition-all duration-200 ease-in-out"
-              style={{ maxHeight: isOpen ? '120px' : '0px', opacity: isOpen ? 1 : 0 }}
+              style={{ maxHeight: isOpen ? '160px' : '0px', opacity: isOpen ? 1 : 0 }}
             >
               <div className="pl-10 pr-3 pt-0.5 pb-2 flex flex-col gap-0.5">
-                <Link
-                  href={`/admin?section=${league.key}&sub=picks`}
-                  onClick={onClose}
-                  className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
-                    ${subActive(league.key, 'picks')
-                      ? 'bg-white/[0.07] border border-white/10'
-                      : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
-                  style={subActive(league.key, 'picks') ? { color: league.color } : {}}
-                >
-                  <BarChart3 size={13} className="flex-shrink-0" />
-                  Picks
-                </Link>
-                <Link
-                  href={`/admin?section=${league.key}&sub=jugadores`}
-                  onClick={onClose}
-                  className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
-                    ${subActive(league.key, 'jugadores')
-                      ? 'bg-white/[0.07] border border-white/10'
-                      : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
-                  style={subActive(league.key, 'jugadores') ? { color: league.color } : {}}
-                >
-                  <Users size={13} className="flex-shrink-0" />
-                  {league.jugLabel}
-                </Link>
+                {f.leagues.map(league => {
+                  const active     = subIsActive(f.key, league.key)
+                  const dotColor   = (league as any).dotColor as string | undefined
+                  const isQueens   = !!(league as any).isQueens
+                  const itemColor  = isQueens ? '#01d6c3' : f.activeColor
+                  return (
+                    <Link
+                      key={league.key}
+                      href={league.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
+                        ${active
+                          ? 'bg-white/[0.07] border border-white/10'
+                          : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                      style={active ? { color: itemColor } : {}}
+                    >
+                      {isQueens
+                        ? <Crown size={11} className="flex-shrink-0" style={{ color: active ? itemColor : undefined }} />
+                        : <span className="w-2 h-2 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: dotColor }} />}
+                      {league.label}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -145,24 +191,12 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
         href="/admin?section=ranking"
         onClick={onClose}
         className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
-          ${flatActive('ranking')
+          ${isRankingActive
             ? 'text-white bg-white/5 border-white/10'
             : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
       >
         <Trophy size={16} className="flex-shrink-0" />
         Ranking
-      </Link>
-
-      <Link
-        href="/admin?section=simulator"
-        onClick={onClose}
-        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
-          ${flatActive('simulator')
-            ? 'text-[#FF5733] bg-white/5 border-white/10'
-            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
-      >
-        <Zap size={16} className="flex-shrink-0" />
-        Simulador
       </Link>
 
       <Link
@@ -180,54 +214,46 @@ function AdminNavContent({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ─── User hierarchical nav ────────────────────────────────────────────────────
+// ─── User feature-first nav ───────────────────────────────────────────────────
 
-const USER_LEAGUES: {
-  key: string
-  label: string
-  dotColor: string
-  color: string
-  subs: { label: string; href: string; icon: 'predis' | 'picks' | 'sim' }[]
-}[] = [
+const USER_FEATURES = [
   {
-    key: 'espana', label: 'España', dotColor: '#c60b1e', color: '#FFD300',
-    subs: [
-      { label: 'Predis',    href: '/predis?league=kings&country=spain',              icon: 'predis' },
-      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=spain', icon: 'picks'  },
-      { label: 'Simulador', href: '/simulator?country=spain',                        icon: 'sim'    },
+    key: 'predis',
+    label: 'Predis',
+    Icon: Target,
+    activeColor: '#FFD300',
+    leagues: [
+      { key: 'espana', label: 'España', href: '/predis?league=kings&country=spain',   dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México', href: '/predis?league=kings&country=mexico',  dotColor: '#006847' },
+      { key: 'brasil', label: 'Brasil', href: '/predis?league=kings&country=brazil',  dotColor: '#009c3b' },
+      { key: 'queens', label: 'Queens', href: '/predis?league=queens&country=spain',  isQueens: true      },
     ],
   },
   {
-    key: 'brasil', label: 'Brasil', dotColor: '#009c3b', color: '#FFD300',
-    subs: [
-      { label: 'Predis',    href: '/predis?league=kings&country=brazil',              icon: 'predis' },
-      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=brazil', icon: 'picks'  },
-      { label: 'Simulador', href: '/simulator?country=brazil',                        icon: 'sim'    },
+    key: 'picks',
+    label: 'Picks',
+    Icon: ClipboardList,
+    activeColor: '#FFD300',
+    leagues: [
+      { key: 'espana', label: 'España', href: '/dashboard?tab=picks&league=kings&country=spain',   dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México', href: '/dashboard?tab=picks&league=kings&country=mexico',  dotColor: '#006847' },
+      { key: 'brasil', label: 'Brasil', href: '/dashboard?tab=picks&league=kings&country=brazil',  dotColor: '#009c3b' },
+      { key: 'queens', label: 'Queens', href: '/dashboard?tab=picks&league=queens&country=spain',  isQueens: true      },
     ],
   },
   {
-    key: 'mexico', label: 'México', dotColor: '#006847', color: '#FFD300',
-    subs: [
-      { label: 'Predis',    href: '/predis?league=kings&country=mexico',              icon: 'predis' },
-      { label: 'Picks',     href: '/dashboard?tab=picks&league=kings&country=mexico', icon: 'picks'  },
-      { label: 'Simulador', href: '/simulator?country=mexico',                        icon: 'sim'    },
+    key: 'simulator',
+    label: 'Simulador',
+    Icon: Zap,
+    activeColor: '#FF5733',
+    leagues: [
+      { key: 'spain',  label: 'España', href: '/simulator?country=spain',  dotColor: '#c60b1e' },
+      { key: 'mexico', label: 'México', href: '/simulator?country=mexico', dotColor: '#006847' },
+      { key: 'brazil', label: 'Brasil', href: '/simulator?country=brazil', dotColor: '#009c3b' },
+      { key: 'queens', label: 'Queens', href: '/simulator?league=queens',  isQueens: true      },
     ],
   },
-  {
-    key: 'queens', label: 'Queens', dotColor: '#01d6c3', color: '#01d6c3',
-    subs: [
-      { label: 'Predis',    href: '/predis?league=queens&country=spain',              icon: 'predis' },
-      { label: 'Picks',     href: '/dashboard?tab=picks&league=queens&country=spain', icon: 'picks'  },
-      { label: 'Simulador', href: '/simulator?league=queens',                         icon: 'sim'    },
-    ],
-  },
-]
-
-function SubIcon({ type }: { type: 'predis' | 'picks' | 'sim' }) {
-  if (type === 'predis') return <Target size={13} className="flex-shrink-0" />
-  if (type === 'picks')  return <ClipboardList size={13} className="flex-shrink-0" />
-  return <Zap size={13} className="flex-shrink-0" />
-}
+] as const
 
 function UserNavContent({ onClose }: { onClose: () => void }) {
   const searchParams = useSearchParams()
@@ -235,24 +261,6 @@ function UserNavContent({ onClose }: { onClose: () => void }) {
   const tab          = searchParams.get('tab')
   const urlCountry   = searchParams.get('country')
   const urlLeague    = searchParams.get('league')
-
-  // Determine which section to auto-open based on current URL
-  const defaultOpen =
-    tab === 'queens' || urlLeague === 'queens' ? 'queens' :
-    urlCountry === 'brazil' ? 'brasil' :
-    urlCountry === 'mexico' ? 'mexico' :
-    'espana'
-
-  const [openSections, setOpenSections] = useState<Set<string>>(
-    () => new Set([defaultOpen])
-  )
-
-  const toggle = (key: string) =>
-    setOpenSections(prev => {
-      const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
 
   const subIsActive = (href: string) => {
     const [hPath, hQuery] = href.split('?')
@@ -265,59 +273,70 @@ function UserNavContent({ onClose }: { onClose: () => void }) {
     return true
   }
 
-  const leagueIsActive = (league: typeof USER_LEAGUES[number]) =>
-    league.subs.some(s => subIsActive(s.href))
+  const featureHasActive = (f: typeof USER_FEATURES[number]) =>
+    f.leagues.some(l => subIsActive(l.href))
+
+  const defaultOpenKeys = USER_FEATURES
+    .filter(f => featureHasActive(f))
+    .map(f => f.key)
+
+  const [open, setOpen] = useState<Set<string>>(() => new Set(
+    defaultOpenKeys.length ? defaultOpenKeys : ['picks']
+  ))
+
+  const toggle = (k: string) =>
+    setOpen(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n })
 
   return (
     <>
-      {USER_LEAGUES.map(league => {
-        const isOpen   = openSections.has(league.key)
-        const isActive = leagueIsActive(league)
-
+      {USER_FEATURES.map(f => {
+        const isOpen   = open.has(f.key)
+        const isActive = featureHasActive(f)
+        const Icon     = f.Icon
         return (
-          <div key={league.key}>
+          <div key={f.key}>
             <button
-              onClick={() => toggle(league.key)}
+              onClick={() => toggle(f.key)}
               className={`w-full flex items-center justify-between py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
                 ${isActive
                   ? 'bg-white/5 border-white/10'
                   : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}
-              style={isActive ? { color: league.color } : {}}
+              style={isActive ? { color: f.activeColor } : {}}
             >
               <span className="flex items-center gap-2.5">
-                {league.key === 'queens'
-                  ? <Crown size={13} className="flex-shrink-0" style={{ color: league.color }} />
-                  : <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: league.dotColor }} />
-                }
-                <span>{league.label}</span>
+                <Icon size={15} className="flex-shrink-0" />
+                {f.label}
               </span>
               {isOpen
                 ? <ChevronUp size={15} className="flex-shrink-0 opacity-60" />
-                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />
-              }
+                : <ChevronDown size={15} className="flex-shrink-0 opacity-60" />}
             </button>
 
-            {/* Sub-items */}
             <div
               className="overflow-hidden transition-all duration-200 ease-in-out"
               style={{ maxHeight: isOpen ? '160px' : '0px', opacity: isOpen ? 1 : 0 }}
             >
               <div className="pl-10 pr-3 pt-0.5 pb-2 flex flex-col gap-0.5">
-                {league.subs.map(sub => {
-                  const active = subIsActive(sub.href)
+                {f.leagues.map(league => {
+                  const active   = subIsActive(league.href)
+                  const dotColor = (league as any).dotColor as string | undefined
+                  const isQueens = !!(league as any).isQueens
+                  const color    = isQueens ? '#01d6c3' : f.activeColor
                   return (
                     <Link
-                      key={sub.label}
-                      href={sub.href}
+                      key={league.key}
+                      href={league.href}
                       onClick={onClose}
                       className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all
                         ${active
                           ? 'bg-white/[0.07] border border-white/10'
                           : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'}`}
-                      style={active ? { color: league.color } : {}}
+                      style={active ? { color } : {}}
                     >
-                      <SubIcon type={sub.icon} />
-                      {sub.label}
+                      {isQueens
+                        ? <Crown size={11} className="flex-shrink-0" style={{ color: active ? color : undefined }} />
+                        : <span className="w-2 h-2 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: dotColor }} />}
+                      {league.label}
                     </Link>
                   )
                 })}
@@ -342,18 +361,6 @@ function UserNavContent({ onClose }: { onClose: () => void }) {
       </Link>
 
       <Link
-        href="/tierlist"
-        onClick={onClose}
-        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
-          ${pathname === '/tierlist'
-            ? 'text-white bg-white/5 border-white/10'
-            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
-      >
-        <Layers size={16} className="flex-shrink-0" />
-        Tier List
-      </Link>
-
-      <Link
         href="/pizarra"
         onClick={onClose}
         className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
@@ -363,6 +370,18 @@ function UserNavContent({ onClose }: { onClose: () => void }) {
       >
         <Layout size={16} className="flex-shrink-0" />
         Pizarra
+      </Link>
+
+      <Link
+        href="/tierlist"
+        onClick={onClose}
+        className={`flex items-center gap-2.5 py-3 px-4 rounded-xl font-black italic text-base uppercase tracking-tight transition-all border
+          ${pathname === '/tierlist'
+            ? 'text-white bg-white/5 border-white/10'
+            : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+      >
+        <Layers size={16} className="flex-shrink-0" />
+        Tier List
       </Link>
     </>
   )
@@ -406,7 +425,6 @@ export default function AppHeader({
   }
 
   const isPublicOnly = !username && !!backTo
-
   const close = () => setMenuOpen(false)
 
   return (
@@ -455,7 +473,6 @@ export default function AppHeader({
 
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
-            {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
               <div className="relative w-28 h-9">
                 <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
@@ -470,7 +487,6 @@ export default function AppHeader({
               </button>
             </div>
 
-            {/* Nav content — scrollable */}
             <nav className="flex flex-col p-3 gap-0.5 flex-1 overflow-y-auto min-h-0">
               <Suspense fallback={
                 <div className="p-4 text-slate-700 text-xs font-bold uppercase tracking-widest text-center">
@@ -484,10 +500,7 @@ export default function AppHeader({
               </Suspense>
             </nav>
 
-            {/* Drawer footer — user info + logout */}
             <div className="shrink-0 border-t border-slate-800">
-
-              {/* Username row with Settings icon on the right */}
               {username && (
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                   <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex-shrink-0">
@@ -519,7 +532,6 @@ export default function AppHeader({
               )}
 
               <div className="px-4 pb-4">
-                {/* Logout */}
                 {onLogout && (
                   <button
                     onClick={() => { onLogout(); close() }}

@@ -17,6 +17,7 @@ export default function TierListPage() {
     <div className="h-screen bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
       <AppHeader
         onLogout={user ? () => { localStorage.removeItem('muertazos_user'); router.push('/') } : undefined}
+        userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.webp`) : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"

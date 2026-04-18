@@ -78,6 +78,9 @@ export default function AdminPlayerRoster({
   const [dbError, setDbError] = useState<string | null>(null)
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [newPlayerName, setNewPlayerName] = useState('')
+  const [addingPlayer, setAddingPlayer] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
   const accentColor    = competitionKey === 'queens' ? '#01d6c3' : '#FFD300'
   const jugadoresLabel = competitionKey === 'queens' ? 'Jugadoras' : 'Jugadores'
@@ -201,6 +204,32 @@ export default function AdminPlayerRoster({
     }
 
     console.log('[AdminPlayerRoster] import successful, reloading...')
+    setReloadKey(k => k + 1)
+  }
+
+  // ── Add player manually ────────────────────────────────────────────────────
+  const addPlayer = async () => {
+    const name = newPlayerName.trim()
+    if (!name || selectedTeamId == null) return
+    setAddingPlayer(true)
+    setAddError(null)
+    const { error } = await supabase.from('players').insert({
+      team_id:         selectedTeamId,
+      competition_key: competitionKey,
+      country_id:      COUNTRY_ID[country] ?? 1,
+      name,
+      image_file:      `${name}.webp`,
+      lesion:          false,
+      tarjeta:         false,
+      wildcard:        false,
+      convocado:       true,
+    })
+    setAddingPlayer(false)
+    if (error) {
+      setAddError(error.message || JSON.stringify(error))
+      return
+    }
+    setNewPlayerName('')
     setReloadKey(k => k + 1)
   }
 
@@ -345,6 +374,33 @@ export default function AdminPlayerRoster({
               </button>
             )}
           </div>
+
+          {/* Add player row */}
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-800/60 bg-black/20">
+            <input
+              type="text"
+              value={newPlayerName}
+              onChange={e => { setNewPlayerName(e.target.value); setAddError(null) }}
+              onKeyDown={e => { if (e.key === 'Enter') addPlayer() }}
+              placeholder="Añadir jugador..."
+              className="flex-1 bg-black/40 border border-slate-800 rounded-lg px-3 py-2 text-sm font-bold text-white placeholder-slate-700 focus:border-slate-600 focus:outline-none transition-colors"
+            />
+            <button
+              onClick={addPlayer}
+              disabled={addingPlayer || !newPlayerName.trim()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide transition-all disabled:opacity-40 shrink-0"
+              style={{ backgroundColor: accentColor + '22', color: accentColor, border: `1px solid ${accentColor}55` }}
+            >
+              {addingPlayer
+                ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin inline-block" />
+                : '+ Añadir'}
+            </button>
+          </div>
+          {addError && (
+            <div className="px-5 py-2 bg-red-500/10 border-b border-red-500/20 text-red-400 text-xs font-mono">
+              {addError}
+            </div>
+          )}
 
           {/* Body */}
           {loading ? (

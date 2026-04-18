@@ -16,6 +16,7 @@ import { useState } from 'react'
 type Section = 'espana' | 'brasil' | 'mexico' | 'queens' | 'ranking' | 'simulator'
 type SubTab  = 'picks' | 'jugadores'
 
+
 const COMP_SECTIONS: Record<string, {
   compKey: string; country: Country; label: string; color: string
 }> = {
@@ -69,6 +70,8 @@ function AdminDashboardInner() {
   const subTab: SubTab = (rawSub === 'jugadores' || rawSub === 'jugadoras') ? 'jugadores' : 'picks'
 
   const cfg = COMP_SECTIONS[section]  // defined only for competition sections
+  const urlCountry = searchParams.get('country') as Country | null
+  const urlLeague  = searchParams.get('league') as 'kings' | 'queens' | null
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white w-full">
@@ -79,7 +82,13 @@ function AdminDashboardInner() {
         {section === 'ranking' ? (
           <RankingView />
         ) : section === 'simulator' ? (
-          <SimulatorView isAdmin />
+          <SimulatorView
+            key={`sim-admin-${urlCountry ?? 'all'}-${urlLeague ?? 'kings'}`}
+            isAdmin
+            initialCountry={urlCountry || undefined}
+            initialLeague={urlLeague || undefined}
+            hideControls={!!(urlCountry || urlLeague)}
+          />
         ) : cfg && subTab === 'picks' ? (
           <CompetitionAdmin
             key={`${cfg.compKey}-${cfg.country}`}

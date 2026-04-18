@@ -47,19 +47,26 @@ function PredisPageInner() {
   const multiBoardRef = useRef<HTMLDivElement>(null)
   const multiCaptureBoardRef = useRef<HTMLDivElement>(null)
 
+  // Load user once on mount
   useEffect(() => {
     const stored = localStorage.getItem('muertazos_user')
     if (stored) { try { setUser(JSON.parse(stored)) } catch {} }
     setUserChecked(true)
+  }, [])
+
+  // Re-sync league/country whenever URL params change (sidebar navigation)
+  useEffect(() => {
     if (urlLeague)  setLeague(urlLeague)
     if (urlCountry) setCountry(urlCountry)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [urlLeague, urlCountry])
 
   const effectiveCountry: Country = league === 'queens' ? 'spain' : country
 
   const loadMatchdays = useCallback(async () => {
     if (!userChecked) return
+    setMatchdays([])
+    setPredictions({})
+    setGuestPredictions({})
     const visibilityField = user ? 'is_visible' : 'is_public_visible'
     const { data } = await supabase
       .from('matchdays')
@@ -157,6 +164,7 @@ function PredisPageInner() {
       <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
         <AppHeader
           onLogout={user ? () => { localStorage.removeItem('muertazos_user'); router.push('/') } : undefined}
+          userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.webp`) : undefined}
           username={user?.username}
           userRole={user?.role}
           variant="nav"
@@ -282,6 +290,7 @@ function PredisPageInner() {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
       <AppHeader
         onLogout={user ? () => { localStorage.removeItem('muertazos_user'); router.push('/') } : undefined}
+        userAvatar={user ? (user.avatar_url || `/usuarios/${user.username}.webp`) : undefined}
         username={user?.username}
         userRole={user?.role}
         variant="nav"
