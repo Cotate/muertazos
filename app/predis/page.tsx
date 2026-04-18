@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Users, Share2, X } from 'lucide-react'
+import { Users, Share2, X, Save } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
 import { getTeamLogoPath, getTeamLogoPathEncoded, sortMatchesByOrder, type Country } from '@/lib/utils'
@@ -33,6 +33,8 @@ function PredisPageInner() {
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
   const [predictions, setPredictions] = useState<Record<number, number>>({})
   const [isGenerating, setIsGenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null)
   const shareTicketRef = useRef<HTMLDivElement>(null)
 
   // Multi-guest state
@@ -75,10 +77,29 @@ function PredisPageInner() {
       .eq(visibilityField, true)
       .order('display_order')
 
-    setMatchdays(data ? data.map(day => ({ ...day, matches: sortMatchesByOrder(day.matches || []) })) : [])
+    const days = data ? data.map(day => ({ ...day, matches: sortMatchesByOrder(day.matches || []) })) : []
+    setMatchdays(days)
     setCurrentDayIndex(0)
-    setPredictions({})
     setGuestPredictions({})
+
+    // Load pre-existing predictions for the logged-in user
+    if (user && days.length > 0) {
+      const allMatchIds = days.flatMap(d => (d.matches || []).map((m: any) => m.id))
+      const { data: existingPreds } = await supabase
+        .from('predictions')
+        .select('match_id, predicted_team_id')
+        .eq('user_id', user.id)
+        .in('match_id', allMatchIds)
+      if (existingPreds?.length) {
+        const map: Record<number, number> = {}
+        existingPreds.forEach(p => { map[p.match_id] = p.predicted_team_id })
+        setPredictions(map)
+      } else {
+        setPredictions({})
+      }
+    } else {
+      setPredictions({})
+    }
   }, [league, country, user, userChecked])
 
   useEffect(() => { loadMatchdays() }, [loadMatchdays])
@@ -101,6 +122,31 @@ function PredisPageInner() {
       }
       return { ...prev, [guestIdx]: { ...guestPreds, [matchId]: teamId } }
     })
+  }
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!user) return
+    const entries = Object.entries(predictions)
+    if (!entries.length) return
+    setSaving(true)
+    setSaveStatus(null)
+    const rows = entries.map(([matchId, teamId]) => ({
+      user_id: user.id,
+      match_id: Number(matchId),
+      predicted_team_id: teamId,
+    }))
+    const { error } = await supabase
+      .from('predictions')
+      .upsert(rows, { onConflict: 'user_id,match_id' })
+    setSaving(false)
+    if (error) {
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus(null), 4000)
+    } else {
+      setSaveStatus('success')
+      setTimeout(() => setSaveStatus(null), 3000)
+    }
   }
 
   const handleShare = async () => {
@@ -362,29 +408,66 @@ function PredisPageInner() {
               </div>
 
               {/* Action */}
-              <div className="mt-6 flex justify-center">
+              <div className="mt-6 flex flex-col items-center gap-3">
                 {isLocked ? (
                   <div className="bg-red-950/20 border border-red-900/50 text-red-500 px-10 py-4 rounded-2xl font-black italic tracking-widest text-sm">
                     JORNADA CERRADA
                   </div>
                 ) : (
-                  <button
-                    onClick={handleShare}
-                    disabled={isGenerating}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl border font-black italic uppercase text-sm tracking-tight transition-all disabled:opacity-50"
-                    style={{ backgroundColor: activeColor + '1a', borderColor: activeColor + '66', color: activeColor }}
-                  >
-                    {isGenerating ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
+                  <div className="flex items-center gap-3 flex-wrap justify-center">
+                    {user && (
+                      <button
+                        onClick={handleSave}
+                        disabled={saving || Object.keys(predictions).length === 0}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-black italic uppercase text-sm tracking-tight text-black transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: activeColor }}
+                      >
+                        {saving ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+                          </svg>
+                        ) : (
+                          <Save size={15} />
+                        )}
+                        Guardar predis
+                      </button>
                     )}
-                    Compartir mis picks
-                  </button>
+                    <button
+                      onClick={handleShare}
+                      disabled={isGenerating}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl border font-black italic uppercase text-sm tracking-tight transition-all disabled:opacity-50"
+                      style={{ backgroundColor: activeColor + '1a', borderColor: activeColor + '66', color: activeColor }}
+                    >
+                      {isGenerating ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                      Compartir mis picks
+                    </button>
+                  </div>
+                )}
+
+                {/* Save feedback toast */}
+                {saveStatus === 'success' && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold tracking-wide">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    ¡Predis guardadas correctamente!
+                  </div>
+                )}
+                {saveStatus === 'error' && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold tracking-wide">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Error al guardar. Inténtalo de nuevo.
+                  </div>
                 )}
               </div>
             </>
