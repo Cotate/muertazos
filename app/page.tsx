@@ -21,7 +21,7 @@ export default function Home() {
     if (stored) {
       try {
         const u = JSON.parse(stored)
-        router.push(u.role === 'admin' ? '/admin' : '/dashboard')
+        router.push(u.role === 'admin' ? '/admin?section=espana&sub=picks' : '/predis?league=kings&country=spain')
       } catch {}
     }
   }, [router])
@@ -39,7 +39,7 @@ export default function Home() {
     setLoading(false)
     if (dbError || !data) { setError('Datos incorrectos'); return }
     localStorage.setItem('muertazos_user', JSON.stringify(data))
-    router.push(data.role === 'admin' ? '/admin' : '/dashboard')
+    router.push(data.role === 'admin' ? '/admin?section=espana&sub=picks' : '/predis?league=kings&country=spain')
   }
 
   const marqueeItems = [...COLLABORATORS, ...COLLABORATORS, ...COLLABORATORS]

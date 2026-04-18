@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Users, Share2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import AppHeader from '@/components/AppHeader'
-import { COUNTRIES, getTeamLogoPath, getTeamLogoPathEncoded, sortMatchesByOrder, type Country } from '@/lib/utils'
+import { getTeamLogoPath, getTeamLogoPathEncoded, sortMatchesByOrder, type Country } from '@/lib/utils'
 
 
 function getCountryLabel(c: string): string {
@@ -29,7 +29,6 @@ function PredisPageInner() {
   // URL params set when navigating from the menu — hide filter UI when present
   const urlLeague  = searchParams.get('league')  as 'kings' | 'queens' | null
   const urlCountry = searchParams.get('country') as Country | null
-  const hasUrlContext = !!(urlLeague || urlCountry)
   const [matchdays, setMatchdays] = useState<any[]>([])
   const [currentDayIndex, setCurrentDayIndex] = useState(0)
   const [predictions, setPredictions] = useState<Record<number, number>>({})
@@ -299,65 +298,18 @@ function PredisPageInner() {
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-8 pb-10">
 
-        {/* Filter bar — hidden when navigated from menu (URL context already set) */}
-        <div className={`flex items-start justify-between gap-x-4 gap-y-2 mb-6 ${hasUrlContext ? 'hidden' : ''}`}>
-          {/* Left block — Row 1: Kings/Queens · Row 2: country pills (Kings only) */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              {(['kings', 'queens'] as const)
-                .filter(lg => !(lg === 'queens' && (country === 'mexico' || country === 'brazil')))
-                .map(lg => (
-                  <button
-                    key={lg}
-                    onClick={() => { setLeague(lg); if (lg === 'queens') setCountry('spain') }}
-                    className={`px-5 py-2 rounded-full text-xs font-black italic uppercase border transition-colors ${
-                      league === lg
-                        ? lg === 'kings'
-                          ? 'bg-[#FFD300] text-black border-[#FFD300]'
-                          : 'bg-[#01d6c3] text-black border-[#01d6c3]'
-                        : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
-                    }`}
-                  >
-                    {lg === 'kings' ? 'Kings' : 'Queens'}
-                  </button>
-                ))}
-            </div>
-            {league === 'kings' && (
-              <div className="flex items-center gap-2 flex-wrap">
-                {COUNTRIES.map(({ key, name, color }) => {
-                  const isActive = country === key
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setCountry(key)
-                        if ((key === 'mexico' || key === 'brazil') && league !== 'kings') setLeague('kings')
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black italic uppercase tracking-tight whitespace-nowrap transition-all ${
-                        isActive ? 'border-current' : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'
-                      }`}
-                      style={isActive ? { borderColor: activeColor, color: activeColor, backgroundColor: activeColor + '18' } : {}}
-                    >
-                      <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: isActive ? 'currentColor' : color }} />
-                      <span>{name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Multipredis trigger */}
-          {matchdays.length > 0 && !isLocked && (
+        {/* Multipredis trigger */}
+        {matchdays.length > 0 && !isLocked && (
+          <div className="flex justify-end mb-4">
             <button
               onClick={openModal}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-bold transition-colors whitespace-nowrap"
             >
               <Users className="w-3.5 h-3.5" />
               Multipredis
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="bg-slate-900/70 rounded-3xl p-4 sm:p-6 border border-white/5">
           <div className={`h-0.5 w-full bg-gradient-to-r ${getPicksBorderGradient()} rounded-full mb-4 opacity-60`} />

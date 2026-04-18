@@ -24,102 +24,252 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 **Next.js 16 App Router** with TypeScript and Tailwind CSS v4. Deployed on Vercel.
 
-### Routes
-- `/` — Login page (`app/page.tsx`)
-- `/dashboard` — User view (`app/dashboard/page.tsx`)
-- `/admin` — Admin view (`app/admin/page.tsx`)
-- `/tierlist` — Tier List Maker (`app/tierlist/page.tsx`)
-- `/simulator` — Simulator standalone (`app/simulator/page.tsx`)
-- `/ranking` — Ranking standalone (`app/ranking/page.tsx`)
-- `/pizarra` — Pizarra standalone (`app/pizarra/page.tsx`)
-- `/predis` — Predis placeholder (`app/predis/page.tsx`)
+---
 
-All pages are `'use client'`. Auth is role-based via `localStorage` key `muertazos_user` (JSON of the `app_users` row). On load, pages check `localStorage` and redirect to `/` if no valid session or insufficient role. Some views (ranking, pizarra, simulator) are publicly accessible without auth.
+## Routes
 
-### Auth model
-Custom auth — **not Supabase Auth**. Credentials are checked against the `app_users` table (plain-text password comparison in the DB query). Roles: `admin` or regular user.
+| Path | Purpose | Auth |
+|------|---------|------|
+| `/` | Landing page + login modal | Public |
+| `/predis` | Predictions/bracket view | Public + User |
+| `/dashboard` | All-picks table + individual picks + settings | User |
+| `/admin` | Admin panel (picks, jugadores, ranking, simulator, carta) | Admin |
+| `/simulator` | Bracket simulator | Public |
+| `/ranking` | Global leaderboard | Public |
+| `/pizarra` | Drag-and-drop tactical board | Public |
+| `/tierlist` | Tier list maker | User |
+| `/card-generator` | Player card generator | Admin |
 
-### Supabase schema
-- `competitions` — id, key (`'kings'`|`'queens'`), name, color
-- `teams` — id, competition_key, name, logo_file, **country** (default `'spain'`)
-- `matchdays` — id, competition_key, name, date_label, display_order, is_visible, is_locked, **country** (default `'spain'`)
-- `matches` — id, matchday_id, home_team_id, away_team_id, winner_team_id, match_order (default 99)
-- `match_results` — match_id (PK), home_goals, away_goals, home_penalties, away_penalties, updated_at
-- `app_users` — id (uuid), username (unique), password, role (default `'user'`)
-- `predictions` — id, user_id, match_id, predicted_team_id
-- `user_points` — id (uuid), user_id, matchday_id, points, updated_at
+All pages are `'use client'`. No Next.js middleware exists.
 
-The Supabase client is a singleton at `lib/supabase.ts`. RLS is **disabled** on all tables.
+---
 
-### Multi-country support
-Teams and matchdays both have a `country` column (`'spain'` | `'brazil'` | `'mexico'`). All queries that fetch teams or matchdays must include `.eq('country', ...)` to avoid cross-country data leakage. Splits per country:
-- España → Split 6
-- Brasil → Split 2
-- México → Split 4
+## Auth Model
 
-### Asset structure
-All images live under `public/MUERTAZOS ESTRUCTURA/`. All image files are `.webp`.
+Custom auth — **not Supabase Auth**. Credentials checked against `app_users` (plain-text password comparison).
 
-- **App logo**: `/MUERTAZOS ESTRUCTURA/Muertazos.webp`
-- **Team logos**: `/MUERTAZOS ESTRUCTURA/{KINGS|QUEENS}/{CountryFolder}/Equipos/{logo_file}`
-  - CountryFolder: `España`, `Brazil`, `México`
-  - `logo_file` in DB stores only the filename (e.g. `"1K FC.webp"`), never the full path
-- **Player images**: `/MUERTAZOS ESTRUCTURA/KINGS/{CountryFolder}/{SplitFolder}/{TeamName}/{PlayerName}.webp`
-  - e.g. `/MUERTAZOS ESTRUCTURA/KINGS/España/Split 6/1K FC/Achraf Laiti.webp`
-- **User avatars**: `/usuarios/{username}.jpg`
+- Session stored in `localStorage` as `muertazos_user` (JSON of the `app_users` row)
+- Roles: `admin` or regular user
+- Pages guard themselves via `useEffect` on mount, redirecting to `/` if session is missing or role is insufficient
 
-### Path utilities (`lib/utils.ts`)
-- `getTeamLogoPath(league, logoFile, country?)` — builds full team logo URL; auto-converts `.png`/`.jpg` to `.webp`; applies `LOGO_FILE_FIXES` map to normalize known DB/filesystem mismatches (e.g. `Ultimate Mostoles.webp` → `Ultimate Móstoles.webp`)
-- `getPlayerImagePath(country, league, team, playerName)` — builds full player image URL
-- `getLogoSize(filename, small?)` — returns pixel size for `<Image>` based on filename
-- `getCompFolder(competitionKey)` — returns `'Kings'` or `'Queens'`
-- `COUNTRIES` — array of `{ key, flag, name }` for the country selector UI
-- `sortMatchesByOrder(matches)` — sorts matches by `match_order` then `id`
+### Post-login redirects
+- **Admin** → `/admin?section=espana&sub=picks`
+- **User** → `/predis?league=kings&country=spain`
+- **Existing session on `/`** → same destinations (checked in `useEffect`)
 
-### Components
-- `AppHeader` — shared sticky header with two variants: `'minimal'` (centered logo only, used on login) and `'nav'` (full navigation with left/right nav items, hamburger drawer on mobile, logout button).
-- `AppFooter` — global footer rendered in `app/layout.tsx`.
-- `SimulatorView` — Kings/Queens simulator with split selector (España/Brasil/México for Kings). Brasil only shows Kings (no Queens). Loads teams and matchdays from DB filtered by `competition_key` and `country`. Shows placeholder when no matchdays exist for the selected split.
-- `RankingView` — global leaderboard.
-- `PizarraView` — drag-and-drop tactical board supporting all three countries (España Split 6, Brasil Split 2, México Split 4). Dropdown flow: Competición → Equipo → Jugador. **Mixed teams are supported**: switching the Competición dropdown only updates the dropdowns for the next player to add — players already on the board are NOT removed. Each token on the board stores its own `split` field and resolves its image path independently via `buildImagePath(team, fileName, split)`. The "Limpiar" button clears all tokens regardless of origin.
-- `TierList` (`components/TierList.tsx`) — tier list maker supporting España, Brasil, and México for Kings; España only for Queens. Extracted from the page into a reusable component; uses `useTierListData` hook for teams/players.
+---
 
-### Player data
-`PLAYERS_DATA` constants (`SPAIN_PLAYERS_DATA`, `BRAZIL_PLAYERS_DATA`, `MEXICO_PLAYERS_DATA`) exist in both `app/tierlist/page.tsx` and `components/PizarraView.tsx` — they are duplicated intentionally as each component has different concerns. Player names are stored without file extension.
+## Supabase Schema
 
-### Brand colors
-- `#FFD300` — Kings / yellow accent
-- `#01d6c3` — Queens / teal accent
-- `#FF5733` — Simulator / orange accent
-- `#0a0a0a` — App background (dark)
+All tables have RLS **disabled**.
 
-## Recent refactors
+| Table | Key columns |
+|-------|------------|
+| `competitions` | id, key (`'kings'`\|`'queens'`), name, color |
+| `teams` | id, competition_key, name, logo_file, **country** (default `'spain'`) |
+| `matchdays` | id, competition_key, name, date_label, display_order, is_visible, is_locked, **is_public_visible**, **country** |
+| `matches` | id, matchday_id, home_team_id, away_team_id, winner_team_id, match_order (default 99) |
+| `match_results` | match_id (PK), home_goals, away_goals, home_penalties, away_penalties, updated_at |
+| `app_users` | id (uuid), username (unique), password, role (default `'user'`), favorite_team_id |
+| `predictions` | id, user_id, match_id, predicted_team_id |
+| `user_points` | id (uuid), user_id, matchday_id, points, updated_at |
+| `players` | id (serial), team_id, competition_key, country_id, name, image_file, lesion, tarjeta, wildcard, convocado |
 
-### Predis route (`/predis`)
-- New route at `app/predis/page.tsx` — public-facing predictions/stats section, currently a placeholder ("Sección en construcción").
-- Added to `USER_MENU` in `AppHeader.tsx` between PICKS and PIZARRA.
+Supabase client singleton: `lib/supabase.ts`
 
-### TierList component extraction
-- Tier list logic moved from `app/tierlist/page.tsx` into `components/TierList.tsx`.
-- `app/tierlist/page.tsx` is now a thin wrapper that handles auth (reads `muertazos_user` from localStorage) and renders `<AppHeader>` + `<TierList user={user} />`.
-- `TierList` accepts a `user?: { username?: string } | null` prop — no auth logic or router inside the component.
-- Key UI improvements in `TierList.tsx` vs old page: label column widened to `w-32`, editing uses `<textarea>` for wrapping, new rows use next available letter (A–Z), `tierCounter` is a `useRef` (not module-level), share ticket label column widened to `80px`.
-
-### `useTierListData` hook (`lib/hooks/useTierListData.ts`)
-- Fetches teams from Supabase (`teams` table, filtered by `competition_key` + `country`).
-- Attempts to fetch players from a `players` table; falls back to hardcoded `SPAIN_PLAYERS_DATA` / `BRAZIL_PLAYERS_DATA` / `MEXICO_PLAYERS_DATA` constants until that table is populated.
-- Exports: `useTierListData(comp, country)` → `{ teamChips, playerTeamNames, buildPlayerChips, loading }`.
-- Also exports the hardcoded player data constants and `buildPlayerChipsFallback` for external use.
-
-### `players` table (needs to be created in Supabase)
+### `players` table — create once if missing
 ```sql
 CREATE TABLE players (
-  id            serial PRIMARY KEY,
-  team_id       int REFERENCES teams(id),
-  team_name     text NOT NULL,
-  name          text NOT NULL,
-  country       text NOT NULL DEFAULT 'spain',
-  competition_key text NOT NULL DEFAULT 'kings'
+  id              serial PRIMARY KEY,
+  team_id         int REFERENCES teams(id),
+  competition_key text NOT NULL DEFAULT 'kings',
+  country_id      int NOT NULL,   -- 1=spain  2=brazil  3=mexico
+  name            text NOT NULL,
+  image_file      text NOT NULL,  -- e.g. 'Achraf Laiti.webp'
+  lesion          boolean NOT NULL DEFAULT false,
+  tarjeta         boolean NOT NULL DEFAULT false,
+  wildcard        boolean NOT NULL DEFAULT false,
+  convocado       boolean NOT NULL DEFAULT true
 );
-CREATE INDEX ON players (competition_key, country);
+CREATE INDEX ON players (competition_key, country_id);
 ```
+
+---
+
+## Multi-country Support
+
+Teams and matchdays carry a `country` column. All queries must include `.eq('country', ...)`.
+
+| Country | DB key | Folder | Split |
+|---------|--------|--------|-------|
+| España | `'spain'` | `España` | Split 6 |
+| Brasil | `'brazil'` | `Brazil` | Split 2 |
+| México | `'mexico'` | `México` | Split 4 |
+
+Queens always uses `country = 'spain'`.
+
+---
+
+## Asset Structure
+
+All images live under `public/MUERTAZOS ESTRUCTURA/`. All files are `.webp`.
+
+```
+public/MUERTAZOS ESTRUCTURA/
+  Muertazos.webp                          # App logo
+  KINGS/{CountryFolder}/
+    Equipos/{logo_file}                   # Team logos
+    {SplitFolder}/{TeamName}/{Player}.webp # Player images
+  QUEENS/España/
+    Equipos/{logo_file}
+  usuarios/{username}.webp               # User avatars
+```
+
+`logo_file` in DB stores filename only (e.g. `"1K FC.webp"`), never the full path.
+
+---
+
+## Path Utilities (`lib/utils.ts`)
+
+| Function | Purpose |
+|----------|---------|
+| `getTeamLogoPath(league, logoFile, country?)` | Full URL for team logo; auto-converts ext to `.webp`; applies `LOGO_FILE_FIXES` |
+| `getTeamLogoPathEncoded(league, logoFile, country?)` | `encodeURI` variant for `<img>` tags in share tickets |
+| `getPlayerImagePath(country, league, team, playerName)` | Full URL for player image |
+| `getLogoSize(filename, large?)` | Pixel size for `<Image>` |
+| `getCompFolder(compKey)` | `'Kings'` or `'Queens'` |
+| `getStoredUser()` | Safe `localStorage` read for `muertazos_user` |
+| `sortMatchesByOrder(matches)` | Sort by `match_order` then `id` |
+| `COUNTRIES` | `[{ key, flag, name, color }]` for country data |
+
+---
+
+## Navigation Architecture
+
+### Sidebar (drawer in `AppHeader`)
+
+The sidebar is the **sole navigation source** — pages never render in-page country/league selectors. All navigation passes `league` and `country` as URL search params so the active item in the sidebar can highlight correctly.
+
+**Feature-first structure (both admin and user):**
+
+**Admin:**
+- PICKS → España / México / Brasil / Queens — `/admin?section={key}&sub=picks`
+- JUGADORES → España / México / Brasil / Jugadoras — `/admin?section={key}&sub=jugadores`
+- RANKING — `/admin?section=ranking`
+- SIMULADOR → España / México / Brasil / Queens — `/admin?section=simulator&country={key}`
+- CARTA — `/card-generator`
+
+**User:**
+- PREDIS → España / México / Brasil / Queens — `/predis?league=kings&country={key}`
+- PICKS → España / México / Brasil / Queens — `/dashboard?tab=picks&league=kings&country={key}`
+- RANKING — `/ranking`
+- SIMULADOR → España / México / Brasil / Queens — `/simulator?country={key}`
+- PIZARRA — `/pizarra`
+- TIER LIST — `/tierlist`
+
+### Reactivity pattern
+
+All pages derive `league` and `country` from URL search params via two separate `useEffect`s:
+
+```ts
+// 1. Mount-only: read session from localStorage
+useEffect(() => { /* setUser, setUserChecked */ }, [])
+
+// 2. Re-sync on URL change: fires whenever sidebar navigates
+useEffect(() => {
+  if (urlLeague)  setLeague(urlLeague)
+  if (urlCountry) setCountry(urlCountry)
+}, [urlLeague, urlCountry])
+```
+
+The `loadData` callback depends on `league` and `country` via `useCallback`, so it re-fires automatically when state updates.
+
+For components with internal `useState` initialized from props (e.g. `SimulatorView`), always pass a `key` prop derived from country/league so React remounts on navigation change:
+
+```tsx
+<SimulatorView
+  key={`sim-${urlCountry ?? 'all'}-${urlLeague ?? 'kings'}`}
+  initialCountry={urlCountry || undefined}
+/>
+```
+
+---
+
+## Components
+
+| Component | Purpose |
+|-----------|---------|
+| `AppHeader` | Sticky header with hamburger drawer. Variants: `'minimal'` (login page), `'nav'` (all other pages). Contains `AdminNavContent` and `UserNavContent` — both feature-first accordions. |
+| `AppFooter` | Global footer, rendered in `app/layout.tsx` |
+| `SimulatorView` | Bracket simulator. Props: `isAdmin`, `initialCountry`, `initialLeague`, `hideControls`. Always mount with a `key` when country/league comes from URL. |
+| `RankingView` | Global leaderboard. Accepts `currentUser?` to highlight the logged-in user. |
+| `PizarraView` | Drag-and-drop tactical board; supports España/Brasil/México. Mixed teams allowed; each token stores its own `split`. |
+| `TierList` | Tier list maker. Accepts `user?: { username? }`. Extracted from the page; no auth logic inside. |
+| `AdminPlayerRoster` | Player roster table for admin. Supports importing hardcoded data, toggling status flags, and adding players manually. |
+
+---
+
+## Admin Page (`/admin`)
+
+State is derived **purely from URL** — no internal useState for section/sub.
+
+```
+?section=espana&sub=picks       → CompetitionAdmin (kings, spain)
+?section=brasil&sub=picks       → CompetitionAdmin (kings, brazil)
+?section=mexico&sub=picks       → CompetitionAdmin (kings, mexico)
+?section=queens&sub=picks       → CompetitionAdmin (queens, spain)
+?section=espana&sub=jugadores   → AdminPlayerRoster (kings, spain)
+?section=ranking                → RankingView
+?section=simulator&country=spain → SimulatorView (keyed by country)
+```
+
+`CompetitionAdmin` components are keyed by `competitionKey-country` to force full remount when switching leagues.
+
+---
+
+## User Dashboard (`/dashboard`)
+
+URL params drive the view:
+
+```
+?tab=picks&league=kings&country=spain  → CompetitionReadOnly (all users' picks table)
+?tab=settings                          → SettingsView
+```
+
+Legacy `?tab=kings` / `?tab=queens` still work but route to `view='picks'` (individual picks — no country selector rendered).
+
+---
+
+## Player Data
+
+`SPAIN_PLAYERS_DATA`, `BRAZIL_PLAYERS_DATA`, `MEXICO_PLAYERS_DATA` constants live in `lib/hooks/useTierListData.ts` (canonical source) and are duplicated in `components/PizarraView.tsx` (intentional — different concerns).
+
+`useTierListData(comp, country)` hook:
+1. Fetches teams from Supabase
+2. Attempts to fetch players from `players` table
+3. Falls back to hardcoded constants if table is empty
+
+### Sync script
+
+```bash
+node scripts/sync-new-players.mjs
+```
+
+Reads `.env.local`, queries team IDs from Supabase, inserts any new España players not yet in the DB.
+
+---
+
+## Brand Colors
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Kings / yellow | `#FFD300` | Kings accent, admin picks |
+| Queens / teal | `#01d6c3` | Queens accent |
+| Simulator / orange | `#FF5733` | Simulator section |
+| App background | `#0a0a0a` | Dark base |
+
+---
+
+## Icon Library
+
+**Lucide React** exclusively. Consistent `size={15}` for nav sub-icons, `size={16}` for nav top-level icons, `size={13}` for badge/button icons. Same stroke width throughout (Lucide default).

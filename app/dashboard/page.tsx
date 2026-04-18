@@ -8,7 +8,7 @@ import AppHeader from '@/components/AppHeader'
 import SimulatorView from '@/components/SimulatorView'
 import RankingView from '@/components/RankingView'
 import PizarraView from '@/components/PizarraView'
-import { Country, COUNTRIES, getCompFolder, getLogoSize, getTeamLogoPath, sortMatchesByOrder } from '@/lib/utils'
+import { Country, getLogoSize, getTeamLogoPath, sortMatchesByOrder } from '@/lib/utils'
 
 export default function UserDashboard() {
   return <Suspense><UserDashboardInner /></Suspense>
@@ -156,9 +156,6 @@ function UserDashboardInner() {
     router.push('/')
   }
 
-  const showCountrySelector = view === 'picks' && league === 'kings' && !searchParams.get('country')
-  const folder = getCompFolder(league)
-
   const getPicksBorderGradient = () => {
     if (league === 'queens') return 'from-[#01d6c3] via-[#01d6c3]/50 to-[#01d6c3]'
     if (country === 'mexico') return 'from-[#006847] via-white to-[#ce1126]'
@@ -178,30 +175,6 @@ function UserDashboardInner() {
       />
 
       <main className={`mx-auto pt-6 pb-2 ${view === 'all-picks' || view === 'pizarra' ? 'w-full' : 'max-w-5xl px-4'}`}>
-
-        {showCountrySelector && (
-          <div className="flex gap-2 mb-5 max-w-2xl mx-auto overflow-x-auto pb-1">
-            {COUNTRIES.map(({ key, name, color }) => {
-              const isSoon = key !== 'spain'
-              const isActive = country === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setCountry(key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black italic uppercase tracking-tight whitespace-nowrap transition-all
-                    ${isActive
-                      ? 'border-current'
-                      : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
-                  style={isActive ? { borderColor: activeColor, color: activeColor, backgroundColor: activeColor + '18' } : {}}
-                >
-                  <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: isActive ? 'currentColor' : color }} />
-                  <span>{name}</span>
-                  {isSoon && <span className="text-[8px] font-black not-italic tracking-widest text-slate-600 ml-0.5">PRÓX.</span>}
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {view === 'picks' ? (
           <div className="max-w-2xl mx-auto">
