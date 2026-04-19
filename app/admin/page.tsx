@@ -231,54 +231,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     load()
   }
 
-  const calculatePoints = async (matchdayId: number) => {
-    setCalculating(true)
-    setCalcMsg(null)
-    try {
-      const activeDay = matchdays.find(d => d.id === matchdayId)
-      if (!activeDay) throw new Error('Jornada no encontrada')
-
-      const matchesWithWinner = (activeDay.matches ?? []).filter((m: any) => m.winner_team_id != null)
-      if (matchesWithWinner.length === 0) throw new Error('No hay resultados asignados')
-
-      const matchIds = matchesWithWinner.map((m: any) => m.id)
-
-      const { data: allUsers } = await supabase
-        .from('app_users')
-        .select('id')
-        .neq('role', 'admin')
-      if (!allUsers || allUsers.length === 0) throw new Error('No hay usuarios')
-
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('user_id, match_id, predicted_team_id')
-        .in('match_id', matchIds)
-
-      const winnerMap: Record<number, number> = {}
-      matchesWithWinner.forEach((m: any) => { winnerMap[m.id] = m.winner_team_id })
-
-      const upsertRows = allUsers.map((u: any) => {
-        const correct = (preds ?? []).filter(
-          p => p.user_id === u.id &&
-               p.predicted_team_id != null &&
-               winnerMap[p.match_id] != null &&
-               p.predicted_team_id === winnerMap[p.match_id]
-        ).length
-        return { user_id: u.id, matchday_id: matchdayId, points: correct, updated_at: new Date().toISOString() }
-      })
-
-      const { error } = await supabase
-        .from('user_points')
-        .upsert(upsertRows, { onConflict: 'user_id,matchday_id' })
-
-      if (error) throw new Error(error.message)
-      setCalcMsg({ ok: true, text: `✓ Puntos calculados para ${upsertRows.length} usuarios` })
-    } catch (e: any) {
-      setCalcMsg({ ok: false, text: `✗ ${e.message}` })
-    } finally {
-      setCalculating(false)
-    }
-  }
 
   const paginatedUsers  = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
   const totalPages      = pageChunks.length
