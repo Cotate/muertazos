@@ -34,9 +34,6 @@ export default function PizarraPage() {
         backTo={!user ? '/' : undefined}
       />
       <main className="w-full px-4 pt-6 pb-2">
-        <div className="flex justify-center my-4">
-          <div id="container-db0f2e579c615669bb2ec9639b23ef77"></div>
-        </div>
         <PizarraView fillViewport />
       </main>
     </div>

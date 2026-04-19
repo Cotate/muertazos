@@ -4,7 +4,6 @@ import { Inter, Doppio_One } from 'next/font/google'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import AppFooter from '@/components/AppFooter'
-import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 const doppioOne = Doppio_One({
@@ -27,12 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">{children}</main>
         <AppFooter />
         <Analytics />
-        <Script
-          id="adsterra"
-          data-cfasync="false"
-          src="https://pl29190223.profitablecpmratenetwork.com/db0f2e579c615669bb2ec9639b23ef77/invoke.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   )

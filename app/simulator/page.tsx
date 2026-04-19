@@ -42,9 +42,6 @@ function SimulatorPageInner() {
         backTo={!user ? '/' : undefined}
       />
       <main className="w-full pt-6 pb-2">
-        <div className="flex justify-center my-4">
-          <div id="container-db0f2e579c615669bb2ec9639b23ef77"></div>
-        </div>
         <SimulatorView
           key={`${urlCountry ?? 'none'}-${urlLeague ?? 'none'}`}
           isAdmin={user?.role === 'admin'}
