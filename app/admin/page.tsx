@@ -116,8 +116,6 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
   const [allPreds, setAllPreds] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
-  const [calculating, setCalculating] = useState(false)
-  const [calcMsg, setCalcMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Queens always maps to España folder; Kings respects the country prop
   const effectiveCountry = competitionKey === 'queens' ? 'spain' : country
@@ -388,20 +386,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 {activeMatchday.is_locked ? 'CERRADO' : 'ABIERTO'}
               </button>
 
-              <button
-                onClick={() => { setCalcMsg(null); calculatePoints(activeMatchday.id) }}
-                disabled={calculating}
-                className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all bg-emerald-700/80 border-emerald-400 text-white hover:bg-emerald-600 disabled:opacity-50"
-              >
-                {calculating ? '...' : '⚡ CALCULAR PUNTOS'}
-              </button>
             </div>
-
-            {calcMsg && (
-              <div className={`w-full text-center text-[11px] font-black py-1 ${calcMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-                {calcMsg.text}
-              </div>
-            )}
           </div>
 
           <div className="w-full scroll-x-dark">
