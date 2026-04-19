@@ -35,6 +35,9 @@ export default function RankingPage() {
       />
       <main className="w-full pt-6 pb-2">
         <RankingView currentUser={user?.username} />
+        <div className="flex justify-center my-4">
+          <div id="container-db0f2e579c615669bb2ec9639b23ef77"></div>
+        </div>
       </main>
     </div>
   )

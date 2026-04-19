@@ -18,7 +18,6 @@ export const metadata: Metadata = {
   title: 'Muertazos',
   description: 'Herramientas Kings & Queens',
   icons: { icon: '/MUERTAZOS ESTRUCTURA/Muertazos.webp?v=1', apple: '/MUERTAZOS ESTRUCTURA/Muertazos.webp?v=1' },
-  other: { 'google-adsense-account': 'ca-pub-5763902761360524' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,10 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppFooter />
         <Analytics />
         <Script
-          id="google-adsense"
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5763902761360524"
-          crossOrigin="anonymous"
+          id="adsterra"
+          data-cfasync="false"
+          src="https://pl29190223.profitablecpmratenetwork.com/db0f2e579c615669bb2ec9639b23ef77/invoke.js"
           strategy="afterInteractive"
         />
       </body>
