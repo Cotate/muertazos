@@ -17,7 +17,11 @@
       "Bash(npx eslint:*)",
       "Bash(echo \"EXIT:$?\")",
       "Read(//tmp/**)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(xargs grep *)",
+      "Bash(git log *)",
+      "Bash(xargs wc *)",
+      "Bash(node *)"
     ]
   },
   "enableAllProjectMcpServers": true,

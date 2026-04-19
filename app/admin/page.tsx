@@ -116,6 +116,8 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
   const [allPreds, setAllPreds] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
+  const [calculating, setCalculating] = useState(false)
+  const [calcMsg, setCalcMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Queens always maps to España folder; Kings respects the country prop
   const effectiveCountry = competitionKey === 'queens' ? 'spain' : country
@@ -231,6 +233,55 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
     load()
   }
 
+  const calculatePoints = async (matchdayId: number) => {
+    setCalculating(true)
+    setCalcMsg(null)
+    try {
+      const activeDay = matchdays.find(d => d.id === matchdayId)
+      if (!activeDay) throw new Error('Jornada no encontrada')
+
+      const matchesWithWinner = (activeDay.matches ?? []).filter((m: any) => m.winner_team_id != null)
+      if (matchesWithWinner.length === 0) throw new Error('No hay resultados asignados')
+
+      const matchIds = matchesWithWinner.map((m: any) => m.id)
+
+      const { data: allUsers } = await supabase
+        .from('app_users')
+        .select('id')
+        .neq('role', 'admin')
+      if (!allUsers || allUsers.length === 0) throw new Error('No hay usuarios')
+
+      const { data: preds } = await supabase
+        .from('predictions')
+        .select('user_id, match_id, predicted_team_id')
+        .in('match_id', matchIds)
+
+      const winnerMap: Record<number, number> = {}
+      matchesWithWinner.forEach((m: any) => { winnerMap[m.id] = m.winner_team_id })
+
+      const upsertRows = allUsers.map((u: any) => {
+        const correct = (preds ?? []).filter(
+          p => p.user_id === u.id &&
+               p.predicted_team_id != null &&
+               winnerMap[p.match_id] != null &&
+               p.predicted_team_id === winnerMap[p.match_id]
+        ).length
+        return { user_id: u.id, matchday_id: matchdayId, points: correct, updated_at: new Date().toISOString() }
+      })
+
+      const { error } = await supabase
+        .from('user_points')
+        .upsert(upsertRows, { onConflict: 'user_id,matchday_id' })
+
+      if (error) throw new Error(error.message)
+      setCalcMsg({ ok: true, text: `✓ Puntos calculados para ${upsertRows.length} usuarios` })
+    } catch (e: any) {
+      setCalcMsg({ ok: false, text: `✗ ${e.message}` })
+    } finally {
+      setCalculating(false)
+    }
+  }
+
   const paginatedUsers  = pageChunks.length > 0 ? users.slice(pageChunks[currentPage][0], pageChunks[currentPage][1]) : []
   const totalPages      = pageChunks.length
   const activeMatchday  = matchdays.find(d => d.id === activeMatchdayId)
@@ -336,7 +387,21 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                 {activeMatchday.is_locked ? <Lock size={13} /> : <Unlock size={13} />}
                 {activeMatchday.is_locked ? 'CERRADO' : 'ABIERTO'}
               </button>
+
+              <button
+                onClick={() => { setCalcMsg(null); calculatePoints(activeMatchday.id) }}
+                disabled={calculating}
+                className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-black rounded-full border transition-all bg-emerald-700/80 border-emerald-400 text-white hover:bg-emerald-600 disabled:opacity-50"
+              >
+                {calculating ? '...' : '⚡ CALCULAR PUNTOS'}
+              </button>
             </div>
+
+            {calcMsg && (
+              <div className={`w-full text-center text-[11px] font-black py-1 ${calcMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                {calcMsg.text}
+              </div>
+            )}
           </div>
 
           <div className="w-full scroll-x-dark">
