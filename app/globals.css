@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/* ── Consistent dark-themed horizontal scroll container ─────────────────────
+   Use class="scroll-x-dark" on any overflow-x-auto wrapper.               */
+.scroll-x-dark {
+  overflow-x: auto;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+.scroll-x-dark::-webkit-scrollbar {
+  height: 6px;
+}
+.scroll-x-dark::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+}
+.scroll-x-dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+.scroll-x-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}

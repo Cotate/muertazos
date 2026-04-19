@@ -340,7 +340,7 @@ function TeamButton({ team, league, country = 'spain', isSelected, anyPickInMatc
       className={`relative flex items-center justify-center transition-all duration-500 bg-transparent ${appearanceClass} ${!disabled && !isSelected ? 'hover:scale-105' : ''}`}
     >
       <div className="relative w-20 h-20 sm:w-28 sm:h-28">
-        <Image src={getTeamLogoPath(league, team.logo_file, country)} alt={team.name} fill className="object-contain" />
+        <Image src={getTeamLogoPath(league, team.logo_file, league === 'queens' ? 'spain' : country)} alt={team.name} fill className="object-contain" />
       </div>
     </button>
   )
@@ -354,6 +354,9 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
 
+  // Queens always shows Spanish teams; Kings respects the country param
+  const effectiveCountry = competitionKey === 'queens' ? 'spain' : country
+
   const logoSize = (filename: string) => getLogoSize(filename)
 
   const load = async () => {
@@ -361,7 +364,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
       .from('matchdays')
       .select('*, matches(*, home:home_team_id(*), away:away_team_id(*))')
       .eq('competition_key', competitionKey)
-      .eq('country', country)
+      .eq('country', effectiveCountry)
       .eq('is_locked', true)
       .order('display_order')
 
@@ -407,7 +410,7 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
       const matchIds = activeDay.matches.map((m: any) => m.id)
       const { data: pData, error } = await supabase
         .from('predictions')
-        .select('*, predicted_team:predicted_team_id(logo_file)')
+        .select('*, predicted_team:predicted_team_id(logo_file, competition_key, country)')
         .in('match_id', matchIds)
 
       if (!error && pData) setAllPreds(pData)
@@ -468,17 +471,17 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
             <div />
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse table-fixed text-center">
+          <div className="w-full scroll-x-dark">
+            <table className="border-collapse table-auto text-center min-w-full">
               <thead>
                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
-                  <th className="w-[160px] md:w-[180px] p-2 border-r border-white/5 align-middle text-sm text-white">PARTIDO</th>
+                  <th className="w-[160px] p-2 border-r border-white/5 align-middle text-sm text-white whitespace-nowrap">PARTIDO</th>
                   {paginatedUsers.map(u => {
                     const favTeam = u.favorite_team
                       ? (Array.isArray(u.favorite_team) ? u.favorite_team[0] : u.favorite_team)
                       : null
                     return (
-                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[72px]">
+                    <th key={u.id} className="py-2 px-3 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[80px] whitespace-nowrap">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
@@ -502,14 +505,14 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
               <tbody>
                 {activeMatchday.matches?.map((m: any) => (
                   <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                    <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                    <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.home_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, country)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
+                          {m.home && <Image src={getTeamLogoPath(competitionKey, m.home.logo_file, effectiveCountry)} width={logoSize(m.home.logo_file)} height={logoSize(m.home.logo_file)} alt="h" />}
                         </div>
                         <span className="text-[9px] font-black text-white italic">VS</span>
                         <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${m.winner_team_id === m.away_team_id ? 'opacity-100 scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : m.winner_team_id === null ? 'opacity-100' : 'opacity-20 grayscale scale-90'}`}>
-                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, country)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
+                          {m.away && <Image src={getTeamLogoPath(competitionKey, m.away.logo_file, effectiveCountry)} width={logoSize(m.away.logo_file)} height={logoSize(m.away.logo_file)} alt="a" />}
                         </div>
                       </div>
                     </td>
@@ -518,11 +521,11 @@ function CompetitionReadOnly({ competitionKey, country = 'spain' }: { competitio
                       const isHit = m.winner_team_id && pred && pred.predicted_team_id === m.winner_team_id
                       const hasWinner = m.winner_team_id !== null
                       return (
-                        <td key={u.id} className="p-1 border-r border-white/5">
+                        <td key={u.id} className="p-1 border-r border-white/5 whitespace-nowrap">
                           {pred?.predicted_team?.logo_file ? (
                             <div className="flex justify-center">
                               <Image
-                                src={getTeamLogoPath(competitionKey, pred.predicted_team.logo_file, country)}
+                                src={getTeamLogoPath(competitionKey, pred.predicted_team.logo_file, effectiveCountry)}
                                 width={logoSize(pred.predicted_team.logo_file)}
                                 height={logoSize(pred.predicted_team.logo_file)}
                                 alt="p"

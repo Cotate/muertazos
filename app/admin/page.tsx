@@ -117,6 +117,9 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
   const [currentPage, setCurrentPage] = useState(0)
   const [pageChunks, setPageChunks] = useState<number[][]>([])
 
+  // Queens always maps to España folder; Kings respects the country prop
+  const effectiveCountry = competitionKey === 'queens' ? 'spain' : country
+
   const logoSize = (filename: string) => getLogoSize(filename)
 
   const load = async () => {
@@ -336,17 +339,17 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
             </div>
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse table-fixed text-center">
+          <div className="w-full scroll-x-dark">
+            <table className="border-collapse table-auto text-center min-w-full">
               <thead>
                 <tr className="bg-black/60 text-[11px] text-slate-500 font-black uppercase tracking-tighter border-b border-white/5">
-                  <th className="w-[160px] md:w-[180px] p-2 border-r border-white/5 align-middle">PARTIDO</th>
+                  <th className="w-[160px] p-2 border-r border-white/5 align-middle whitespace-nowrap">PARTIDO</th>
                   {paginatedUsers.map(u => {
                     const favTeam = u.favorite_team
                       ? (Array.isArray(u.favorite_team) ? u.favorite_team[0] : u.favorite_team)
                       : null
                     return (
-                    <th key={u.id} className="py-2 px-1 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[72px]">
+                    <th key={u.id} className="py-2 px-3 border-r border-white/5 bg-black/20 text-slate-200 align-middle min-w-[80px] whitespace-nowrap">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 shadow-lg flex items-center justify-center text-slate-500 font-black text-lg">
                           {u.username.charAt(0).toUpperCase()}
@@ -363,7 +366,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                           <span className="text-[9px] leading-tight truncate min-w-0">{u.username}</span>
                           {favTeam && (
                             <img
-                              src={getTeamLogoPath(competitionKey, favTeam.logo_file, favTeam.country ?? country)}
+                              src={getTeamLogoPath(favTeam.competition_key ?? competitionKey, favTeam.logo_file, favTeam.country ?? effectiveCountry)}
                               alt=""
                               className="w-6 h-6 object-contain shrink-0"
                             />
@@ -377,7 +380,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
               <tbody>
                 {activeMatchday.matches?.map((m: any) => (
                   <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                    <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30">
+                    <td className="py-1 px-2 border-r border-white/5 bg-slate-900/30 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => setWinner(m.id, m.winner_team_id == m.home_team_id ? null : m.home_team_id)}
@@ -389,7 +392,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                         >
                           {m.home && (
                             <Image
-                              src={getTeamLogoPath(competitionKey, m.home.logo_file, m.home.country ?? country)}
+                              src={getTeamLogoPath(competitionKey, m.home.logo_file, effectiveCountry)}
                               width={logoSize(m.home.logo_file)}
                               height={logoSize(m.home.logo_file)}
                               alt="h"
@@ -408,7 +411,7 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                         >
                           {m.away && (
                             <Image
-                              src={getTeamLogoPath(competitionKey, m.away.logo_file, m.away.country ?? country)}
+                              src={getTeamLogoPath(competitionKey, m.away.logo_file, effectiveCountry)}
                               width={logoSize(m.away.logo_file)}
                               height={logoSize(m.away.logo_file)}
                               alt="a"
@@ -424,14 +427,13 @@ function CompetitionAdmin({ competitionKey, country }: { competitionKey: string;
                       const hasWinner = m.winner_team_id !== null
                       const predTeam  = Array.isArray(pred?.predicted_team) ? pred?.predicted_team[0] : pred?.predicted_team
                       const logoFile  = predTeam?.logo_file
-                      const predCountry = predTeam?.country ?? country
 
                       return (
-                        <td key={u.id} className="p-1 border-r border-white/5">
+                        <td key={u.id} className="p-1 border-r border-white/5 whitespace-nowrap">
                           {logoFile ? (
                             <div className="flex justify-center">
                               <Image
-                                src={getTeamLogoPath(competitionKey, logoFile, predCountry)}
+                                src={getTeamLogoPath(competitionKey, logoFile, effectiveCountry)}
                                 width={logoSize(logoFile)}
                                 height={logoSize(logoFile)}
                                 alt="p"

@@ -419,7 +419,7 @@ export default function AdminPlayerRoster({
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="scroll-x-dark">
               <table className="w-full min-w-[540px]">
                 <thead>
                   <tr className="border-b border-slate-800/60">

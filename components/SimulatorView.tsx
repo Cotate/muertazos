@@ -595,7 +595,7 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
               )
             ) : (
               /* Kings: single standings table */
-              <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl overflow-x-auto">
+              <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl scroll-x-dark">
                 <table className="w-full text-center text-sm">
                   <thead>
                     <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
