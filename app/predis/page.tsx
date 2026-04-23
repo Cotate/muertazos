@@ -402,9 +402,11 @@ function PredisPageInner() {
                 <h2 className="text-3xl font-black italic uppercase tracking-tighter" style={{ color: activeColor }}>
                   {matchdays[currentDayIndex].name}
                 </h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
-                  {matchdays[currentDayIndex].date_label}
-                </p>
+                {matchdays[currentDayIndex].date_label && matchdays[currentDayIndex].date_label !== matchdays[currentDayIndex].name && (
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+                    {matchdays[currentDayIndex].date_label}
+                  </p>
+                )}
               </div>
 
               {/* Matches */}

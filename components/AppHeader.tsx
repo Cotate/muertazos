@@ -406,9 +406,9 @@ export default function AppHeader({
       <header className="w-full h-16 shrink-0 flex items-center justify-between px-4 bg-slate-950/80 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
         <div className="w-24 md:w-32" />
         <div className="flex items-center gap-1">
-          <div className="relative w-36 h-10">
+          <a href="https://t.co/bfHjPcIZRZ" target="_blank" rel="noopener noreferrer" className="relative w-36 h-10 block">
             <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
-          </div>
+          </a>
         </div>
         <div className="w-24 md:w-32 flex justify-end">
           {onLoginClick && (
@@ -453,14 +453,16 @@ export default function AppHeader({
           </button>
         )}
 
-        <Link
-          href="/"
+        <a
+          href="https://t.co/bfHjPcIZRZ"
+          target="_blank"
+          rel="noopener noreferrer"
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 hover:scale-105 transition-transform duration-200"
         >
           <div className="relative w-28 h-9">
             <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
           </div>
-        </Link>
+        </a>
 
         <div className="w-10" />
       </header>
@@ -472,9 +474,9 @@ export default function AppHeader({
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#070b12] border-r border-slate-800 flex flex-col shadow-2xl">
 
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
-              <div className="relative w-28 h-9">
+              <a href="https://t.co/bfHjPcIZRZ" target="_blank" rel="noopener noreferrer" className="relative w-28 h-9 block">
                 <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" />
-              </div>
+              </a>
               <button
                 onClick={close}
                 className="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
