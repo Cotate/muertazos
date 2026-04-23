@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { Globe, BarChart3, LayoutGrid } from 'lucide-react'
+import { Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCompFolder, getLogoSize, getTeamLogoPath, getTeamLogoPathEncoded } from '@/lib/utils'
 
@@ -43,7 +43,6 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
   const [activeMatchdayId, setActiveMatchdayId] = useState<number | null>(null)
   const [teams, setTeams] = useState<any[]>([])
   const [scores, setScores] = useState<Record<number, { hg: string; ag: string; penaltyWinnerId: number | null }>>({})
-  const [showGeneralTable, setShowGeneralTable] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [loading, setLoading] = useState(true)
   const shareTicketRef = useRef<HTMLDivElement>(null)
@@ -79,7 +78,6 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
       setTeams([])
       setScores({})
       setActiveMatchdayId(null)
-      setShowGeneralTable(false)
 
       const [{ data: tData }, { data: mData }, { data: rData }] = await Promise.all([
         supabase.from('teams').select('*').eq('competition_key', compKey).eq('country', splitCountry),
@@ -292,25 +290,6 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
                 >{label}</button>
               )
             })}
-            {compKey === 'queens' && matchdays.length > 0 && (
-              <>
-                <div className="w-px h-4 bg-white/10 mx-1" />
-                <button
-                  onClick={() => setShowGeneralTable(v => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black italic uppercase tracking-tight transition-all ${
-                    showGeneralTable
-                      ? 'bg-[#01d6c3] text-black border-[#01d6c3]'
-                      : 'bg-transparent text-slate-400 border-slate-700 hover:text-white hover:border-slate-500'
-                  }`}
-                >
-                  {showGeneralTable
-                    ? <LayoutGrid size={12} />
-                    : <BarChart3 size={12} />
-                  }
-                  {showGeneralTable ? 'Grupos' : 'Tabla General'}
-                </button>
-              </>
-            )}
           </div>
         </div>
 
@@ -452,84 +431,10 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
           </div>
 
           {/* Standings table */}
-          <div className={
-  compKey === 'queens' 
-    ? (showGeneralTable ? 'w-full max-w-[480px]' : 'w-full max-w-[700px]') 
-    : 'w-full xl:w-[480px]'
-}>
+          <div className={compKey === 'queens' ? 'w-full max-w-[700px]' : 'w-full xl:w-[480px]'}>
             {compKey === 'queens' ? (
-              showGeneralTable ? (
-                /* Queens: unified general classification */
-                <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
-                  <div className="px-3 py-2.5 flex items-center gap-2 bg-black/40 border-b border-white/5">
-                    <BarChart3 size={13} className="text-[#01d6c3]" />
-                    <span className="text-xs font-black uppercase tracking-widest text-[#01d6c3]">Tabla General</span>
-                  </div>
-                  <table className="w-full text-center text-sm">
-                    <thead>
-                      <tr className="bg-black/30 text-[9px] text-slate-400 font-black uppercase border-b border-white/5">
-                        <th className="py-2 w-6">#</th>
-                        <th className="py-2 text-left pl-2">Equipo</th>
-                        <th className="py-2 w-8">Grp</th>
-                        <th className="py-2 w-7">V</th>
-                        <th className="py-2 w-7">D</th>
-                        <th className="py-2 w-8">GF</th>
-                        <th className="py-2 w-8">GC</th>
-                        <th className="py-2 w-9 bg-white/5">DG</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings
-                        .filter(t => getQueensGroup(t.name) !== null)
-                        .map((t, idx) => {
-                          const grpLetter = getQueensGroup(t.name)
-                          const grpColor = QUEENS_GROUPS.find(g => g.letter === grpLetter)?.color ?? '#ffffff'
-                          const groupRank = groupRankMap.get(t.id) ?? 99
-                          const accentColor = groupRank === 1 ? '#FFD300' : groupRank === 2 ? '#3b82f6' : groupRank === 3 ? '#f97316' : 'transparent'
-                          return (
-                            <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                              <td className="relative py-2.5 font-black text-[10px]">
-                                <div
-                                  className="absolute left-0 top-0 bottom-0 w-1"
-                                  style={{ backgroundColor: accentColor, opacity: accentColor === 'transparent' ? 0 : 0.9 }}
-                                />
-                                {idx + 1}
-                              </td>
-                              <td className="py-2.5 pl-2 text-left">
-                                <div className="flex items-center gap-2">
-                                  <Image
-                                    src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)}
-                                    width={22} height={22}
-                                    alt={t.name}
-                                    className="object-contain shrink-0"
-                                    onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
-                                  />
-                                  <span className="text-[10px] font-bold uppercase truncate max-w-[120px]">{t.name}</span>
-                                </div>
-                              </td>
-                              <td className="py-2.5">
-                                <span
-                                  className="inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-black text-black"
-                                  style={{ backgroundColor: grpColor }}
-                                >{grpLetter}</span>
-                              </td>
-                              <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
-                              <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
-                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
-                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                              <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
-                            </tr>
-                          )
-                        })}
-                      {standings.filter(t => getQueensGroup(t.name) !== null).length === 0 && (
-                        <tr><td colSpan={8} className="py-3 text-slate-700 text-[10px] italic">Sin datos</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                /* Queens: 4 groups in 2x2 grid on large screens */
-                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+              /* Queens: 4 groups in 2x2 grid on large screens */
+              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
                   {QUEENS_GROUPS.map(group => {
                     const groupTeams = standings.filter(t => getQueensGroup(t.name) === group.letter)
                     return (
@@ -592,7 +497,6 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
                     )
                   })}
                 </div>
-              )
             ) : (
               /* Kings: single standings table */
               <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl scroll-x-dark">

@@ -453,16 +453,14 @@ export default function AppHeader({
           </button>
         )}
 
-        <a
-          href="https://polymarket.com?via=muertazos"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/"
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 hover:scale-105 transition-transform duration-200"
         >
           <div className="relative w-28 h-9">
             <Image src="/MUERTAZOS ESTRUCTURA/Muertazos.webp" alt="Muertazos" fill className="object-contain" priority />
           </div>
-        </a>
+        </Link>
 
         <div className="w-10" />
       </header>

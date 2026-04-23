@@ -342,7 +342,38 @@ function PredisPageInner() {
         backTo="/"
       />
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-8 pb-10">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-10">
+
+        {/* Country / league selector — always visible */}
+        <div className="flex gap-2 mb-5 flex-wrap">
+          {[
+            { label: 'España',  league: 'kings' as const,  country: 'spain'  as Country, dot: '#c60b1e' },
+            { label: 'México',  league: 'kings' as const,  country: 'mexico' as Country, dot: '#006847' },
+            { label: 'Brasil',  league: 'kings' as const,  country: 'brazil' as Country, dot: '#009c3b' },
+            { label: 'Queens',  league: 'queens' as const, country: 'spain'  as Country, dot: null     },
+          ].map(item => {
+            const isActive = league === item.league && effectiveCountry === item.country
+            const color = item.league === 'queens' ? '#01d6c3' : '#FFD300'
+            return (
+              <a
+                key={item.label}
+                href={`/predis?league=${item.league}&country=${item.country}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black italic uppercase tracking-tight transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'text-black border-transparent'
+                    : 'bg-transparent text-slate-500 border-slate-700 hover:text-white hover:border-slate-500'
+                }`}
+                style={isActive ? { backgroundColor: color, borderColor: color } : {}}
+              >
+                {item.dot
+                  ? <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: isActive ? 'rgba(0,0,0,0.35)' : item.dot }} />
+                  : <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke={isActive ? 'rgba(0,0,0,0.6)' : '#01d6c3'} strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                }
+                {item.label}
+              </a>
+            )
+          })}
+        </div>
 
         {/* Multipredis trigger */}
         {matchdays.length > 0 && !isLocked && (
