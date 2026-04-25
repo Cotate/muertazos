@@ -47,6 +47,7 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
   const [loading, setLoading] = useState(true)
   const shareTicketRef = useRef<HTMLDivElement>(null)
   const [simUser, setSimUser] = useState<{ username: string } | null>(null)
+  const [queensViewMode, setQueensViewMode] = useState<'groups' | 'general'>('groups')
 
   useEffect(() => {
     try {
@@ -431,72 +432,157 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
           </div>
 
           {/* Standings table */}
-          <div className={compKey === 'queens' ? 'w-full max-w-[700px]' : 'w-full xl:w-[480px]'}>
+          <div className={compKey === 'queens' ? (queensViewMode === 'general' ? 'w-full max-w-[450px]' : 'w-full max-w-[700px]') : 'w-full xl:w-[480px]'}>
             {compKey === 'queens' ? (
-              /* Queens: 4 groups in 2x2 grid on large screens */
-              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
-                  {QUEENS_GROUPS.map(group => {
-                    const groupTeams = standings.filter(t => getQueensGroup(t.name) === group.letter)
-                    return (
-                      <div key={group.letter} className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
-                        <div
-                          className="px-3 py-2 text-xs font-black uppercase tracking-widest text-black"
-                          style={{ backgroundColor: group.color }}
-                        >
-                          Grupo {group.letter}
-                        </div>
-                        <table className="w-full text-center text-sm">
-                          <thead>
-                            <tr className="bg-black/40 text-[9px] text-slate-400 font-black uppercase border-b border-white/5">
-                              <th className="py-2 w-6">#</th>
-                              <th className="py-2 text-left pl-2">Equipo</th>
-                              <th className="py-2 w-7">V</th>
-                              <th className="py-2 w-7">D</th>
-                              <th className="py-2 w-8">GF</th>
-                              <th className="py-2 w-8">GC</th>
-                              <th className="py-2 w-9 bg-white/5">DG</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {groupTeams.map((t, idx) => {
-                              const accentColor = idx === 0 ? '#FFD300' : idx === 1 ? '#3b82f6' : idx === 2 ? '#f97316' : 'transparent'
-                              return (
-                              <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                                <td className="relative py-2.5 font-black text-[10px]">
-                                  <div
-                                    className="absolute left-0 top-0 bottom-0 w-1"
-                                    style={{ backgroundColor: accentColor, opacity: accentColor === 'transparent' ? 0 : 0.9 }}
-                                  />
-                                  {idx + 1}
-                                </td>
-                                <td className="py-2.5 pl-2 text-left">
-                                  <div className="flex items-center gap-2">
-                                    <Image
-                                      src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)}
-                                      width={22} height={22}
-                                      alt={t.name}
-                                      className="object-contain shrink-0"
-                                      onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
-                                    />
-                                    <span className="text-[10px] font-bold uppercase truncate max-w-[120px]">{t.name}</span>
-                                  </div>
-                                </td>
-                                <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
-                                <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
-                                <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
-                                <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
-                                <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
-                              </tr>
-                            )})}
-                            {groupTeams.length === 0 && (
-                              <tr><td colSpan={7} className="py-3 text-slate-700 text-[10px] italic">Sin datos</td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    )
-                  })}
+              /* Queens: groups or general table toggle */
+              <div className="flex flex-col gap-4">
+                {/* View toggle */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setQueensViewMode('groups')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${queensViewMode === 'groups' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+                  >Grupos</button>
+                  <button
+                    onClick={() => setQueensViewMode('general')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-black italic uppercase border transition-colors ${queensViewMode === 'general' ? 'bg-[#01d6c3] text-black border-[#01d6c3]' : 'bg-transparent text-slate-500 border-slate-700 hover:text-white'}`}
+                  >Tabla General</button>
                 </div>
+
+                {queensViewMode === 'groups' ? (
+                  /* 4 groups in 2x2 grid */
+                  <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+                    {QUEENS_GROUPS.map(group => {
+                      const groupTeams = standings.filter(t => getQueensGroup(t.name) === group.letter)
+                      return (
+                        <div key={group.letter} className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden">
+                          <div
+                            className="px-3 py-2 text-xs font-black uppercase tracking-widest text-black"
+                            style={{ backgroundColor: group.color }}
+                          >
+                            Grupo {group.letter}
+                          </div>
+                          <table className="w-full text-center text-sm">
+                            <thead>
+                              <tr className="bg-black/40 text-[9px] text-slate-400 font-black uppercase border-b border-white/5">
+                                <th className="py-2 w-4">#</th>
+                                <th className="py-2 text-left pl-2">Equipo</th>
+                                <th className="py-2 w-7">V</th>
+                                <th className="py-2 w-7">D</th>
+                                <th className="py-2 w-8">GF</th>
+                                <th className="py-2 w-8">GC</th>
+                                <th className="py-2 w-9 bg-white/5">DG</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {groupTeams.map((t, idx) => {
+                                const accentColor = idx === 0 ? '#FFD300' : idx === 1 ? '#3b82f6' : idx === 2 ? '#f97316' : 'transparent'
+                                return (
+                                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                                    <td className="relative py-2.5 font-black text-[10px]">
+                                      <div
+                                        className="absolute left-0 top-0 bottom-0 w-1"
+                                        style={{ backgroundColor: accentColor, opacity: accentColor === 'transparent' ? 0 : 0.9 }}
+                                      />
+                                      {idx + 1}
+                                    </td>
+                                    <td className="py-2.5 pl-2 text-left">
+                                      <div className="flex items-center gap-2">
+                                        <Image
+                                          src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)}
+                                          width={22} height={22}
+                                          alt={t.name}
+                                          className="object-contain shrink-0"
+                                          onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
+                                        />
+                                        <span className="text-[10px] font-bold uppercase truncate max-w-[120px]">{t.name}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 font-black text-green-400 text-xs">{t.w}</td>
+                                    <td className="py-2.5 font-black text-red-400 text-xs">{t.l}</td>
+                                    <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
+                                    <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
+                                    <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                                  </tr>
+                                )
+                              })}
+                              {groupTeams.length === 0 && (
+                                <tr><td colSpan={7} className="py-3 text-slate-700 text-[10px] italic">Sin datos</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  /* Tabla General: all teams from all groups sorted globally */
+                  <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl scroll-x-dark">
+                    <table className="w-full text-center text-sm min-w-[360px]">
+                      <thead>
+                        <tr className="bg-black/40 text-[10px] text-slate-400 font-black uppercase border-b border-white/5">
+                          <th className="py-3 w-8">#</th>
+                          <th className="py-2 text-left pl-2">Equipo</th>
+                          <th className="py-3 w-8">Grupo</th>
+                          <th className="py-3 w-14">V-D</th>
+                          <th className="py-3 w-8">GF</th>
+                          <th className="py-3 w-8">GC</th>
+                          <th className="py-3 w-10 bg-white/5">DG</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standings.map((t, idx) => {
+                          const group = getQueensGroup(t.name)
+                          const groupRank = groupRankMap.get(t.id) ?? 0
+                          const groupColor = QUEENS_GROUPS.find(g => g.letter === group)?.color ?? 'transparent'
+                          const rankColor = groupRank === 1 ? '#FFD300' : groupRank === 2 ? '#3b82f6' : groupRank === 3 ? '#f97316' : 'transparent'
+                          return (
+                            <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                              <td className="relative py-2.5 font-black text-[10px]">
+                                <div
+                                  className="absolute left-0 top-0 bottom-0 w-1"
+                                  style={{ backgroundColor: rankColor, opacity: rankColor === 'transparent' ? 0 : 0.9 }}
+                                />
+                                {idx + 1}
+                              </td>
+                              <td className="py-2.5 pl-2 text-left">
+                                <div className="flex items-center gap-2">
+                                  <Image
+                                    src={getTeamLogoPath(compKey, t.logo_file, t.country ?? splitCountry)}
+                                    width={22} height={22}
+                                    alt={t.name}
+                                    className="object-contain shrink-0"
+                                    onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }}
+                                  />
+                                  <span className="text-[10px] font-bold uppercase truncate max-w-[110px]">{t.name}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5">
+                                <span
+                                  className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded"
+                                  style={{ color: groupColor, backgroundColor: groupColor + '22', border: `1px solid ${groupColor}55` }}
+                                >
+                                  {group ?? '—'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 text-xs font-black">
+                                <span className="text-green-400">{t.w}</span>
+                                <span className="text-slate-600 mx-0.5">-</span>
+                                <span className="text-red-400">{t.l}</span>
+                              </td>
+                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gf}</td>
+                              <td className="py-2.5 font-bold text-slate-400 text-[10px]">{t.gc}</td>
+                              <td className="py-2.5 font-black text-white text-xs bg-white/5">{t.dg > 0 ? `+${t.dg}` : t.dg}</td>
+                            </tr>
+                          )
+                        })}
+                        {standings.length === 0 && (
+                          <tr><td colSpan={7} className="py-3 text-slate-700 text-[10px] italic">Sin datos</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             ) : (
               /* Kings: single standings table */
               <div className="bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden shadow-2xl scroll-x-dark">

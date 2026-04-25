@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getTeamLogoPath, type Country } from '@/lib/utils'
 import {
@@ -81,6 +82,7 @@ export default function AdminPlayerRoster({
   const [newPlayerName, setNewPlayerName] = useState('')
   const [addingPlayer, setAddingPlayer] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const accentColor    = competitionKey === 'queens' ? '#01d6c3' : '#FFD300'
   const jugadoresLabel = competitionKey === 'queens' ? 'Jugadoras' : 'Jugadores'
@@ -233,6 +235,34 @@ export default function AdminPlayerRoster({
     setReloadKey(k => k + 1)
   }
 
+  // ── Delete player ──────────────────────────────────────────────────────────
+  const deletePlayer = async (playerId: number) => {
+    const toRestore = players.find(p => p.id === playerId)
+    setPlayers(prev => prev.filter(p => p.id !== playerId))
+    setDeletingId(playerId)
+    const { error } = await supabase.from('players').delete().eq('id', playerId)
+    setDeletingId(null)
+    if (error) {
+      setToggleError(error.message || JSON.stringify(error))
+      if (toRestore) setPlayers(prev => [...prev, toRestore].sort((a, b) => a.name.localeCompare(b.name)))
+    }
+  }
+
+  // ── Desmarcar todos ─────────────────────────────────────────────────────────
+  const desmarcarTodos = async () => {
+    if (!players.length) return
+    const ids = players.map(p => p.id)
+    setPlayers(prev => prev.map(p => ({ ...p, lesion: false, tarjeta: false, wildcard: false, convocado: false })))
+    const { error } = await supabase
+      .from('players')
+      .update({ lesion: false, tarjeta: false, wildcard: false, convocado: false })
+      .in('id', ids)
+    if (error) {
+      setToggleError(error.message || JSON.stringify(error))
+      setReloadKey(k => k + 1)
+    }
+  }
+
   // ── Optimistic toggle ───────────────────────────────────────────────────────
   const toggleStatus = async (playerId: number, field: StatusField, currentVal: boolean) => {
     const newVal = !currentVal
@@ -355,6 +385,15 @@ export default function AdminPlayerRoster({
               </span>
             )}
 
+            {players.length > 0 && (
+              <button
+                onClick={desmarcarTodos}
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wide transition-all border border-slate-700 hover:border-red-500/40 text-slate-500 hover:text-red-400 hover:bg-red-500/[0.07]"
+              >
+                Desmarcar Todos
+              </button>
+            )}
+
             {/* Import button — only shown when table is empty and hardcoded data exists */}
             {!loading && players.length === 0 && hasHardcoded && (
               <button
@@ -434,6 +473,9 @@ export default function AdminPlayerRoster({
                         {s.label}
                       </th>
                     ))}
+                    <th className="px-2 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600 text-center">
+                      Acción
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/40">
@@ -463,6 +505,20 @@ export default function AdminPlayerRoster({
                           </td>
                         )
                       })}
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          onClick={() => deletePlayer(player.id)}
+                          disabled={deletingId === player.id}
+                          title="Eliminar jugador"
+                          className="w-6 h-6 flex items-center justify-center rounded transition-all text-slate-700 hover:text-red-500 hover:bg-red-500/10 disabled:opacity-50 mx-auto"
+                        >
+                          {deletingId === player.id ? (
+                            <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin inline-block" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
