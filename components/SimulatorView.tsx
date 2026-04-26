@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCompFolder, getLogoSize, getTeamLogoPath, getTeamLogoPathEncoded } from '@/lib/utils'
+import { calculateKingsRanking } from '@/lib/rankingUtils'
 
 type SplitKey = 'spain' | 'brazil' | 'mexico'
 
@@ -208,26 +209,7 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
     }
   }
 
-  const standings = teams
-    .map(team => {
-      let w = 0, l = 0, gf = 0, gc = 0
-      matchdays.forEach(md => {
-        md.matches?.forEach((m: any) => {
-          const s = scores[m.id]
-          if (!s || s.hg === '' || s.ag === '') return
-          const hG = parseInt(s.hg), aG = parseInt(s.ag)
-          if (m.home_team_id === team.id) {
-            gf += hG; gc += aG
-            if (hG > aG || (hG === aG && s.penaltyWinnerId === m.home_team_id)) w++; else l++
-          } else if (m.away_team_id === team.id) {
-            gf += aG; gc += hG
-            if (aG > hG || (aG === hG && s.penaltyWinnerId === m.away_team_id)) w++; else l++
-          }
-        })
-      })
-      return { ...team, w, l, gf, gc, dg: gf - gc }
-    })
-    .sort((a, b) => b.w - a.w || b.dg - a.dg || b.gf - a.gf)
+  const standings = calculateKingsRanking(teams, matchdays, scores)
 
   // Map each team to its rank within its own group (1-based)
   const groupRankMap = new Map<number, number>()

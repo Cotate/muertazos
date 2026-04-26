@@ -21,7 +21,8 @@
       "Bash(xargs grep *)",
       "Bash(git log *)",
       "Bash(xargs wc *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(grep *)"
     ]
   },
   "enableAllProjectMcpServers": true,
