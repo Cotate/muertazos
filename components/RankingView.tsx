@@ -46,30 +46,96 @@ export default function RankingView({ currentUser }: Props) {
         return
       }
 
-      let { data: appUsers, error: usersErr } = await supabase
-        .from('app_users')
-        .select('id, username, favorite_team:favorite_team_id(logo_file, competition_key, country)')
-        .neq('role', 'admin')
+      const dayIds = lockedDays.map(d => d.id)
 
-      if (usersErr) {
+      // Fetch users and matches concurrently.
+      // Matches need winner_team_id so we can compute points directly from predictions
+      // instead of relying on the user_points table (which can be stale if a winner changes).
+      const [usersResult, matchesResult] = await Promise.all([
+        supabase
+          .from('app_users')
+          .select('id, username, favorite_team:favorite_team_id(logo_file, competition_key, country)')
+          .neq('role', 'admin'),
+        supabase
+          .from('matches')
+          .select('id, matchday_id, winner_team_id')
+          .in('matchday_id', dayIds),
+      ])
+
+      let appUsers = usersResult.data
+      if (usersResult.error) {
         const { data: fallback } = await supabase.from('app_users').select('id, username').neq('role', 'admin')
         appUsers = fallback as typeof appUsers
       }
 
-      const { data: pointsData } = await supabase
-        .from('user_points')
-        .select('user_id, matchday_id, points')
-        .in('matchday_id', lockedDays.map(d => d.id))
+      const matchesData = matchesResult.data ?? []
+
+      // match_id → matchday_id and match_id → winner_team_id
+      const matchToDay: Record<number, number> = {}
+      const winnerByMatch: Record<number, number | null> = {}
+      for (const m of matchesData) {
+        matchToDay[m.id] = m.matchday_id
+        winnerByMatch[m.id] = m.winner_team_id ?? null
+      }
+      const allMatchIds = Object.keys(matchToDay).map(Number)
+
+      // Paginate predictions — the single source of truth for both participation and points.
+      // Supabase silently caps results at max_rows; advance by page.length so any cap is handled.
+      const PAGE_SIZE = 1000
+      const fetchPredsPages = async () => {
+        if (allMatchIds.length === 0) {
+          return [] as { user_id: string; match_id: number; predicted_team_id: number }[]
+        }
+        const all: { user_id: string; match_id: number; predicted_team_id: number }[] = []
+        let offset = 0
+        while (true) {
+          const { data: page } = await supabase
+            .from('predictions')
+            .select('user_id, match_id, predicted_team_id')
+            .in('match_id', allMatchIds)
+            .range(offset, offset + PAGE_SIZE - 1)
+          if (!page || page.length === 0) break
+          all.push(...page)
+          offset += page.length
+        }
+        return all
+      }
+
+      const allPreds = await fetchPredsPages()
+
+      // Build per-(user, matchday) aggregates in a single pass:
+      //   predCount  — how many predictions the user submitted for this jornada
+      //   correctCount — how many of those matched the actual winner
+      const predCountByKey: Record<string, number> = {}
+      const correctByKey:   Record<string, number> = {}
+
+      for (const pred of allPreds) {
+        const matchdayId = matchToDay[pred.match_id]
+        if (matchdayId == null) continue
+        const key = `${pred.user_id}-${matchdayId}`
+        predCountByKey[key] = (predCountByKey[key] ?? 0) + 1
+        const winner = winnerByMatch[pred.match_id]
+        // Use == so string/number coercion is handled (same pattern as admin picks view)
+        if (winner != null && pred.predicted_team_id == winner) {
+          correctByKey[key] = (correctByKey[key] ?? 0) + 1
+        }
+      }
 
       if (!appUsers) { setLoading(false); return }
 
       const userScores = appUsers.map(u => {
         let total = 0
         const dayBreakdown: Record<number, number> = {}
-        pointsData?.filter(p => p.user_id === u.id).forEach(p => {
-          dayBreakdown[p.matchday_id] = p.points
-          total += p.points
-        })
+        for (const day of lockedDays) {
+          const key = `${u.id}-${day.id}`
+          if ((predCountByKey[key] ?? 0) > 0) {
+            // User participated: show their correct-prediction count (may be 0)
+            const correct = correctByKey[key] ?? 0
+            dayBreakdown[day.id] = correct
+            total += correct
+          }
+          // predCount === 0: leave dayBreakdown[day.id] undefined → red dash in UI
+        }
         const ft = u.favorite_team
         const favoriteTeam = ft ? (Array.isArray(ft) ? ft[0] : ft) : null
         return { username: u.username, total, dayBreakdown, favoriteTeam }
@@ -220,7 +286,7 @@ export default function RankingView({ currentUser }: Props) {
                           style={{ backgroundColor: getMatchdayBg(day) }}
                         >
                           {u.dayBreakdown[day.id] !== undefined ? (
-                            <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-200' : 'text-slate-700'}>
+                            <span className={u.dayBreakdown[day.id] > 0 ? 'text-slate-100' : 'text-slate-300'}>
                               {u.dayBreakdown[day.id]}
                             </span>
                           ) : (
