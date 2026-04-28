@@ -252,10 +252,10 @@ export default function AdminPlayerRoster({
   const desmarcarTodos = async () => {
     if (!players.length) return
     const ids = players.map(p => p.id)
-    setPlayers(prev => prev.map(p => ({ ...p, lesion: false, tarjeta: false, wildcard: false, convocado: false })))
+    setPlayers(prev => prev.map(p => ({ ...p, convocado: false })))
     const { error } = await supabase
       .from('players')
-      .update({ lesion: false, tarjeta: false, wildcard: false, convocado: false })
+      .update({ convocado: false })
       .in('id', ids)
     if (error) {
       setToggleError(error.message || JSON.stringify(error))
