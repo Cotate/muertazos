@@ -224,9 +224,13 @@ export default function SimulatorView({ isAdmin = false, initialCountry, initial
     setIsSharing(true)
     try {
       const { captureAndDownload } = await import('@/lib/captureTicket')
+      const COUNTRY_ABBR: Record<string, string> = { spain: 'Esp', brazil: 'Bra', mexico: 'Mex' }
+      const compPart = compKey === 'queens'
+        ? 'SimQ'
+        : `SimK${COUNTRY_ABBR[splitCountry] ?? 'Esp'}`
       await captureAndDownload(
         shareTicketRef.current,
-        `simulador-${simUser?.username || 'muertazos'}.webp`
+        `${compPart}_${simUser?.username || 'muertazos'}.webp`
       )
     } catch (err) {
       console.error('[Simulator] Share failed:', err)

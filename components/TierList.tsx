@@ -101,9 +101,13 @@ export default function TierList({ user }: TierListProps) {
     setIsSharing(true)
     try {
       const { captureAndDownload } = await import('@/lib/captureTicket')
+      const COUNTRY_ABBR: Record<string, string> = { spain: 'Esp', brazil: 'Bra', mexico: 'Mex' }
+      const compPart = comp === 'queens'
+        ? 'TierQ'
+        : `TierK${COUNTRY_ABBR[country] ?? 'Esp'}`
       await captureAndDownload(
         shareTicketRef.current,
-        `tierlist-${user?.username || 'muertazos'}.webp`
+        `${compPart}_${user?.username || 'muertazos'}.webp`
       )
     } catch (err) {
       console.error('[TierList] Share failed:', err)

@@ -149,12 +149,18 @@ function PredisPageInner() {
     }
   }
 
+  const COUNTRY_ABBR: Record<string, string> = { spain: 'Esp', brazil: 'Bra', mexico: 'Mex' }
+
   const handleShare = async () => {
     if (!shareTicketRef.current || isGenerating) return
     setIsGenerating(true)
     try {
       const { captureAndDownload } = await import('@/lib/captureTicket')
-      await captureAndDownload(shareTicketRef.current, `predis-${user?.username || 'muertazos'}.webp`)
+      const jornada = matchdays[currentDayIndex]?.display_order ?? 1
+      const compPart = league === 'queens'
+        ? `PredsQJ${jornada}`
+        : `PredsJ${jornada}${COUNTRY_ABBR[effectiveCountry] ?? 'Esp'}`
+      await captureAndDownload(shareTicketRef.current, `${compPart}_${user?.username || 'muertazos'}.webp`)
     } catch (err) { console.error('[Predis] Share failed:', err) }
     finally { setIsGenerating(false) }
   }
@@ -164,7 +170,11 @@ function PredisPageInner() {
     setIsGenerating(true)
     try {
       const { captureAndDownload } = await import('@/lib/captureTicket')
-      await captureAndDownload(multiCaptureBoardRef.current, 'predis-multijugador.webp')
+      const jornada = matchdays[currentDayIndex]?.display_order ?? 1
+      const compPart = league === 'queens'
+        ? `PredsMultiQJ${jornada}`
+        : `PredsMultiJ${jornada}${COUNTRY_ABBR[effectiveCountry] ?? 'Esp'}`
+      await captureAndDownload(multiCaptureBoardRef.current, `${compPart}.webp`)
     } catch (err) { console.error('[Predis] Multi-share failed:', err) }
     finally { setIsGenerating(false) }
   }

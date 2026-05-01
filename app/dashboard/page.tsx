@@ -123,9 +123,15 @@ function UserDashboardInner() {
     setIsGenerating(true)
     try {
       const { captureAndDownload } = await import('@/lib/captureTicket')
+      const COUNTRY_ABBR: Record<string, string> = { spain: 'Esp', brazil: 'Bra', mexico: 'Mex' }
+      const eff = league === 'queens' ? 'spain' : country
+      const jornada = matchdays[currentDayIndex]?.display_order ?? 1
+      const compPart = league === 'queens'
+        ? `PicksQJ${jornada}`
+        : `PicksJ${jornada}${COUNTRY_ABBR[eff] ?? 'Esp'}`
       await captureAndDownload(
         shareTicketRef.current,
-        `picks-${user?.username || 'muertazos'}.webp`
+        `${compPart}_${user?.username || 'muertazos'}.webp`
       )
     } catch (err) {
       console.error('[Picks] Share failed:', err)

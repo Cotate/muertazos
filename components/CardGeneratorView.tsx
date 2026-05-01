@@ -266,9 +266,9 @@ export default function CardGeneratorView() {
     if (!previewUrl) return
     const a = document.createElement('a')
     a.href = previewUrl
-    a.download = `${(playerName.trim() || 'jugador').replace(/\s+/g, '_')}_card.webp`
+    a.download = playerFile?.name ?? `${playerName.trim() || 'jugador'}.webp`
     a.click()
-  }, [previewUrl, playerName])
+  }, [previewUrl, playerFile, playerName])
 
   return (
     <div className="max-w-5xl mx-auto px-4 pt-6 pb-10">
